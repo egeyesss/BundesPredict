@@ -1,0 +1,48 @@
+# One-command local stack: Postgres + FastAPI + Next.js.
+# Run from the repo root:  docker compose -f infra/docker-compose.yml up --build
+# (or add `COMPOSE_FILE=infra/docker-compose.yml` to your .env)
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bundespredict}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bundespredict}
+      POSTGRES_DB: ${POSTGRES_DB:-bundespredict}
+    # Host port is configurable to avoid clashing with a local Postgres on 5432.
+    # Containers reach the DB over the internal network as db:5432 regardless.
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bundespredict}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bundespredict}:${POSTGRES_PASSWORD:-bundespredict}@db:5432/${POSTGRES_DB:-bundespredict}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
