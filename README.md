@@ -52,9 +52,25 @@ cd apps/web && npm install && npm run dev   # web on :3000
 Season CSVs (results + bookmaker odds + match stats) from football-data.co.uk:
 
 ```bash
-python scripts/download_seasons.py --start 2019 --end 2023
+python scripts/download_seasons.py --start 2019 --end 2025
 # files land in data/raw/ (gitignored)
 ```
+
+Then create the schema and load the CSVs into Postgres (idempotent — safe to
+re-run, it upserts rather than duplicating):
+
+```bash
+alembic upgrade head                  # create the tables
+python -m bundespredict.data.ingest   # parse data/raw/*.csv -> Postgres
+```
+
+Both read `DATABASE_URL` (defaults to the local compose DB on :5433). Team names
+get normalized to canonical (Transfermarkt-style) names via the alias map in
+`src/bundespredict/data/team_aliases.py`; an unknown club fails loudly at ingest
+instead of silently creating a duplicate.
+
+Poke around the data in `notebooks/eda.ipynb` (needs the `eda` extra:
+`pip install -e ".[eda]"`).
 
 ## Checks before pushing
 
@@ -65,7 +81,7 @@ cd apps/web && npx tsc --noEmit && npm run lint
 
 ## TODO (roughly, for me)
 
-- [ ] ingest the season CSVs into Postgres, sort out team-name mapping
+- [x] ingest the season CSVs into Postgres, sort out team-name mapping
 - [ ] fit the Poisson / Dixon–Coles model, turn it into match probabilities
 - [ ] calibration + backtest against bookmaker odds
 - [ ] the LLM adjustment layer + chat UI
