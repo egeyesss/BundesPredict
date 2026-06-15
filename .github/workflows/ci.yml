@@ -15,7 +15,9 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install
-        run: pip install -e ".[dev]"
+        # [model] is now needed too: the engine (numpy/scipy) and its tests are
+        # part of the checked surface for mypy and pytest.
+        run: pip install -e ".[dev,model]"
       - name: Lint (ruff)
         run: ruff check .
       - name: Format check (ruff)

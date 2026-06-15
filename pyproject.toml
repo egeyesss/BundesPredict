@@ -66,8 +66,8 @@ files = ["src", "apps/api", "tests"]
 # numpy/scipy/pandas types get added once those are in use; nothing imports them yet.
 
 [[tool.mypy.overrides]]
-# testcontainers ships no type stubs.
-module = ["testcontainers.*"]
+# These ship no type stubs (scipy/sklearn) or none we want to depend on.
+module = ["testcontainers.*", "scipy.*", "sklearn.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
