@@ -41,6 +41,9 @@ def test_played_row_fields_are_coerced(rows: list[MatchRow]) -> None:
     assert row.away_corners == 4
     assert row.b365_home == pytest.approx(1.50)
     assert row.avg_away == pytest.approx(5.80)
+    # Closing line is parsed off the "C"-suffixed columns, distinct from the open.
+    assert row.b365c_home == pytest.approx(1.45)
+    assert row.avgc_away == pytest.approx(6.20)
 
 
 def test_blank_optional_fields_become_none(rows: list[MatchRow]) -> None:
@@ -52,6 +55,8 @@ def test_blank_optional_fields_become_none(rows: list[MatchRow]) -> None:
     assert row.home_yellows is None
     assert row.b365_home is None
     assert row.avg_draw is None
+    assert row.b365c_home is None
+    assert row.avgc_draw is None
     assert row.htr == "A"
 
 

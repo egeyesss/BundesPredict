@@ -1,4 +1,4 @@
-Div,Date,Time,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HTHG,HTAG,HTR,HS,AS,HST,AST,HF,AF,HC,AC,HY,AY,HR,AR,B365H,B365D,B365A,AvgH,AvgD,AvgA
-D1,18/08/2023,19:30,Dortmund,FC Koln,2,1,H,1,0,H,15,8,6,3,10,12,7,4,2,3,0,0,1.50,4.50,6.00,1.55,4.40,5.80
-D1,19/08/2023,15:30,Bayern Munich,Leverkusen,3,3,D,1,2,A,,,,,,,,,,,,,,,,,,,
-D1,20/08/2023,15:30,Mainz,Freiburg,,,,,,,,,,,,,,,,,,,,,,,,,
+Div,Date,Time,HomeTeam,AwayTeam,FTHG,FTAG,FTR,HTHG,HTAG,HTR,HS,AS,HST,AST,HF,AF,HC,AC,HY,AY,HR,AR,B365H,B365D,B365A,AvgH,AvgD,AvgA,B365CH,B365CD,B365CA,AvgCH,AvgCD,AvgCA
+D1,18/08/2023,19:30,Dortmund,FC Koln,2,1,H,1,0,H,15,8,6,3,10,12,7,4,2,3,0,0,1.50,4.50,6.00,1.55,4.40,5.80,1.45,4.60,6.50,1.50,4.50,6.20
+D1,19/08/2023,15:30,Bayern Munich,Leverkusen,3,3,D,1,2,A,,,,,,,,,,,,,,,,,,,,,,,,,
+D1,20/08/2023,15:30,Mainz,Freiburg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

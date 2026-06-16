@@ -69,6 +69,8 @@ def test_match_fields_persisted(session: Session) -> None:
     assert (match.home_goals, match.away_goals, match.ftr) == (2, 1, "H")
     assert match.home_shots == 15
     assert match.b365_home == pytest.approx(1.50)
+    assert match.b365c_home == pytest.approx(1.45)
+    assert match.avgc_away == pytest.approx(6.20)
 
 
 def test_reingest_is_idempotent(session: Session) -> None:
