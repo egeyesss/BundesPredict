@@ -1,4 +1,4 @@
-"""Postgres-backed fixtures for data-layer tests.
+"""Postgres-backed fixtures for DB-backed tests (data layer + eval).
 
 A real Postgres (via testcontainers) is spun up once per test session so the
 ingest path exercises actual ``ON CONFLICT`` upsert semantics, not a SQLite
@@ -42,4 +42,9 @@ def session(pg_engine: Engine) -> Iterator[Session]:
         yield sess
     # Reset state between tests; RESTART IDENTITY keeps row counts deterministic.
     with pg_engine.begin() as conn:
-        conn.execute(text("TRUNCATE matches, team_aliases, teams RESTART IDENTITY CASCADE"))
+        conn.execute(
+            text(
+                "TRUNCATE team_params, model_runs, matches, team_aliases, teams "
+                "RESTART IDENTITY CASCADE"
+            )
+        )

@@ -57,6 +57,13 @@ class MatchRow:
     avg_home: float | None
     avg_draw: float | None
     avg_away: float | None
+    # Closing 1X2 odds (football-data "C" suffix) — the line just before kickoff.
+    b365c_home: float | None
+    b365c_draw: float | None
+    b365c_away: float | None
+    avgc_home: float | None
+    avgc_draw: float | None
+    avgc_away: float | None
 
 
 def season_from_path(path: Path) -> str:
@@ -145,6 +152,12 @@ def parse_match_csv(path: Path) -> list[MatchRow]:
                     avg_home=_opt_float(record.get("AvgH")),
                     avg_draw=_opt_float(record.get("AvgD")),
                     avg_away=_opt_float(record.get("AvgA")),
+                    b365c_home=_opt_float(record.get("B365CH")),
+                    b365c_draw=_opt_float(record.get("B365CD")),
+                    b365c_away=_opt_float(record.get("B365CA")),
+                    avgc_home=_opt_float(record.get("AvgCH")),
+                    avgc_draw=_opt_float(record.get("AvgCD")),
+                    avgc_away=_opt_float(record.get("AvgCA")),
                 )
             )
 
