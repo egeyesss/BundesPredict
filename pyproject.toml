@@ -42,6 +42,11 @@ eda = [
     "jupyterlab>=4.0",
     "nbconvert>=7.0",
 ]
+# Plotting for the offline backtest report (scripts/run_backtest.py). The pure
+# eval library never imports matplotlib; only the report script does.
+report = [
+    "matplotlib>=3.8",
+]
 
 [tool.setuptools.packages.find]
 # Two source roots: the pure model/data/agent/eval library, and the FastAPI app.
