@@ -1,7 +1,7 @@
 """FastAPI entrypoint.
 
-For now just a health check and CORS so the frontend can reach the API. The
-prediction endpoints and chat streaming come later.
+A health check plus the prediction endpoint (the agent + engine behind HTTP).
+Token/tool streaming over SSE comes with the chat UI.
 """
 
 from __future__ import annotations
@@ -12,6 +12,8 @@ from pydantic import BaseModel
 
 from bundespredict import __version__
 
+from . import predict
+
 app = FastAPI(title="BundesPredict API", version=__version__)
 
 # Dev-friendly CORS. Tighten to the deployed web origin before going public.
@@ -21,6 +23,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(predict.router)
 
 
 class Health(BaseModel):

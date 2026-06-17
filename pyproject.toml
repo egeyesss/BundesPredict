@@ -61,9 +61,9 @@ report = [
 where = ["src", "apps/api"]
 
 [tool.setuptools.package-data]
-# Ship the agent's magnitude knowledge base inside the wheel; it's read at
-# runtime via importlib.resources.
-"bundespredict.agent" = ["*.yaml"]
+# Ship the agent's knowledge base and seeded player data inside the wheel; both
+# are read at runtime via importlib.resources.
+"bundespredict.agent" = ["*.yaml", "*.json"]
 
 [tool.ruff]
 target-version = "py312"

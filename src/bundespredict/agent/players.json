@@ -1,0 +1,23 @@
+{
+  "note": "A small hand-seeded set of notable Bundesliga players so the lookup_player tool exists and the agent can ground a player's role/importance. This is a seed, not a roster: the real source (a cached Transfermarkt scrape) is deferred. Importance is a rough editorial call used only to bias an adjustment magnitude; it is not a rating.",
+  "players": [
+    {"name": "Harry Kane", "team": "Bayern München", "role": "striker", "is_penalty_taker": true, "importance": "high"},
+    {"name": "Jamal Musiala", "team": "Bayern München", "role": "attacking midfielder", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Joshua Kimmich", "team": "Bayern München", "role": "central midfielder", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Manuel Neuer", "team": "Bayern München", "role": "goalkeeper", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Alphonso Davies", "team": "Bayern München", "role": "left back", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Serhou Guirassy", "team": "Borussia Dortmund", "role": "striker", "is_penalty_taker": true, "importance": "high"},
+    {"name": "Julian Brandt", "team": "Borussia Dortmund", "role": "attacking midfielder", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Marcel Sabitzer", "team": "Borussia Dortmund", "role": "central midfielder", "is_penalty_taker": false, "importance": "medium"},
+    {"name": "Florian Wirtz", "team": "Bayer 04 Leverkusen", "role": "attacking midfielder", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Victor Boniface", "team": "Bayer 04 Leverkusen", "role": "striker", "is_penalty_taker": true, "importance": "high"},
+    {"name": "Granit Xhaka", "team": "Bayer 04 Leverkusen", "role": "central midfielder", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Xavi Simons", "team": "RB Leipzig", "role": "attacking midfielder", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Benjamin Šeško", "team": "RB Leipzig", "role": "striker", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Loïs Openda", "team": "RB Leipzig", "role": "striker", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Omar Marmoush", "team": "Eintracht Frankfurt", "role": "striker", "is_penalty_taker": true, "importance": "high"},
+    {"name": "Hugo Ekitike", "team": "Eintracht Frankfurt", "role": "striker", "is_penalty_taker": false, "importance": "high"},
+    {"name": "Deniz Undav", "team": "VfB Stuttgart", "role": "striker", "is_penalty_taker": true, "importance": "high"},
+    {"name": "Maximilian Beier", "team": "Borussia Dortmund", "role": "striker", "is_penalty_taker": false, "importance": "medium"}
+  ]
+}

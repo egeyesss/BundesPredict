@@ -14,8 +14,9 @@ strings.
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
 
-from sqlalchemy import ForeignKey, UniqueConstraint, func
+from sqlalchemy import JSON, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -153,3 +154,47 @@ class TeamParam(Base):
     defense: Mapped[float]
 
     model_run: Mapped[ModelRun] = relationship(back_populates="team_params")
+
+
+class Prediction(Base):
+    """One agent answer, persisted so every response is auditable.
+
+    The served distribution is what the user saw; the ``base_*`` columns keep the
+    pre-adjustment baseline so the UI can show baseline-vs-adjusted side by side
+    and a reviewer can see exactly what the context changed. ``adjustments_json``
+    is the list of applied :class:`~bundespredict.agent.adjustments.Adjustment`s
+    (with their effective, clamped magnitudes) — the "show your work" record that
+    makes the agent layer transparent rather than a black box.
+
+    ``model_run_id`` ties the prediction back to the exact fitted parameters that
+    produced it, so an answer stays reproducible even after the model is refit.
+    """
+
+    __tablename__ = "predictions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    model_run_id: Mapped[int] = mapped_column(ForeignKey("model_runs.id"), index=True)
+    home_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
+    away_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
+    match_date: Mapped[date | None]
+
+    # The natural-language request that produced this prediction (audit context).
+    query: Mapped[str | None]
+
+    # Served (post-adjustment) 1X2 + expected goals — what the user actually saw.
+    p_home: Mapped[float]
+    p_draw: Mapped[float]
+    p_away: Mapped[float]
+    exp_home_goals: Mapped[float]
+    exp_away_goals: Mapped[float]
+
+    # Pre-adjustment baseline 1X2, kept for the side-by-side comparison.
+    base_p_home: Mapped[float]
+    base_p_draw: Mapped[float]
+    base_p_away: Mapped[float]
+
+    # The applied adjustments (factor/team/target/magnitude/confidence/rationale)
+    # and the agent's natural-language explanation.
+    adjustments_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    explanation: Mapped[str | None]

@@ -44,7 +44,7 @@ def session(pg_engine: Engine) -> Iterator[Session]:
     with pg_engine.begin() as conn:
         conn.execute(
             text(
-                "TRUNCATE team_params, model_runs, matches, team_aliases, teams "
+                "TRUNCATE predictions, team_params, model_runs, matches, team_aliases, teams "
                 "RESTART IDENTITY CASCADE"
             )
         )
