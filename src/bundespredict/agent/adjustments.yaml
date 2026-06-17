@@ -1,0 +1,154 @@
+# Magnitude knowledge base for the adjustment agent.
+#
+# Each entry gives the agent a principled expected-goals range to pick *within*,
+# so it grounds a number instead of inventing one. `source` is mandatory and is
+# either a real citation or the literal string "heuristic" — an honest heuristic
+# label beats a fake citation. Magnitudes are in expected-goals (xG) space and
+# every range sits inside the engine's hard +/- 0.6 clamp.
+#
+# Convention: entries are written from the perspective of the team the event
+# happens to. `target` names the engine field for the home-team case; the agent
+# mirrors to the symmetric away-side target when the event is on the away team
+# (e.g. an away striker out becomes away_attack rather than home_attack). A
+# magnitude's sign carries direction — a player out lowers a rate, so its range
+# is negative.
+#
+# Baseline home advantage (~ +0.3 to +0.4 xG to the home side) is NOT a factor
+# here: it is fitted into the model's gamma term. The `crowd` factor only adjusts
+# how much of that standing advantage a reduced crowd takes away.
+
+factors:
+  - name: key_attacker_out
+    factor: player_out
+    target: home_attack
+    min_xg: -0.45
+    max_xg: -0.20
+    source: heuristic
+    note: >
+      First-choice striker or main goal threat unavailable. Lower end for a
+      squad with a ready replacement, upper end for a one-striker side.
+
+  - name: key_creator_out
+    factor: player_out
+    target: home_attack
+    min_xg: -0.35
+    max_xg: -0.15
+    source: heuristic
+    note: >
+      Primary playmaker / assist source out. Smaller than losing the finisher
+      but still trims chance creation.
+
+  - name: first_choice_gk_out
+    factor: player_out
+    target: away_attack
+    min_xg: 0.10
+    max_xg: 0.25
+    source: heuristic
+    note: >
+      First-choice keeper out, backup in. Raises the *opponent's* effective
+      attack rather than lowering this team's own — hence the away_attack target
+      from the home perspective.
+
+  - name: key_player_returns
+    factor: player_in
+    target: home_attack
+    min_xg: 0.15
+    max_xg: 0.40
+    source: heuristic
+    note: >
+      A key attacker returns from injury/suspension. Mirror of key_attacker_out;
+      use the upper end only for a genuinely talismanic player.
+
+  - name: reduced_crowd
+    factor: crowd
+    target: home_adv
+    min_xg: -0.25
+    max_xg: -0.10
+    source: >
+      Fischer & Haucap (2021), "Does Crowd Support Drive the Home Advantage in
+      Professional Football? Evidence from German Ghost Games during the
+      COVID-19 Pandemic" — empty/closed stadiums measurably shrank Bundesliga
+      home advantage.
+    note: >
+      Empty or much-reduced stadium. Erodes the standing home advantage; full
+      ghost-game at the upper end, partial closure at the lower.
+
+  - name: must_win_motivation
+    factor: motivation
+    target: home_attack
+    min_xg: 0.05
+    max_xg: 0.15
+    source: heuristic
+    note: >
+      Side with something concrete to play for (title, Europe, survival) against
+      an opponent without. Small and easy to over-apply — keep it modest.
+
+  - name: dead_rubber
+    factor: motivation
+    target: home_attack
+    min_xg: -0.15
+    max_xg: -0.05
+    source: heuristic
+    note: >
+      Nothing left to play for (already safe / already secured / season over).
+      Apply to the unmotivated side's attack.
+
+  - name: fixture_congestion
+    factor: congestion
+    target: home_attack
+    min_xg: -0.20
+    max_xg: -0.10
+    source: heuristic
+    note: >
+      Three games in ~7 days, especially after midweek European travel. Tired
+      legs trim the affected side's attack.
+
+  - name: strong_wind
+    factor: weather_wind
+    target: home_attack
+    min_xg: -0.15
+    max_xg: -0.05
+    source: heuristic
+    note: >
+      Strong, swirling wind degrades passing and shooting. Applies to *both*
+      sides — the agent should emit one adjustment per team.
+
+  - name: heavy_rain
+    factor: weather_rain
+    target: home_attack
+    min_xg: -0.05
+    max_xg: 0.05
+    source: heuristic
+    note: >
+      Wet, heavy pitch. Net effect on totals is small and ambiguous (slips and
+      errors vs. a slick surface), so the range straddles zero.
+
+  - name: extreme_heat
+    factor: weather_heat
+    target: home_attack
+    min_xg: -0.10
+    max_xg: -0.05
+    source: heuristic
+    note: >
+      Extreme heat slows the pace and tempo for both sides; trims attack rates.
+
+  - name: high_card_referee
+    factor: referee_cards
+    target: cards_rate
+    min_xg: 0.00
+    max_xg: 0.40
+    source: heuristic
+    note: >
+      Strict referee with a high cards-per-game average. Scale toward the upper
+      end the further above league average. Feeds the disciplinary markets only
+      — it must never move the 1X2 result.
+
+  - name: penalty_prone_referee
+    factor: referee_penalty
+    target: pen_rate
+    min_xg: 0.00
+    max_xg: 0.40
+    source: heuristic
+    note: >
+      Referee who awards penalties at an above-average rate. Disciplinary /
+      penalty markets only; no effect on the 1X2 result.

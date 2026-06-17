@@ -27,6 +27,14 @@ model = [
     "pandas>=2.2",
     "scikit-learn>=1.5",
 ]
+# The LLM adjustment/explanation layer. PyYAML loads the magnitude knowledge
+# base; the Anthropic SDK drives the tool-calling loop. Kept optional so the
+# pure engine and data layers install without it.
+agent = [
+    "anthropic>=0.40",
+    "pyyaml>=6.0",
+    "types-pyyaml>=6.0",
+]
 dev = [
     "ruff>=0.6",
     "mypy>=1.11",
@@ -51,6 +59,11 @@ report = [
 [tool.setuptools.packages.find]
 # Two source roots: the pure model/data/agent/eval library, and the FastAPI app.
 where = ["src", "apps/api"]
+
+[tool.setuptools.package-data]
+# Ship the agent's magnitude knowledge base inside the wheel; it's read at
+# runtime via importlib.resources.
+"bundespredict.agent" = ["*.yaml"]
 
 [tool.ruff]
 target-version = "py312"
