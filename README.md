@@ -1,87 +1,149 @@
 # BundesPredict
 
-A side project for predicting Bundesliga match results. The idea: a statistical
-model (Dixon–Coles / Poisson) does the actual probabilities, and on top of that an
-LLM reads plain-English match context ("striker's injured, pouring rain, nothing to
-play for") and turns it into small, bounded tweaks to the model's inputs, then
-explains what changed. The model does the maths, the LLM does the words.
+A Bundesliga match predictor with two layers that stay deliberately separate:
 
-Early days — most of this is still just scaffolding. Notes below are mostly for me.
+- **A Dixon–Coles / Poisson model** (hand-written weighted MLE, time decay,
+  promoted-team shrinkage, temperature-scaled calibration) produces the
+  probabilities.
+- **An LLM agent** reads plain-English match context — "their striker is out and
+  it's going to storm" — and turns it into small, bounded, typed adjustments to
+  the model's expected-goals inputs, re-runs the model, and explains what moved
+  and why.
 
-## Layout
+The model does the maths, the LLM does the words. There is deliberately no tool
+through which the LLM can set a probability: it can only request expected-goals
+adjustments, every one of which is clamped server-side (±0.6 xG) and logged, so
+each answer is auditable back to the exact fitted parameters and the exact
+adjustments applied.
+
+## How it fits together
 
 ```
-apps/api/         FastAPI backend
-apps/web/         Next.js frontend
-src/bundespredict/
-  model/          the prediction maths
-  data/           ingestion + team-name mapping
-  agent/          LLM tools, prompt, the adjustments stuff
-  eval/           backtesting + metrics
-scripts/          download_seasons.py
-infra/            Dockerfiles + docker-compose
-tests/
-notebooks/        for messing around / EDA
+┌──────────────┐  SSE   ┌─────────────────────────────────┐
+│ Next.js chat │◄──────►│ FastAPI                         │
+│  prob bars   │        │  ┌───────────────────────────┐  │
+│  heatmap     │        │  │ Agent (tool-calling loop) │  │
+│  adjustments │        │  └────────────┬──────────────┘  │
+└──────────────┘        │      tools:   │ predict_match   │
+                        │               │ predict_with_…  │
+                        │               │ get_team_form   │
+                        │               │ lookup_player   │
+                        │  ┌────────────▼──────────────┐  │
+                        │  │ Model engine (pure)       │  │
+                        │  │  Dixon–Coles → score      │  │
+                        │  │  matrix → every market    │  │
+                        │  └────────────┬──────────────┘  │
+                        └───────────────┼─────────────────┘
+                                        │ reads fitted params
+                        ┌───────────────▼─────────────────┐
+                        │ Postgres: matches, model_runs,   │
+                        │ team_params, predictions (audit) │
+                        └───────────────▲─────────────────┘
+                                        │
+                          scripts/refit.py (offline job:
+                          ingest → fit → persist params)
 ```
+
+The boundaries are the point. `src/bundespredict/model/` is pure — no I/O, no
+DB, no LLM; given parameters and adjustments it returns a distribution, which is
+what makes it unit-testable (parameter recovery, invariants, monotonicity,
+clamping). Serving never fits: the API loads the latest persisted run, and
+training happens offline in `scripts/refit.py`.
+
+One score matrix `P(home=i, away=j)` drives everything — 1X2, over/under 2.5,
+both-teams-to-score, correct scores are all slices of the same distribution, so
+the markets can never disagree with each other.
+
+## How good is it, honestly?
+
+Backtested walk-forward (refit every gameweek, each fit sees only results
+strictly before that round's kickoff) over five seasons, 1,827 out-of-sample
+predictions — full details in [`reports/backtest_report.md`](reports/backtest_report.md):
+
+- **RPS 0.2045** vs **0.1967** for the de-vigged closing market consensus. The
+  model is *behind* the market, which is the expected result: the closing line
+  aggregates more information than any goals-only model. Landing within a
+  hundredth of it means the core is sound, not that it prints money.
+- **Well calibrated**: ECE ≈ 0.01; temperature scaling landed at T = 1.139,
+  i.e. the raw probabilities were already close to honest.
+- **CLV +0.24%** on a value-betting sim (ROI is variance-dominated noise at this
+  sample size; closing-line value is the signal worth reading).
+
+The adjustment layer makes no accuracy claims at all. Contextual magnitudes
+("first-choice striker out ≈ −0.35 xG") can't be backtested — there's no labeled
+history of them — so they live in a knowledge base where every range carries
+either a citation or an explicit `heuristic` label, and the feature is framed as
+what it is: an auditable, bounded what-if with an explanation, not an edge.
 
 ## Running it
 
-Easiest is Docker (brings up the db, api and web together):
+Copy the env template into a local `.env` (gitignored):
 
 ```bash
-cp .env.example .env
+POSTGRES_USER=bundespredict
+POSTGRES_PASSWORD=bundespredict
+POSTGRES_DB=bundespredict
+DATABASE_URL=postgresql://bundespredict:bundespredict@localhost:5433/bundespredict
+ANTHROPIC_API_KEY=sk-ant-...        # the agent; endpoints 503 without it
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+# AGENT_MODEL=claude-sonnet-4-6     # optional; defaults to Haiku for cheap dev
+```
+
+Then the whole stack:
+
+```bash
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-- API health check: http://localhost:8000/health
-- Frontend: http://localhost:3000
-- Postgres on host port **5433** (5432 was taken by my local one)
+- Web: http://localhost:3000 · API: http://localhost:8000/health
+- Postgres publishes host port **5433** (`POSTGRES_HOST_PORT` to change)
 
-Without Docker:
+Or without Docker (Postgres still via compose):
 
 ```bash
+docker compose -f infra/docker-compose.yml up -d db
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-uvicorn app.main:app --reload      # api on :8000, run from repo root
-
-cd apps/web && npm install && npm run dev   # web on :3000
+pip install -e ".[dev,model,agent]"
+uvicorn app.main:app --app-dir apps/api --reload   # api on :8000, from repo root
+cd apps/web && npm install && npm run dev          # web on :3000
 ```
 
-## Getting data
-
-Season CSVs (results + bookmaker odds + match stats) from football-data.co.uk:
+### Data + a fitted model
 
 ```bash
-python scripts/download_seasons.py --start 2019 --end 2025
-# files land in data/raw/ (gitignored)
+python scripts/download_seasons.py --start 2019 --end 2025   # CSVs -> data/raw/
+alembic upgrade head                   # create the schema
+python -m bundespredict.data.ingest    # upsert CSVs into Postgres (idempotent)
+python scripts/refit.py --skip-download   # fit + persist serving parameters
 ```
 
-Then create the schema and load the CSVs into Postgres (idempotent — safe to
-re-run, it upserts rather than duplicating):
+`refit.py` is also the recurring job: run it after a matchday and it re-pulls
+the current season, re-ingests, refits on the full history and persists a new
+versioned run, which serving picks up on the next request.
 
-```bash
-alembic upgrade head                  # create the tables
-python -m bundespredict.data.ingest   # parse data/raw/*.csv -> Postgres
-```
+The backtest + calibration report is regenerated with
+`python scripts/run_backtest.py` (needs `pip install -e ".[model,report]"`).
 
-Both read `DATABASE_URL` (defaults to the local compose DB on :5433). Team names
-get normalized to canonical (Transfermarkt-style) names via the alias map in
-`src/bundespredict/data/team_aliases.py`; an unknown club fails loudly at ingest
-instead of silently creating a duplicate.
-
-Poke around the data in `notebooks/eda.ipynb` (needs the `eda` extra:
-`pip install -e ".[eda]"`).
-
-## Checks before pushing
+## Checks
 
 ```bash
 ruff check . && ruff format --check . && mypy && pytest
 cd apps/web && npx tsc --noEmit && npm run lint
 ```
 
-## TODO (roughly, for me)
+Tests worth calling out: parameter recovery (simulate from known parameters,
+refit, assert recovery — if that passes, the MLE is almost certainly right), the
+ρ=0 reduction to independent Poisson, score-matrix/market invariants, clamping
+and the λ-floor, and agent-loop tests that run against recorded transcripts so
+CI never touches the live API.
 
-- [x] ingest the season CSVs into Postgres, sort out team-name mapping
-- [ ] fit the Poisson / Dixon–Coles model, turn it into match probabilities
-- [ ] calibration + backtest against bookmaker odds
-- [ ] the LLM adjustment layer + chat UI
+## Deploying
+
+The pieces are deploy-ready but this isn't hosted publicly right now:
+
+- **Web** → Vercel (project root `apps/web`, set `NEXT_PUBLIC_API_BASE_URL`).
+- **API** → any container host (Fly.io / Railway) using `infra/Dockerfile.api`;
+  set `DATABASE_URL`, `ANTHROPIC_API_KEY`, and `WEB_ORIGIN` (the deployed web
+  URL, for CORS).
+- **Postgres** → Neon (or any managed Postgres); run `alembic upgrade head`,
+  the ingest, and `refit.py` against it once, then schedule `refit.py`.
