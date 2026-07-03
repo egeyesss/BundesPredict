@@ -83,6 +83,10 @@ class Markets:
     exp_away_goals: float
     # Most likely exact scorelines: (home_goals, away_goals, probability), descending.
     top_scores: tuple[tuple[int, int, float], ...]
+    # The full (truncated, normalized) score matrix the slices above came from,
+    # rows = home goals, columns = away goals. Kept so a consumer can render the
+    # whole scoreline distribution (the UI heatmap) without recomputing it.
+    score_grid: tuple[tuple[float, ...], ...]
 
 
 def markets_from_matrix(matrix: NDArray[np.float64], *, top_n: int = 5) -> Markets:
@@ -126,6 +130,7 @@ def markets_from_matrix(matrix: NDArray[np.float64], *, top_n: int = 5) -> Marke
         exp_home_goals=exp_home,
         exp_away_goals=exp_away,
         top_scores=top_scores,
+        score_grid=tuple(tuple(float(p) for p in row) for row in matrix),
     )
 
 

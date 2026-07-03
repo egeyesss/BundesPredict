@@ -7,7 +7,9 @@ recorded transcript, with no network and no API key.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
+from typing import Any
 
 import numpy as np
 import pytest
@@ -81,6 +83,66 @@ def test_predict_returns_baseline_and_adjusted_and_persists(
     # The answer was persisted as an audit row.
     count = session.execute(select(func.count()).select_from(Prediction)).scalar_one()
     assert count == 1
+
+
+def test_predict_response_includes_the_score_grid(session: Session, pg_engine: Engine) -> None:
+    _seed_run(session)
+    client = _client(pg_engine)
+
+    body = client.post("/predict", json={"query": "striker out, windy"}).json()
+
+    grid = body["baseline"]["score_grid"]
+    assert len(grid) == 11 and all(len(row) == 11 for row in grid)
+    assert sum(sum(row) for row in grid) == pytest.approx(1.0, abs=1e-4)
+    # The grid is consistent with the sliced markets it shipped with.
+    top = body["baseline"]["top_scores"][0]
+    assert grid[top["home"]][top["away"]] == pytest.approx(top["p"], abs=1e-4)
+
+
+def _parse_sse(text: str) -> list[tuple[str, dict[str, Any]]]:
+    """Parse an SSE body into (event, data) pairs."""
+    frames = []
+    for chunk in text.strip().split("\n\n"):
+        lines = chunk.split("\n")
+        event = next(line.removeprefix("event: ") for line in lines if line.startswith("event: "))
+        data = next(line.removeprefix("data: ") for line in lines if line.startswith("data: "))
+        frames.append((event, json.loads(data)))
+    return frames
+
+
+def test_predict_stream_stages_then_result(session: Session, pg_engine: Engine) -> None:
+    _seed_run(session)
+    client = _client(pg_engine)
+
+    resp = client.post("/predict/stream", json={"query": "striker out, windy"})
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    frames = _parse_sse(resp.text)
+
+    # One stage per tool_call/tool_result of the transcript, then the result.
+    kinds = [event for event, _ in frames]
+    assert kinds == ["stage"] * 6 + ["result"]
+    stage_types = [data["type"] for event, data in frames if event == "stage"]
+    assert stage_types == ["tool_call", "tool_result"] * 3
+
+    # The terminal result event is the same shape /predict returns.
+    result = frames[-1][1]
+    assert result["home"] == HOME and result["away"] == AWAY
+    assert result["adjusted"]["p_home"] < result["baseline"]["p_home"]
+    assert len(result["adjustments"]) == 2
+    assert result["prediction_id"] is not None
+
+    # And it was persisted exactly once, like the non-streaming path.
+    count = session.execute(select(func.count()).select_from(Prediction)).scalar_one()
+    assert count == 1
+
+
+def test_predict_stream_503_without_a_fitted_model(session: Session, pg_engine: Engine) -> None:
+    # Setup failures happen before any frame is sent, so they are real statuses.
+    client = _client(pg_engine)
+    resp = client.post("/predict/stream", json={"query": "anything"})
+    assert resp.status_code == 503
 
 
 def test_predict_requires_a_query(session: Session, pg_engine: Engine) -> None:

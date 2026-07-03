@@ -93,6 +93,20 @@ def test_top_scores_are_sorted_and_consistent() -> None:
     assert p == pytest.approx(matrix.max())
 
 
+def test_score_grid_echoes_the_matrix() -> None:
+    """The grid on Markets is the matrix itself: same cells, sums to 1."""
+    lh, la = 1.5, 1.2
+    matrix = score_matrix(lh, la, rho=-0.13)
+    m = markets_from_matrix(matrix)
+    grid = np.array(m.score_grid)
+    assert grid.shape == matrix.shape
+    np.testing.assert_allclose(grid, matrix, atol=1e-12)
+    assert grid.sum() == pytest.approx(1.0)
+    # Cross-check against top_scores: the best cell is the grid max.
+    i, j, p = m.top_scores[0]
+    assert m.score_grid[i][j] == pytest.approx(p)
+
+
 def test_stronger_home_side_has_higher_home_win_prob() -> None:
     """Monotonicity sanity: a bigger home lambda must not lower P(home win)."""
     weak = markets(1.2, 1.2, rho=-0.13)
