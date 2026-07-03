@@ -27,6 +27,9 @@ services:
       dockerfile: infra/Dockerfile.api
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-bundespredict}:${POSTGRES_PASSWORD:-bundespredict}@db:5432/${POSTGRES_DB:-bundespredict}
+      # Empty default keeps the stack bootable without a key; the prediction
+      # endpoints then answer 503 until one is configured.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8000:8000"
     depends_on:
