@@ -139,6 +139,40 @@ TOOL_SPECS: list[ToolSpec] = [
             "additionalProperties": False,
         },
     },
+    {
+        "name": "get_recent_results",
+        "description": (
+            "The league's most recent completed matches (date, teams, final score), "
+            "newest first. Use it for questions about the latest round or how recent "
+            "games went, and to see how fresh the results data is."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "n": {"type": "integer", "description": "how many matches (default 9, one round)"}
+            },
+            "required": [],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "get_upcoming_fixtures",
+        "description": (
+            "The scheduled upcoming fixtures (kickoff, matchday, teams), soonest "
+            "first, optionally for one team. Use it to resolve 'their next game' to a "
+            "concrete opponent, venue, and date before predicting. An empty list means "
+            "no schedule is loaded for the period, not that no matches will happen."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "team": {"type": "string", "description": "canonical team name (optional)"},
+                "n": {"type": "integer", "description": "how many fixtures (default 9)"},
+            },
+            "required": [],
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -259,6 +293,40 @@ def dispatch(name: str, tool_input: dict[str, Any], service: PredictionService) 
             if player is None:
                 return ToolOutcome({"found": False, "name": tool_input["name"]})
             return ToolOutcome(player_to_dict(player))
+
+        if name == "get_recent_results":
+            results = service.recent_results(n=tool_input.get("n", 9))
+            return ToolOutcome(
+                {
+                    "results": [
+                        {
+                            "date": r.date.isoformat(),
+                            "home": r.home,
+                            "away": r.away,
+                            "score": f"{r.home_goals}-{r.away_goals}",
+                        }
+                        for r in results
+                    ]
+                }
+            )
+
+        if name == "get_upcoming_fixtures":
+            fixtures = service.upcoming_fixtures(
+                team=tool_input.get("team"), n=tool_input.get("n", 9)
+            )
+            return ToolOutcome(
+                {
+                    "fixtures": [
+                        {
+                            "kickoff_utc": f.kickoff_utc.isoformat() + "Z",
+                            "matchday": f.matchday,
+                            "home": f.home,
+                            "away": f.away,
+                        }
+                        for f in fixtures
+                    ]
+                }
+            )
 
     except UnknownTeamError as exc:
         return ToolOutcome(

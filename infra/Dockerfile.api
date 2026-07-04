@@ -7,7 +7,8 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY src ./src
 COPY apps/api ./apps/api
-RUN pip install --no-cache-dir -e .
+# The API serves the fitted model and the agent, so it needs both extras.
+RUN pip install --no-cache-dir -e ".[model,agent]"
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from bundespredict.agent.loop import run_agent
+from bundespredict.agent.loop import run_agent, run_agent_events
 from bundespredict.agent.service import PredictionService
 from bundespredict.agent.tools import TOOL_SPECS
 from bundespredict.model.dixon_coles import TeamRatings
@@ -77,6 +77,75 @@ def test_refusal_path_leaves_baseline_unadjusted() -> None:
     assert result.record.adjusted is None
     assert len(result.record.adjustments) == 0
     assert "quantify" in result.explanation
+
+
+def test_history_precedes_the_query_in_the_first_call() -> None:
+    service = _service()
+    client = ScriptedClient(transcript_full(HOME, AWAY))
+    history = [
+        {"role": "user", "content": "predict Dortmund vs Leipzig"},
+        {"role": "assistant", "content": "Baseline: home 55%, draw 23%, away 22%."},
+    ]
+
+    run_agent("what if their striker is out?", service, client=client, history=history)
+
+    sent = client.messages.calls[0]["messages"]
+    assert sent[0] == history[0]
+    assert sent[1] == history[1]
+    assert sent[2] == {"role": "user", "content": "what if their striker is out?"}
+
+
+def test_history_is_normalized_for_the_api() -> None:
+    # A failed earlier answer leaves consecutive user turns, and a stale client
+    # could start with an assistant turn; both must be repaired, not sent raw.
+    service = _service()
+    client = ScriptedClient(transcript_refusal(HOME, AWAY))
+    history = [
+        {"role": "assistant", "content": "orphaned"},
+        {"role": "user", "content": "first question"},
+        {"role": "user", "content": "second question"},
+    ]
+
+    run_agent("third question", service, client=client, history=history)
+
+    # The recorded list keeps growing as the loop appends turns, so assert the
+    # normalized prefix: everything collapsed into one leading user message.
+    sent = client.messages.calls[0]["messages"]
+    assert sent[0]["role"] == "user"
+    assert sent[0]["content"] == "first question\n\nsecond question\n\nthird question"
+    assert "orphaned" not in str(sent)
+
+
+def test_events_narrate_the_run_in_order() -> None:
+    # The streaming seam: one tool_call/tool_result pair per tool the transcript
+    # uses, in order, then exactly one terminal final event carrying the result.
+    service = _service()
+    client = ScriptedClient(transcript_full(HOME, AWAY))
+
+    events = list(run_agent_events("striker out, windy", service, client=client))
+
+    kinds = [e.type for e in events]
+    assert kinds == [
+        "tool_call",
+        "tool_result",  # predict_match
+        "tool_call",
+        "tool_result",  # lookup_player
+        "tool_call",
+        "tool_result",  # predict_match_with_context
+        "final",
+    ]
+    names = [e.data["name"] for e in events if e.type == "tool_call"]
+    assert names == ["predict_match", "lookup_player", "predict_match_with_context"]
+    # tool_call events expose the input the model sent (the UI shows adjustments live).
+    context_call = events[4]
+    assert len(context_call.data["input"]["adjustments"]) == 2
+    # tool_result events carry the outcome and whether it succeeded.
+    assert all(e.data["ok"] for e in events if e.type == "tool_result")
+    # The final event is the same result run_agent would return.
+    final = events[-1]
+    assert final.result is not None
+    assert "47%" in final.result.explanation
+    assert final.result.record is not None
 
 
 def test_stops_at_max_turns() -> None:

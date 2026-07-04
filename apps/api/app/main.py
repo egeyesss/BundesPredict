@@ -13,13 +13,14 @@ from pydantic import BaseModel
 from bundespredict import __version__
 
 from . import predict
+from .config import get_settings
 
 app = FastAPI(title="BundesPredict API", version=__version__)
 
-# Dev-friendly CORS. Tighten to the deployed web origin before going public.
+# Allows the local web origin by default; WEB_ORIGIN overrides for deploys.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[get_settings().web_origin],
     allow_methods=["*"],
     allow_headers=["*"],
 )

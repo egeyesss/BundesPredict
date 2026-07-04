@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     # Haiku by default (cheap); override to the prod model via AGENT_MODEL.
     agent_model: str = DEV_MODEL
+    # The browser origin allowed by CORS; set to the deployed web URL in prod.
+    web_origin: str = "http://localhost:3000"
 
 
 @lru_cache
