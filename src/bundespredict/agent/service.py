@@ -19,13 +19,29 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from bundespredict.data.fixtures import UpcomingFixture, upcoming_fixtures
 from bundespredict.data.form import TeamForm, recent_form
+from bundespredict.data.results import ResultRow, latest_result_date, recent_results
 from bundespredict.model.adjust import predict_adjusted
 from bundespredict.model.dixon_coles import TeamRatings
 from bundespredict.model.markets import Markets
 
 from .adjustments import Adjustment
 from .players import PlayerInfo, lookup_player
+
+
+@dataclass(frozen=True)
+class GroundingContext:
+    """The temporal facts the system prompt anchors the agent to.
+
+    ``today`` is the date the agent should reason from (the request's
+    ``match_date`` when given, else the real today), and ``data_through`` is the
+    most recent completed result in the database — together they let the agent
+    answer "is the league in season?" instead of claiming it has no calendar.
+    """
+
+    today: date
+    data_through: date | None
 
 
 @dataclass(frozen=True)
@@ -71,6 +87,13 @@ class PredictionService:
         self.as_of_date = as_of_date
         self._known = set(ratings.teams)
         self.last_prediction: PredictionRecord | None = None
+
+    @property
+    def context(self) -> GroundingContext:
+        """Today + data freshness for the system prompt (empty without a session)."""
+        today = self.as_of_date if self.as_of_date is not None else date.today()
+        data_through = latest_result_date(self.session) if self.session is not None else None
+        return GroundingContext(today=today, data_through=data_through)
 
     @property
     def teams(self) -> tuple[str, ...]:
@@ -121,3 +144,22 @@ class PredictionService:
     def lookup_player(self, name: str) -> PlayerInfo | None:
         """Role/importance for a seeded player, or ``None`` if unknown."""
         return lookup_player(name)
+
+    def recent_results(self, *, n: int = 9) -> tuple[ResultRow, ...]:
+        """The league's last ``n`` completed matches before ``as_of_date``."""
+        if self.session is None:
+            raise RuntimeError("recent_results needs a database session")
+        return recent_results(self.session, as_of_date=self.as_of_date, n=n)
+
+    def upcoming_fixtures(
+        self, *, team: str | None = None, n: int = 9
+    ) -> tuple[UpcomingFixture, ...]:
+        """Scheduled fixtures from this service's ``today`` on, soonest first.
+
+        Not gated on the fitted ratings: a freshly promoted club has fixtures
+        before it has any ratings, and asking about its schedule is legitimate.
+        The data layer still rejects names the teams table has never seen.
+        """
+        if self.session is None:
+            raise RuntimeError("upcoming_fixtures needs a database session")
+        return upcoming_fixtures(self.session, team=team, on_or_after=self.context.today, n=n)

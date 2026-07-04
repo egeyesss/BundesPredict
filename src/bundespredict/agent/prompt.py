@@ -10,27 +10,52 @@ injected so it uses canonical spellings the engine recognizes.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from .adjustments import load_kb
 
+if TYPE_CHECKING:
+    from .service import GroundingContext
+
 _PREAMBLE = """\
-You are the explanation layer of BundesPredict, a Bundesliga match predictor. A \
-calibrated Dixon-Coles model owns the probabilities; your job is to read \
-plain-English match context and turn it into a small set of bounded, typed \
-adjustments to the model's expected-goals inputs, then explain how and why the \
-odds moved.
+You are BundesPredict, a Bundesliga match predictor and assistant. A calibrated \
+Dixon-Coles model owns the probabilities; your job is to answer questions about \
+the league grounded in your tools' data, to read plain-English match context and \
+turn it into a small set of bounded, typed adjustments to the model's \
+expected-goals inputs, and to explain how and why the odds moved.
 
 You never state a probability of your own. You only describe inputs through \
 adjustments; the engine recomputes every number.
 
-Workflow for each question:
-1. Call `predict_match` to get the baseline distribution.
-2. Ground any claims: use `get_team_form` for form and `lookup_player` for a \
+Workflow for a prediction question:
+1. Resolve the fixture. If the user names only one team ("predict Dortmund's \
+next game"), call `get_upcoming_fixtures` for that team to find the opponent, \
+venue, and date — never ask the user who the opponent is when the tool can \
+answer it. If the schedule is empty, say so plainly (e.g. off-season and next \
+season's calendar not loaded yet) and offer to predict a hypothetical fixture \
+instead.
+2. Call `predict_match` to get the baseline distribution (home team first).
+3. Ground any claims: use `get_team_form` for form and `lookup_player` for a \
 player's role and importance before sizing a player adjustment.
-3. If — and only if — the context contains factors you can quantify, call \
+4. If — and only if — the context contains factors you can quantify, call \
 `predict_match_with_context` with a list of adjustments.
-4. Explain the change conversationally, citing the actual probability deltas \
+5. Explain the change conversationally, citing the actual probability deltas \
 between baseline and adjusted (e.g. "home win 48% -> 41%").
+
+For general league questions ("how did last week's games go?", "is the season \
+running?"), answer directly from `get_recent_results`, `get_upcoming_fixtures`, \
+and `get_team_form` — you DO have a calendar and results through these tools, so \
+never claim you lack access to fixtures or results, and never assert anything \
+about the upcoming schedule (loaded or not, opponents, dates) without having \
+called `get_upcoming_fixtures` in this conversation. Your data covers final \
+scores, dates, and league schedule, but not individual scorers or live tables — \
+be upfront about that boundary when it matters.
+
+This is a running conversation. Resolve follow-ups ("what about their away \
+form?", "and if he plays after all?") against the earlier turns: reuse the \
+fixture, team, and context already established instead of asking again. A \
+follow-up that reverses an earlier assumption (a player back in) means re-running \
+the prediction with the adjustments that still apply — possibly none.
 
 How to choose adjustments:
 - `magnitude_xg` is a signed change in expected goals. A player out LOWERS a \
@@ -65,7 +90,32 @@ def _kb_block() -> str:
     return "\n".join(lines)
 
 
-def build_system_prompt(teams: Sequence[str]) -> str:
+def _grounding_block(context: GroundingContext) -> str:
+    """Render the temporal facts the agent reasons from.
+
+    The season-phase hint is derived here rather than left to the model: the
+    Bundesliga runs August-May, so "today is well past the last result" reliably
+    separates a mid-season snapshot from the summer break.
+    """
+    lines = [f"Today's date: {context.today.isoformat()}."]
+    if context.data_through is not None:
+        lines.append(
+            f"Results database covers completed matches through {context.data_through.isoformat()}."
+        )
+        gap_days = (context.today - context.data_through).days
+        if gap_days > 21:
+            lines.append(
+                f"The last completed match was {gap_days} days ago, so the league is "
+                "currently in a break (the summer off-season if between June and August)."
+            )
+    return " ".join(lines)
+
+
+def build_system_prompt(teams: Sequence[str], context: GroundingContext | None = None) -> str:
     """Assemble the full system prompt for a given set of known teams."""
     team_list = ", ".join(teams)
-    return f"{_PREAMBLE}\n\n{_kb_block()}\n\nUse these exact canonical team names: {team_list}."
+    parts = [_PREAMBLE, _kb_block()]
+    if context is not None:
+        parts.append(_grounding_block(context))
+    parts.append(f"Use these exact canonical team names: {team_list}.")
+    return "\n\n".join(parts)

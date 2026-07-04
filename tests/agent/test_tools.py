@@ -26,13 +26,15 @@ def _service() -> PredictionService:
 # --- tool specs -----------------------------------------------------------
 
 
-def test_tool_specs_cover_the_four_tools() -> None:
+def test_tool_specs_cover_the_six_tools() -> None:
     names = {spec["name"] for spec in TOOL_SPECS}
     assert names == {
         "predict_match",
         "predict_match_with_context",
         "get_team_form",
         "lookup_player",
+        "get_recent_results",
+        "get_upcoming_fixtures",
     }
 
 
