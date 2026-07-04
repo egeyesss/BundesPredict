@@ -1,5 +1,7 @@
 # BundesPredict
 
+![Ask about a fixture, watch the agent work, get baseline-vs-adjusted odds with an explanation](docs/demo.gif)
+
 A Bundesliga match predictor with two layers that stay deliberately separate:
 
 - **A Dixon–Coles / Poisson model** (hand-written weighted MLE, time decay,
@@ -15,6 +17,8 @@ through which the LLM can set a probability: it can only request expected-goals
 adjustments, every one of which is clamped server-side (±0.6 xG) and logged, so
 each answer is auditable back to the exact fitted parameters and the exact
 adjustments applied.
+
+!["Kane is out injured and it's stormy" — the odds shift, and every applied adjustment shown as an audited chip](docs/screenshot-prediction.png)
 
 ## How it fits together
 
