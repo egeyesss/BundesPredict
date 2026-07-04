@@ -1,5 +1,6 @@
 import type { PredictResponse } from "@/lib/api";
 import AdjustmentsPanel from "./AdjustmentsPanel";
+import Explanation from "./Explanation";
 import MarketsPanel from "./MarketsPanel";
 import ProbBars from "./ProbBars";
 import ScoreHeatmap from "./ScoreHeatmap";
@@ -27,11 +28,7 @@ export default function ResultCard({ result }: { result: PredictResponse }) {
 
   // No fixture was predicted (a clarification, an unknown team...): words only.
   if (result.baseline === null || served === null) {
-    return (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
-        {result.explanation}
-      </p>
-    );
+    return <Explanation text={result.explanation} />;
   }
 
   return (
@@ -41,9 +38,7 @@ export default function ResultCard({ result }: { result: PredictResponse }) {
         {result.away}
       </h2>
 
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
-        {result.explanation}
-      </p>
+      <Explanation text={result.explanation} />
 
       <Section title="Match odds">
         <ProbBars baseline={result.baseline} adjusted={result.adjusted} />
