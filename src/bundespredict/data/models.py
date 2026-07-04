@@ -106,6 +106,34 @@ class Match(Base):
     avgc_away: Mapped[float | None]
 
 
+class Fixture(Base):
+    """One scheduled (not yet played) match from the fixtures source.
+
+    Kept separate from ``matches`` on purpose: a ``Match`` row is a completed
+    result and its columns are non-null by design, while a fixture is only a
+    kickoff time and a pairing. The fixtures ingest replaces a whole season's
+    rows atomically, so this table always mirrors the source's current schedule
+    (kickoffs move when matchdays get rescheduled).
+    """
+
+    __tablename__ = "fixtures"
+    __table_args__ = (
+        # Matchday is part of the key: sources have shipped the same pairing on
+        # two matchdays (a mis-entered derby return leg), and the mirror must be
+        # able to represent whatever the source says.
+        UniqueConstraint(
+            "season", "matchday", "home_id", "away_id", name="uq_fixture_season_md_home_away"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    season: Mapped[str] = mapped_column(index=True)  # e.g. "2627"
+    matchday: Mapped[int]
+    kickoff_utc: Mapped[datetime] = mapped_column(index=True)  # naive UTC
+    home_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
+    away_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
+
+
 class ModelRun(Base):
     """One fitted model — the run-level state shared across all its teams.
 

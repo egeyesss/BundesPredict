@@ -57,6 +57,38 @@ FOOTBALL_DATA_ALIASES: dict[str, str] = {
 }
 
 
+# OpenLigaDB team name -> canonical name. OpenLigaDB provides the upcoming
+# fixture schedule (results history still comes from football-data). Clubs that
+# never appeared in our ingested seasons (fresh promotions) still get a canonical
+# entry here so the fixtures ingest can create their teams row.
+OPENLIGADB_ALIASES: dict[str, str] = {
+    "1. FC Heidenheim 1846": "1.FC Heidenheim 1846",
+    "1. FC Köln": "1.FC Köln",
+    "1. FC Union Berlin": "1.FC Union Berlin",
+    "1. FSV Mainz 05": "1.FSV Mainz 05",
+    "Bayer 04 Leverkusen": "Bayer 04 Leverkusen",
+    "Borussia Dortmund": "Borussia Dortmund",
+    "Borussia Mönchengladbach": "Borussia Mönchengladbach",
+    "Eintracht Frankfurt": "Eintracht Frankfurt",
+    "FC Augsburg": "FC Augsburg",
+    "FC Bayern München": "Bayern Munich",
+    "FC Schalke 04": "FC Schalke 04",
+    "FC St. Pauli": "FC St. Pauli",
+    "Hamburger SV": "Hamburger SV",
+    "RB Leipzig": "RB Leipzig",
+    "SC Freiburg": "SC Freiburg",
+    "SC Paderborn 07": "SC Paderborn 07",
+    "SV 07 Elversberg": "SV 07 Elversberg",
+    "SV Darmstadt 98": "SV Darmstadt 98",
+    "SV Werder Bremen": "SV Werder Bremen",
+    "TSG Hoffenheim": "TSG 1899 Hoffenheim",
+    "TSG 1899 Hoffenheim": "TSG 1899 Hoffenheim",
+    "VfB Stuttgart": "VfB Stuttgart",
+    "VfL Bochum": "VfL Bochum",
+    "VfL Wolfsburg": "VfL Wolfsburg",
+}
+
+
 def canonical_team_name(raw: str, *, source_aliases: dict[str, str] = FOOTBALL_DATA_ALIASES) -> str:
     """Resolve a raw source team name to its canonical name.
 

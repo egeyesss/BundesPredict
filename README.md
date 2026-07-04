@@ -115,11 +115,14 @@ python scripts/download_seasons.py --start 2019 --end 2025   # CSVs -> data/raw/
 alembic upgrade head                   # create the schema
 python -m bundespredict.data.ingest    # upsert CSVs into Postgres (idempotent)
 python scripts/refit.py --skip-download   # fit + persist serving parameters
+python scripts/download_fixtures.py    # upcoming schedule (OpenLigaDB)
 ```
 
 `refit.py` is also the recurring job: run it after a matchday and it re-pulls
 the current season, re-ingests, refits on the full history and persists a new
-versioned run, which serving picks up on the next request.
+versioned run, which serving picks up on the next request. `download_fixtures.py`
+keeps the upcoming schedule mirrored (it's how "predict Dortmund's next game"
+resolves the opponent); run it alongside.
 
 The backtest + calibration report is regenerated with
 `python scripts/run_backtest.py` (needs `pip install -e ".[model,report]"`).
