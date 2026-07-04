@@ -49,6 +49,11 @@ def _load_service(session: Session, req: PredictRequest) -> tuple[int, Predictio
     return run_id, PredictionService(ratings, session=session, as_of_date=req.match_date)
 
 
+def _history(req: PredictRequest) -> list[dict[str, Any]]:
+    """The request's prior turns in the message shape the loop expects."""
+    return [{"role": turn.role, "content": turn.content} for turn in req.history]
+
+
 def _persist_and_build(
     session: Session, run_id: int, req: PredictRequest, result: AgentResult
 ) -> PredictResponse:
@@ -76,7 +81,9 @@ def predict(
 ) -> PredictResponse:
     """Answer a natural-language match question with a calibrated, audited prediction."""
     run_id, service = _load_service(session, req)
-    result = run_agent(req.query, service, client=client, model=settings.agent_model)
+    result = run_agent(
+        req.query, service, client=client, history=_history(req), model=settings.agent_model
+    )
     return _persist_and_build(session, run_id, req, result)
 
 
@@ -106,7 +113,11 @@ def predict_stream(
         try:
             result: AgentResult | None = None
             for event in run_agent_events(
-                req.query, service, client=client, model=settings.agent_model
+                req.query,
+                service,
+                client=client,
+                history=_history(req),
+                model=settings.agent_model,
             ):
                 if event.type == "final":
                     result = event.result

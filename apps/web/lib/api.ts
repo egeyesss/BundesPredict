@@ -56,15 +56,24 @@ export interface StageEvent {
   payload?: Record<string, unknown>;
 }
 
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface StreamCallbacks {
   onStage: (stage: StageEvent) => void;
   onResult: (result: PredictResponse) => void;
   onError: (message: string) => void;
 }
 
+// Rolling history window; must stay within the API's cap (40 turns).
+const MAX_HISTORY_TURNS = 20;
+
 /** POST the query and dispatch each SSE frame to the matching callback. */
 export async function streamPredict(
   query: string,
+  history: ChatTurn[],
   { onStage, onResult, onError }: StreamCallbacks,
 ): Promise<void> {
   let resp: Response;
@@ -72,7 +81,7 @@ export async function streamPredict(
     resp = await fetch(`${API_URL}/predict/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, history: history.slice(-MAX_HISTORY_TURNS) }),
     });
   } catch {
     onError("Could not reach the prediction API. Is it running?");

@@ -79,6 +79,43 @@ def test_refusal_path_leaves_baseline_unadjusted() -> None:
     assert "quantify" in result.explanation
 
 
+def test_history_precedes_the_query_in_the_first_call() -> None:
+    service = _service()
+    client = ScriptedClient(transcript_full(HOME, AWAY))
+    history = [
+        {"role": "user", "content": "predict Dortmund vs Leipzig"},
+        {"role": "assistant", "content": "Baseline: home 55%, draw 23%, away 22%."},
+    ]
+
+    run_agent("what if their striker is out?", service, client=client, history=history)
+
+    sent = client.messages.calls[0]["messages"]
+    assert sent[0] == history[0]
+    assert sent[1] == history[1]
+    assert sent[2] == {"role": "user", "content": "what if their striker is out?"}
+
+
+def test_history_is_normalized_for_the_api() -> None:
+    # A failed earlier answer leaves consecutive user turns, and a stale client
+    # could start with an assistant turn; both must be repaired, not sent raw.
+    service = _service()
+    client = ScriptedClient(transcript_refusal(HOME, AWAY))
+    history = [
+        {"role": "assistant", "content": "orphaned"},
+        {"role": "user", "content": "first question"},
+        {"role": "user", "content": "second question"},
+    ]
+
+    run_agent("third question", service, client=client, history=history)
+
+    # The recorded list keeps growing as the loop appends turns, so assert the
+    # normalized prefix: everything collapsed into one leading user message.
+    sent = client.messages.calls[0]["messages"]
+    assert sent[0]["role"] == "user"
+    assert sent[0]["content"] == "first question\n\nsecond question\n\nthird question"
+    assert "orphaned" not in str(sent)
+
+
 def test_events_narrate_the_run_in_order() -> None:
     # The streaming seam: one tool_call/tool_result pair per tool the transcript
     # uses, in order, then exactly one terminal final event carrying the result.

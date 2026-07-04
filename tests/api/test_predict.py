@@ -145,6 +145,36 @@ def test_predict_stream_503_without_a_fitted_model(session: Session, pg_engine: 
     assert resp.status_code == 503
 
 
+def test_predict_forwards_history_to_the_loop(session: Session, pg_engine: Engine) -> None:
+    _seed_run(session)
+    responses = transcript_full(HOME, AWAY)
+    scripted = ScriptedClient(responses)
+    factory_client = _client(pg_engine)
+    app.dependency_overrides[get_llm_client] = lambda: scripted
+
+    history = [
+        {"role": "user", "content": "predict Dortmund vs Leipzig"},
+        {"role": "assistant", "content": "Baseline: home 55%."},
+    ]
+    resp = factory_client.post(
+        "/predict", json={"query": "and if their striker is out?", "history": history}
+    )
+
+    assert resp.status_code == 200
+    sent = scripted.messages.calls[0]["messages"]
+    assert sent[0]["content"] == "predict Dortmund vs Leipzig"
+    assert sent[1]["role"] == "assistant"
+    assert sent[2]["content"] == "and if their striker is out?"
+
+
+def test_predict_rejects_oversized_history(session: Session, pg_engine: Engine) -> None:
+    _seed_run(session)
+    client = _client(pg_engine)
+    turns = [{"role": "user", "content": f"q{i}"} for i in range(41)]
+    resp = client.post("/predict", json={"query": "x", "history": turns})
+    assert resp.status_code == 422
+
+
 def test_predict_requires_a_query(session: Session, pg_engine: Engine) -> None:
     _seed_run(session)
     client = _client(pg_engine)

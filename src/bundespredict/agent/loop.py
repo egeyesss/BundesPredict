@@ -13,7 +13,7 @@ guardrails live in :func:`bundespredict.agent.tools.dispatch` and the engine.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
@@ -73,11 +73,34 @@ def _text_of(response: Any) -> str:
     return "\n".join(p for p in parts if p).strip()
 
 
+def _normalize_turns(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Make a text-turn list valid for the messages API.
+
+    The API requires the first message to be from the user and roles to
+    alternate. A client's history can violate both (a failed answer leaves two
+    consecutive user turns), so leading assistant turns are dropped and
+    consecutive same-role turns are merged.
+    """
+    merged: list[dict[str, Any]] = []
+    for turn in turns:
+        if not merged and turn["role"] == "assistant":
+            continue
+        if merged and merged[-1]["role"] == turn["role"]:
+            merged[-1] = {
+                "role": turn["role"],
+                "content": f"{merged[-1]['content']}\n\n{turn['content']}",
+            }
+        else:
+            merged.append(dict(turn))
+    return merged
+
+
 def run_agent_events(
     query: str,
     service: PredictionService,
     *,
     client: LLMClient,
+    history: Sequence[dict[str, Any]] | None = None,
     model: str = DEV_MODEL,
     max_tokens: int = _MAX_TOKENS,
     max_turns: int = _MAX_TURNS,
@@ -88,9 +111,18 @@ def run_agent_events(
     browser so the user watches the agent work (which tool, with what input,
     did it succeed) instead of staring at a spinner. The loop's behaviour is
     otherwise identical to :func:`run_agent`, which is just a drain of this.
+
+    ``history`` is the prior conversation as plain text turns (alternating
+    ``{"role": "user"|"assistant", "content": str}``), so follow-up questions
+    ("what if he plays after all?") resolve against what was already discussed
+    instead of starting cold. Tool-call blocks from earlier runs are not
+    replayed — the text turns carry the conclusions, which is what a follow-up
+    needs.
     """
-    system = build_system_prompt(service.teams)
-    messages: list[dict[str, Any]] = [{"role": "user", "content": query}]
+    system = build_system_prompt(service.teams, service.context)
+    messages: list[dict[str, Any]] = _normalize_turns(
+        [*(history or []), {"role": "user", "content": query}]
+    )
 
     response: Any = None
     for _ in range(max_turns):
@@ -144,6 +176,7 @@ def run_agent(
     service: PredictionService,
     *,
     client: LLMClient,
+    history: Sequence[dict[str, Any]] | None = None,
     model: str = DEV_MODEL,
     max_tokens: int = _MAX_TOKENS,
     max_turns: int = _MAX_TURNS,
@@ -160,6 +193,7 @@ def run_agent(
         query,
         service,
         client=client,
+        history=history,
         model=model,
         max_tokens=max_tokens,
         max_turns=max_turns,

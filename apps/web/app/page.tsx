@@ -6,7 +6,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { streamPredict, type PredictResponse, type StageEvent } from "@/lib/api";
+import {
+  streamPredict,
+  type ChatTurn,
+  type PredictResponse,
+  type StageEvent,
+} from "@/lib/api";
 import ResultCard from "./components/ResultCard";
 import StageList, { type Stage } from "./components/StageList";
 
@@ -26,9 +31,9 @@ interface AssistantMessage {
 type Message = UserMessage | AssistantMessage;
 
 const SUGGESTIONS = [
-  "Predict Borussia Dortmund vs RB Leipzig",
+  "Predict Dortmund's next game",
   "Bayern vs Leverkusen — Kane is out injured and it's stormy",
-  "How do Stuttgart look at home against Frankfurt with their keeper suspended?",
+  "How did the last round of games go?",
 ];
 
 function stageLabel(event: StageEvent): string {
@@ -38,6 +43,12 @@ function stageLabel(event: StageEvent): string {
       return `Computing baseline: ${String(input.home)} vs ${String(input.away)}`;
     case "get_team_form":
       return `Checking recent form: ${String(input.team)}`;
+    case "get_recent_results":
+      return "Checking the latest results";
+    case "get_upcoming_fixtures":
+      return input.team !== undefined
+        ? `Looking up the schedule: ${String(input.team)}`
+        : "Looking up the schedule";
     case "lookup_player":
       return `Looking up ${String(input.name)}`;
     case "predict_match_with_context": {
@@ -86,10 +97,26 @@ export default function Home() {
     });
   }
 
+  // Prior turns as plain text, so the agent can resolve follow-ups. The
+  // assistant side sends the explanation it gave (that's the conclusion a
+  // follow-up builds on); failed turns are skipped.
+  function historyOf(prev: Message[]): ChatTurn[] {
+    const turns: ChatTurn[] = [];
+    for (const m of prev) {
+      if (m.role === "user") {
+        turns.push({ role: "user", content: m.text });
+      } else if (m.result !== null && m.result.explanation !== "") {
+        turns.push({ role: "assistant", content: m.result.explanation });
+      }
+    }
+    return turns;
+  }
+
   async function submit(query: string) {
     const trimmed = query.trim();
     if (trimmed === "" || pending) return;
 
+    const history = historyOf(messages);
     setInput("");
     setPending(true);
     setMessages((prev) => [
@@ -98,7 +125,7 @@ export default function Home() {
       { role: "assistant", stages: [], result: null, error: null, pending: true },
     ]);
 
-    await streamPredict(trimmed, {
+    await streamPredict(trimmed, history, {
       onStage,
       onResult: (result) =>
         updateAssistant((m) => ({ ...m, result, pending: false })),
