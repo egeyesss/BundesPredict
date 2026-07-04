@@ -1,0 +1,30 @@
+# Weekly retrain: pull the latest results, refit on the full history, persist a
+# new parameter run, and refresh the fixture schedule. Serving reads the newest
+# run on the next request, so this is the whole "keep the model current" story.
+# Monday 03:00 UTC — after the matchday is fully ingested upstream.
+name: refit
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  refit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[model]"
+      - name: refit on the latest results
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/refit.py
+      - name: refresh the fixture schedule
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/download_fixtures.py
