@@ -74,6 +74,12 @@ predictions — full details in [`reports/backtest_report.md`](reports/backtest_
   i.e. the raw probabilities were already close to honest.
 - **CLV +0.24%** on a value-betting sim (ROI is variance-dominated noise at this
   sample size; closing-line value is the signal worth reading).
+- **Market blend: an honest null.** A log-opinion-pool blend of the calibrated
+  model with the de-vigged opening odds, weight chosen walk-forward, gave the
+  market full weight (w = 1.0) — out-of-sample log-likelihood rises monotonically
+  toward the pure open. A goals-only Dixon-Coles carries no signal the opening
+  line hasn't already priced in; the blend machinery stays so that claim gets
+  re-tested automatically whenever the base model improves.
 
 The adjustment layer makes no accuracy claims at all. Contextual magnitudes
 ("first-choice striker out ≈ −0.35 xG") can't be backtested — there's no labeled

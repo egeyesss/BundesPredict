@@ -38,6 +38,7 @@ from bundespredict.eval.metrics import (  # noqa: E402
     reliability_curve,
     score_forecast,
 )
+from bundespredict.model.blend import blend_probs, select_blend_weight  # noqa: E402
 from bundespredict.model.calibration import fit_temperature_scaler  # noqa: E402
 from bundespredict.model.time_decay import select_xi  # noqa: E402
 
@@ -110,6 +111,7 @@ def _write_report(
     overall_rows: list[tuple[str, ForecastScores]],
     holdout_rows: list[tuple[str, ForecastScores]],
     temperature: float,
+    blend_w: float,
     betting_summary: str,
     path: Path,
 ) -> None:
@@ -117,6 +119,50 @@ def _write_report(
     market_rps = next(s for n, s in overall_rows if n == "market (close, de-vig)").rps
     gap = model_rps - market_rps
     verdict = "behind the market" if gap > 0.0005 else "roughly level with the market"
+
+    # The blend's honest comparison is against the *opening* line it was built
+    # from; the closing line stays the ceiling nobody expects to beat.
+    h_model = next(s for n, s in holdout_rows if n == "model (calibrated)")
+    h_blend = next(s for n, s in holdout_rows if n == "blend (model x open)")
+    h_open = next(s for n, s in holdout_rows if n == "market (open, de-vig)")
+    h_close = next(s for n, s in holdout_rows if n == "market (close, de-vig)")
+    blend_open_gap = h_blend.rps - h_open.rps
+    if blend_w == 0.0:
+        blend_note = (
+            "The weight search kept none of the market (w = 0), i.e. blending did not "
+            "improve walk-forward log-likelihood on the pre-holdout seasons — an honest "
+            "null result worth keeping in view as the model changes."
+        )
+    elif blend_w == 1.0:
+        blend_note = (
+            "The weight search gave the market **full weight (w = 1.00)**: on the "
+            "pre-holdout folds, walk-forward log-likelihood rises monotonically all the "
+            'way to the pure de-vigged opening line, so the "blend" row *is* the open '
+            f"(holdout RPS {h_blend.rps:.4f} vs model {h_model.rps:.4f}). "
+            "The honest reading: a goals-only Dixon-Coles carries no information the "
+            "opening odds don't already price in. That is the null result the blend was "
+            "built to expose — the machinery stays, and the weight is worth re-checking "
+            "after any base-model improvement (pre-match xG is the obvious candidate); "
+            "if it moves off 1.0, the model has finally learned something the market "
+            "hadn't."
+        )
+    else:
+        if blend_open_gap < -0.0005:
+            blend_verdict = "beats the opening line it blends against"
+        elif blend_open_gap <= 0.0005:
+            blend_verdict = "matches the opening line it blends against"
+        else:
+            blend_verdict = "still trails the opening line"
+        blend_note = (
+            f"The log-opinion-pool blend (market weight w = {blend_w:.2f}, chosen "
+            f"walk-forward on the pre-holdout seasons) **{blend_verdict}** on the holdout "
+            f"(blend {h_blend.rps:.4f} vs open {h_open.rps:.4f}, gap {blend_open_gap:+.4f}) "
+            f"and closes most of the distance to the close ({h_close.rps:.4f}). That is the "
+            f"literature-expected outcome: the market aggregates information the model "
+            f"doesn't see, the model contributes a little independent signal, and the "
+            f"geometric pool keeps whichever is sharper where they agree. The blend uses "
+            f"*opening* odds only — they exist before kickoff, so nothing here peeks."
+        )
 
     # Honest calibration read: did temperature scaling actually help the holdout?
     h_uncal = next(s for n, s in holdout_rows if n == "model (uncalibrated)")
@@ -154,6 +200,9 @@ leakage-safe (each fit sees only results strictly before the round's kickoff).*
 - **Time decay:** xi = {xi:.4f}, chosen walk-forward on the full history.
 - **Calibration:** temperature scaling, T = {temperature:.3f}, fit on the
   pre-holdout seasons and applied to the held-out season `{holdout_season}`.
+- **Market blend:** log opinion pool of the calibrated model and the de-vigged
+  *opening* consensus, market weight w = {blend_w:.2f} chosen walk-forward on
+  the pre-holdout seasons (rolling windows, mean out-of-sample log-likelihood).
 - **Skipped:** {result.n_skipped_unseen} fixtures with an unseen team (no prior
   top-flight history at the cutoff), {result.n_skipped_no_odds} for missing odds.
 - **Baseline:** de-vigged market average (`Avg*`) closing odds — the strong
@@ -179,12 +228,13 @@ landing within a hundredth of an RPS point of it means the core model is sound.
 
 {calib_note}
 
+{blend_note}
+
 The value-bet ROI over ~1000 bets is dominated by variance and should not be read
 as edge. **CLV** is the more trustworthy signal of skill, and the number above is
-what to believe over ROI. What would actually move the model toward an edge:
-pre-match xG team strength instead of goals, a market-blend (log opinion pool),
-and lineup-aware adjustments — all later enrichment on this calibrated core, not
-changes to it.
+what to believe over ROI. What would actually move the *base model* further:
+pre-match xG team strength instead of goals and lineup-aware data — enrichment on
+this calibrated core, not changes to it.
 """
     path.write_text(text, encoding="utf-8")
 
@@ -213,9 +263,25 @@ def main() -> int:
     scaler = fit_temperature_scaler(result.model_probs[calib], result.outcomes[calib])
     calibrated = scaler.transform(result.model_probs)
 
+    # Blend the calibrated model with the de-vigged *opening* market (closing
+    # would leak late information). The weight is chosen walk-forward on the
+    # pre-holdout seasons only, so the holdout blend numbers stay honest.
+    day_ordinal = np.array([d.toordinal() for d in result.dates], dtype=np.intp)
+    blend_sel = select_blend_weight(
+        calibrated[calib],
+        result.market_probs_open[calib],
+        result.outcomes[calib],
+        day_ordinal[calib],
+    )
+    logger.info(
+        "selected blend w=%.2f (mean fold LL=%.4f)", blend_sel.w, blend_sel.holdout_log_likelihood
+    )
+    blended = blend_probs(calibrated, result.market_probs_open, blend_sel.w)
+
     overall_rows = [
         ("model (uncalibrated)", score_forecast(result.model_probs, result.outcomes)),
         ("model (calibrated)", score_forecast(calibrated, result.outcomes)),
+        ("blend (model x open)", score_forecast(blended, result.outcomes)),
         ("market (open, de-vig)", score_forecast(result.market_probs_open, result.outcomes)),
         ("market (close, de-vig)", score_forecast(result.market_probs_close, result.outcomes)),
     ]
@@ -227,6 +293,14 @@ def main() -> int:
         (
             "model (calibrated)",
             score_forecast(calibrated[holdout], result.outcomes[holdout]),
+        ),
+        (
+            "blend (model x open)",
+            score_forecast(blended[holdout], result.outcomes[holdout]),
+        ),
+        (
+            "market (open, de-vig)",
+            score_forecast(result.market_probs_open[holdout], result.outcomes[holdout]),
         ),
         (
             "market (close, de-vig)",
@@ -266,6 +340,7 @@ def main() -> int:
         overall_rows,
         holdout_rows,
         scaler.temperature,
+        blend_sel.w,
         betting_summary,
         REPORTS_DIR / "backtest_report.md",
     )
