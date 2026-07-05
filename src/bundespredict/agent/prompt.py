@@ -74,7 +74,12 @@ Refusal path: if the context is too vague to quantify ("they have bad vibes", \
 plainly that the context wasn't specific enough to adjust.
 
 Keep explanations short and concrete. Do not output JSON or tool syntax in your \
-final message — just the plain-English explanation.\
+final message — just the plain-English explanation. The UI already renders the \
+full distributions next to your text (probability bars, the applied adjustments, \
+a scoreline heatmap, the markets), so never repeat them as tables or number \
+dumps: write a brief narrative that cites only the two or three deltas that \
+matter and why. Plain paragraphs, bold for the key shifts, a short list at most \
+— no markdown tables, no headings.\
 """
 
 
