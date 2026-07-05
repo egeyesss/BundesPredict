@@ -1,5 +1,7 @@
 # BundesPredict
 
+**Live at [bundespredict.vercel.app](https://bundespredict.vercel.app)**
+
 ![Ask about a fixture, watch the agent work, get baseline-vs-adjusted odds with an explanation](docs/demo.gif)
 
 A Bundesliga match predictor with two layers that stay deliberately separate:
@@ -144,13 +146,16 @@ refit, assert recovery — if that passes, the MLE is almost certainly right), t
 and the λ-floor, and agent-loop tests that run against recorded transcripts so
 CI never touches the live API.
 
-## Deploying
+## Deployment
 
-The pieces are deploy-ready but this isn't hosted publicly right now:
-
-- **Web** → Vercel (project root `apps/web`, set `NEXT_PUBLIC_API_BASE_URL`).
-- **API** → any container host (Fly.io / Railway) using `infra/Dockerfile.api`;
-  set `DATABASE_URL`, `ANTHROPIC_API_KEY`, and `WEB_ORIGIN` (the deployed web
-  URL, for CORS).
-- **Postgres** → Neon (or any managed Postgres); run `alembic upgrade head`,
-  the ingest, and `refit.py` against it once, then schedule `refit.py`.
+- **Web** → Vercel (project root `apps/web`; `NEXT_PUBLIC_API_BASE_URL` points
+  at the API).
+- **API** → Railway, built from `infra/Dockerfile.api` (`railway.json` wires the
+  Dockerfile + `/health` check). Env: `DATABASE_URL`, `ANTHROPIC_API_KEY`,
+  `AGENT_MODEL`, `WEB_ORIGIN` (the web URL, for CORS).
+- **Postgres** → Neon. Seeded once with `alembic upgrade head` → ingest →
+  `refit.py` → `download_fixtures.py`.
+- **Retraining** → a GitHub Actions workflow (`.github/workflows/refit.yml`)
+  refits on the latest results and refreshes the fixture schedule every Monday,
+  writing a new versioned parameter run that serving picks up on the next
+  request — the model never fits inside a request, in production either.
