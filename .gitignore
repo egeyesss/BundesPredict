@@ -27,6 +27,7 @@ dist/
 # Data (raw + processed datasets are not committed)
 data/raw/
 data/processed/
+data/tm_cache/
 
 # OS / editor
 .DS_Store

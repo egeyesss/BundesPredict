@@ -120,6 +120,7 @@ cd apps/web && npm install && npm run dev          # web on :3000
 python scripts/download_seasons.py --start 2019 --end 2025   # CSVs -> data/raw/
 alembic upgrade head                   # create the schema
 python -m bundespredict.data.ingest    # upsert CSVs into Postgres (idempotent)
+python scripts/scrape_transfermarkt.py # squads + market values (polite, cached)
 python scripts/refit.py --skip-download   # fit + persist serving parameters
 python scripts/download_fixtures.py    # upcoming schedule (OpenLigaDB)
 ```
@@ -129,6 +130,15 @@ the current season, re-ingests, refits on the full history and persists a new
 versioned run, which serving picks up on the next request. `download_fixtures.py`
 keeps the upcoming schedule mirrored (it's how "predict Dortmund's next game"
 resolves the opponent); run it alongside.
+
+`scrape_transfermarkt.py` fills two things from Transfermarkt (identifying
+User-Agent, ~1 request per 3s, raw pages cached in `data/tm_cache/` so a
+blocked scrape just keeps serving the last snapshot): the `players` table that
+backs the agent's `lookup_player` tool — any contracted player, with a
+market-value-derived importance and the snapshot date — and per-season squad
+values, which the refit uses as shrinkage targets so a promoted club with an
+expensive squad isn't priced like an average newcomer. Run it weekly with the
+refit; historical league pages are fetched once and never again.
 
 The backtest + calibration report is regenerated with
 `python scripts/run_backtest.py` (needs `pip install -e ".[model,report]"`).

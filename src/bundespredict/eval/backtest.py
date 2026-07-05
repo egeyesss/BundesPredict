@@ -38,8 +38,10 @@ from bundespredict.eval.metrics import encode_outcomes
 from bundespredict.model.dixon_coles import fit_dixon_coles
 from bundespredict.model.shrinkage import (
     DEFAULT_SHRINKAGE_K,
+    ShrinkTargets,
     shrink_ratings,
     team_match_counts,
+    value_implied_targets,
 )
 
 logger = logging.getLogger(__name__)
@@ -175,6 +177,7 @@ def run_backtest(
     shrinkage_k: float = DEFAULT_SHRINKAGE_K,
     min_train_matches: int = 200,
     persist: bool = True,
+    squad_values: dict[str, dict[str, int]] | None = None,
 ) -> BacktestResult:
     """Run the walk-forward backtest and return the out-of-sample records.
 
@@ -183,6 +186,13 @@ def run_backtest(
     present), so every recorded fit has at least a season of history behind it;
     earlier gameweeks still run as warmup. Fixtures whose teams have no pre-cutoff
     history, or that lack odds, are skipped and counted.
+
+    ``squad_values`` (``{season: {canonical team: value_eur}}``, from the
+    Transfermarkt league pages) switches shrinkage to value-implied targets:
+    low-evidence teams get pulled toward what their squad value predicts rather
+    than the league mean. Season pages carry era-correct values, so using the
+    round's own season is leakage-safe in the same coarse sense as the odds —
+    the value was public before the season's matches were played.
     """
     fixtures = _load_fixtures(session, seasons)
     if not fixtures:
@@ -227,7 +237,20 @@ def run_backtest(
 
         data = dated.to_match_data(xi=xi, reference=cutoff)
         ratings = fit_dixon_coles(data)
-        ratings = shrink_ratings(ratings, team_match_counts(data), k=shrinkage_k)
+        counts = team_match_counts(data)
+        targets: ShrinkTargets | None = None
+        if squad_values is not None:
+            season_values = squad_values.get(round_fixtures[0].season, {})
+            if season_values:
+                log_values = np.array(
+                    [
+                        np.log(season_values[t]) if t in season_values else np.nan
+                        for t in data.teams
+                    ],
+                    dtype=np.float64,
+                )
+                targets = value_implied_targets(ratings, counts, log_values)
+        ratings = shrink_ratings(ratings, counts, k=shrinkage_k, targets=targets)
 
         if not recording:
             continue
