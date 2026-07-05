@@ -91,8 +91,8 @@ def main() -> int:
     with make_session_factory(engine)() as session:
         if not args.skip_download:
             stats = ingest_dir(session, RAW_DIR)
-            total = sum(s.inserted + s.updated for s in stats)
-            logger.info("ingested %d files (%d rows inserted/updated)", len(stats), total)
+            total = sum(s.matches_upserted for s in stats)
+            logger.info("ingested %d files (%d matches upserted)", len(stats), total)
 
         dated = load_dated_matches(session)
 
