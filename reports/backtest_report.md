@@ -10,6 +10,9 @@ leakage-safe (each fit sees only results strictly before the round's kickoff).*
 - **Time decay:** xi = 0.0040, chosen walk-forward on the full history.
 - **Calibration:** temperature scaling, T = 1.139, fit on the
   pre-holdout seasons and applied to the held-out season `2526`.
+- **Market blend:** log opinion pool of the calibrated model and the de-vigged
+  *opening* consensus, market weight w = 1.00 chosen walk-forward on
+  the pre-holdout seasons (rolling windows, mean out-of-sample log-likelihood).
 - **Skipped:** 9 fixtures with an unseen team (no prior
   top-flight history at the cutoff), 0 for missing odds.
 - **Baseline:** de-vigged market average (`Avg*`) closing odds — the strong
@@ -20,6 +23,7 @@ leakage-safe (each fit sees only results strictly before the round's kickoff).*
 |---|--:|--:|--:|--:|--:|
 | model (uncalibrated) | 1827 | 0.2046 | 1.0019 | 0.5980 | 0.0127 |
 | model (calibrated) | 1827 | 0.2045 | 1.0010 | 0.5978 | 0.0105 |
+| blend (model x open) | 1827 | 0.1976 | 0.9775 | 0.5808 | 0.0119 |
 | market (open, de-vig) | 1827 | 0.1976 | 0.9775 | 0.5808 | 0.0119 |
 | market (close, de-vig) | 1827 | 0.1967 | 0.9744 | 0.5787 | 0.0136 |
 
@@ -28,6 +32,8 @@ leakage-safe (each fit sees only results strictly before the round's kickoff).*
 |---|--:|--:|--:|--:|--:|
 | model (uncalibrated) | 305 | 0.1983 | 0.9827 | 0.5812 | 0.0206 |
 | model (calibrated) | 305 | 0.1996 | 0.9848 | 0.5838 | 0.0296 |
+| blend (model x open) | 305 | 0.1907 | 0.9517 | 0.5618 | 0.0366 |
+| market (open, de-vig) | 305 | 0.1907 | 0.9517 | 0.5618 | 0.0366 |
 | market (close, de-vig) | 305 | 0.1902 | 0.9495 | 0.5608 | 0.0354 |
 
 Reliability before/after calibration: ![reliability](reliability.png)
@@ -48,9 +54,10 @@ landing within a hundredth of an RPS point of it means the core model is sound.
 
 Temperature scaling (T = 1.139) found the model only mildly overconfident, and on this 305-match holdout it nudged ECE the wrong way (0.0206 → 0.0296). On so few matches that's noise, not a regression to fix — the honest read is that the raw probabilities were already near-calibrated and there was little for one parameter to do.
 
+The weight search gave the market **full weight (w = 1.00)**: on the pre-holdout folds, walk-forward log-likelihood rises monotonically all the way to the pure de-vigged opening line, so the "blend" row *is* the open (holdout RPS 0.1907 vs model 0.1996). The honest reading: a goals-only Dixon-Coles carries no information the opening odds don't already price in. That is the null result the blend was built to expose — the machinery stays, and the weight is worth re-checking after any base-model improvement (pre-match xG is the obvious candidate); if it moves off 1.0, the model has finally learned something the market hadn't.
+
 The value-bet ROI over ~1000 bets is dominated by variance and should not be read
 as edge. **CLV** is the more trustworthy signal of skill, and the number above is
-what to believe over ROI. What would actually move the model toward an edge:
-pre-match xG team strength instead of goals, a market-blend (log opinion pool),
-and lineup-aware adjustments — all later enrichment on this calibrated core, not
-changes to it.
+what to believe over ROI. What would actually move the *base model* further:
+pre-match xG team strength instead of goals and lineup-aware data — enrichment on
+this calibrated core, not changes to it.
