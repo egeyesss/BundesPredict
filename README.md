@@ -14,6 +14,17 @@ A Bundesliga match predictor with two layers that stay deliberately separate:
   the model's expected-goals inputs, re-runs the model, and explains what moved
   and why.
 
+**Why that combination matters.** Bookmakers price breaking news into a single
+number within minutes — but they won't tell you *why* the line moved, how much
+of it was the injury, or let you ask "and what if his backup also sits?" Static
+prediction sites don't react at all. Here the reaction is **interactive and
+auditable**: you state the context, the agent grounds it against real squad
+data (who the player is, which team he actually plays for, how much he matters
+by market value — scraped from Transfermarkt, snapshot date included), applies
+a bounded, sourced expected-goals adjustment, and shows baseline vs adjusted
+side by side. The point isn't that it knows about injuries — it's that you can
+run the counterfactual yourself and see the work.
+
 The model does the maths, the LLM does the words. There is deliberately no tool
 through which the LLM can set a probability: it can only request expected-goals
 adjustments, every one of which is clamped server-side (±0.6 xG) and logged, so
