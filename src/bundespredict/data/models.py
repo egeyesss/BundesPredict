@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import JSON, ForeignKey, UniqueConstraint, func
+from sqlalchemy import JSON, BigInteger, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -132,6 +132,52 @@ class Fixture(Base):
     kickoff_utc: Mapped[datetime] = mapped_column(index=True)  # naive UTC
     home_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
     away_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
+
+
+class Player(Base):
+    """One squad member from the Transfermarkt scrape.
+
+    The table mirrors the source's current squads (ingest replaces a team's
+    roster wholesale, players transfer away mid-season), so rows carry
+    ``scraped_at`` and the lookup surfaces it — a stale snapshot should be
+    visible to the agent, not silently trusted. ``tm_id`` is Transfermarkt's
+    stable numeric player id and the only cross-scrape join key; names are for
+    matching user queries, never for joins.
+    """
+
+    __tablename__ = "players"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tm_id: Mapped[int] = mapped_column(unique=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
+    name: Mapped[str] = mapped_column(index=True)
+    position: Mapped[str]  # Transfermarkt's position label, e.g. "Centre-Forward"
+    # BigInteger: squad totals stay under int32, but this column also stores
+    # star-player valuations that get close enough to be uncomfortable.
+    market_value_eur: Mapped[int | None] = mapped_column(BigInteger)
+    scraped_at: Mapped[datetime]
+
+    team: Mapped[Team] = relationship()
+
+
+class SquadValue(Base):
+    """A club's total squad market value for one season (from the league page).
+
+    Season pages carry era-correct values, which is what makes this usable as
+    a backtest input: the value-implied shrinkage target for a promoted team in
+    2019 is built from 2019 values, not today's.
+    """
+
+    __tablename__ = "squad_values"
+    __table_args__ = (UniqueConstraint("season", "team_id", name="uq_squad_value_season_team"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    season: Mapped[str] = mapped_column(index=True)  # e.g. "1920"
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), index=True)
+    value_eur: Mapped[int] = mapped_column(BigInteger)
+    scraped_at: Mapped[datetime]
+
+    team: Mapped[Team] = relationship()
 
 
 class ModelRun(Base):

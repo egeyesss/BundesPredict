@@ -1,6 +1,7 @@
-# Weekly retrain: pull the latest results, refit on the full history, persist a
-# new parameter run, and refresh the fixture schedule. Serving reads the newest
-# run on the next request, so this is the whole "keep the model current" story.
+# Weekly retrain: pull the latest results, refresh squads/market values from
+# Transfermarkt, refit on the full history, persist a new parameter run, and
+# refresh the fixture schedule. Serving reads the newest run on the next
+# request, so this is the whole "keep the model current" story.
 # Monday 03:00 UTC — after the matchday is fully ingested upstream.
 name: refit
 
@@ -12,7 +13,7 @@ on:
 jobs:
   refit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,6 +21,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e ".[model]"
+      - name: refresh squads + market values (Transfermarkt)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        # Scrape failures must not block the retrain: the players/squad_values
+        # tables just keep serving the previous snapshot (cache-is-truth design).
+        continue-on-error: true
+        run: python scripts/scrape_transfermarkt.py
       - name: refit on the latest results
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

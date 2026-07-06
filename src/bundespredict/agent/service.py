@@ -21,13 +21,14 @@ from sqlalchemy.orm import Session
 
 from bundespredict.data.fixtures import UpcomingFixture, upcoming_fixtures
 from bundespredict.data.form import TeamForm, recent_form
+from bundespredict.data.players import find_player, normalize_name
 from bundespredict.data.results import ResultRow, latest_result_date, recent_results
 from bundespredict.model.adjust import predict_adjusted
 from bundespredict.model.dixon_coles import TeamRatings
 from bundespredict.model.markets import Markets
 
 from .adjustments import Adjustment
-from .players import PlayerInfo, lookup_player
+from .players import PlayerInfo, lookup_player, penalty_takers
 
 
 @dataclass(frozen=True)
@@ -142,7 +143,25 @@ class PredictionService:
         return recent_form(self.session, team, as_of_date=self.as_of_date, n=n)
 
     def lookup_player(self, name: str) -> PlayerInfo | None:
-        """Role/importance for a seeded player, or ``None`` if unknown."""
+        """Role/importance for a player, or ``None`` if unknown.
+
+        The scraped squad table answers first (any contracted player, with
+        market value and snapshot age); the seeded JSON is the fallback when
+        there is no session or the table hasn't been ingested yet. Penalty
+        duty isn't scraped, so it's merged from the curated seed either way.
+        """
+        if self.session is not None:
+            found = find_player(self.session, name)
+            if found is not None:
+                return PlayerInfo(
+                    name=found.name,
+                    team=found.team,
+                    role=found.position,
+                    is_penalty_taker=normalize_name(found.name) in penalty_takers(),
+                    importance=found.importance,
+                    market_value_eur=found.market_value_eur,
+                    scraped_at=found.scraped_at,
+                )
         return lookup_player(name)
 
     def recent_results(self, *, n: int = 9) -> tuple[ResultRow, ...]:

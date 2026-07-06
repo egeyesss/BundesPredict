@@ -128,9 +128,13 @@ TOOL_SPECS: list[ToolSpec] = [
     {
         "name": "lookup_player",
         "description": (
-            "Look up a player's role, penalty-taker status, and rough importance "
-            "to help size an availability adjustment. Returns not-found for unknown "
-            "players — fall back to the knowledge-base ranges then."
+            "Look up a player's position, penalty-taker status, and importance "
+            "to help size an availability adjustment. Importance is derived from "
+            "the player's market-value standing within his own squad (top ~20% = "
+            "high, next ~30% = medium, rest = low), not hand-labelled. The result "
+            "includes scraped_at — treat a snapshot older than a few weeks as "
+            "possibly stale (transfers). Returns not-found for unknown players — "
+            "fall back to the knowledge-base ranges then."
         ),
         "input_schema": {
             "type": "object",
@@ -228,7 +232,7 @@ def form_to_dict(form: TeamForm) -> dict[str, Any]:
 
 
 def player_to_dict(player: PlayerInfo) -> dict[str, Any]:
-    return {
+    out: dict[str, Any] = {
         "found": True,
         "name": player.name,
         "team": player.team,
@@ -236,6 +240,12 @@ def player_to_dict(player: PlayerInfo) -> dict[str, Any]:
         "is_penalty_taker": player.is_penalty_taker,
         "importance": player.importance,
     }
+    # Present only for scraped players; the seeded fallback has neither.
+    if player.market_value_eur is not None:
+        out["market_value_eur"] = player.market_value_eur
+    if player.scraped_at is not None:
+        out["scraped_at"] = player.scraped_at.date().isoformat()
+    return out
 
 
 def _applied_adjustment(adj: Adjustment) -> dict[str, Any]:

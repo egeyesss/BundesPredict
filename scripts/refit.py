@@ -27,12 +27,20 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import numpy as np
+
 from bundespredict.data.db import make_engine, make_session_factory
 from bundespredict.data.ingest import ingest_dir
 from bundespredict.data.loader import load_dated_matches
 from bundespredict.data.params_store import save_ratings
+from bundespredict.data.players import squad_values_by_season
 from bundespredict.model.dixon_coles import fit_dixon_coles
-from bundespredict.model.shrinkage import shrink_ratings, team_match_counts
+from bundespredict.model.shrinkage import (
+    ShrinkTargets,
+    shrink_ratings,
+    team_match_counts,
+    value_implied_targets,
+)
 from bundespredict.model.time_decay import select_xi
 
 logger = logging.getLogger(__name__)
@@ -115,7 +123,24 @@ def main() -> int:
         data = dated.to_match_data(xi=xi, reference=today)
         logger.info("fitting Dixon-Coles on %d matches (xi=%.4f)...", len(dated), xi)
         ratings = fit_dixon_coles(data)
-        ratings = shrink_ratings(ratings, team_match_counts(data))
+        counts = team_match_counts(data)
+
+        # Value-implied shrink targets when the Transfermarkt scrape has run:
+        # promoted teams get pulled toward what their squad value predicts
+        # rather than the league mean. Without values this is a no-op.
+        year = _current_season_start(today)
+        season_values = squad_values_by_season(session).get(
+            f"{year % 100:02d}{(year + 1) % 100:02d}", {}
+        )
+        targets: ShrinkTargets | None = None
+        if season_values:
+            log_values = np.array(
+                [np.log(season_values[t]) if t in season_values else np.nan for t in data.teams],
+                dtype=np.float64,
+            )
+            targets = value_implied_targets(ratings, counts, log_values)
+            logger.info("shrinkage targets from %d squad values", len(season_values))
+        ratings = shrink_ratings(ratings, counts, targets=targets)
 
         run_id = save_ratings(
             session,

@@ -45,6 +45,6 @@ def session(pg_engine: Engine) -> Iterator[Session]:
         conn.execute(
             text(
                 "TRUNCATE predictions, team_params, model_runs, matches, fixtures, "
-                "team_aliases, teams RESTART IDENTITY CASCADE"
+                "players, squad_values, team_aliases, teams RESTART IDENTITY CASCADE"
             )
         )
