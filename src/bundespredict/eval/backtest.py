@@ -178,6 +178,7 @@ def run_backtest(
     min_train_matches: int = 200,
     persist: bool = True,
     squad_values: dict[str, dict[str, int]] | None = None,
+    use_xg: bool = False,
 ) -> BacktestResult:
     """Run the walk-forward backtest and return the out-of-sample records.
 
@@ -235,8 +236,11 @@ def run_backtest(
         if len(dated) < min_train_matches:
             continue
 
-        data = dated.to_match_data(xi=xi, reference=cutoff)
-        ratings = fit_dixon_coles(data)
+        data = dated.to_match_data(xi=xi, reference=cutoff, use_xg=use_xg)
+        ratings = fit_dixon_coles(data, use_xg=use_xg)
+        # Per-team pre-match xG gaps as of the cutoff, to offset each fixture we
+        # predict below. Cheap no-op when use_xg is off (coef 0 ignores offsets).
+        gaps = dated.xg_gaps(xi=xi, reference=cutoff) if use_xg else None
         counts = team_match_counts(data)
         targets: ShrinkTargets | None = None
         if squad_values is not None:
@@ -277,7 +281,8 @@ def run_backtest(
                 n_no_odds += 1
                 continue
 
-            mk = ratings.predict(fx.home, fx.away)
+            home_off, away_off = gaps.offsets(fx.home, fx.away) if gaps else (0.0, 0.0)
+            mk = ratings.predict(fx.home, fx.away, home_offset=home_off, away_offset=away_off)
             rec_model.append((mk.p_home, mk.p_draw, mk.p_away))
             rec_mkt_close.append(fx.avg_close)
             rec_mkt_open.append(fx.avg_open)

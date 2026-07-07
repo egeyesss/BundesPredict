@@ -89,6 +89,40 @@ OPENLIGADB_ALIASES: dict[str, str] = {
 }
 
 
+# Understat team name -> canonical name. Understat supplies per-match expected
+# goals (the pre-match rolling-xG feature); results history still comes from
+# football-data. Covers every club in Bundesliga 2019/20 through 2025/26.
+UNDERSTAT_ALIASES: dict[str, str] = {
+    "Arminia Bielefeld": "Arminia Bielefeld",
+    "Augsburg": "FC Augsburg",
+    "Bayer Leverkusen": "Bayer 04 Leverkusen",
+    "Bayern Munich": "Bayern Munich",
+    "Bochum": "VfL Bochum",
+    "Borussia Dortmund": "Borussia Dortmund",
+    "Borussia M.Gladbach": "Borussia Mönchengladbach",
+    "Darmstadt": "SV Darmstadt 98",
+    "Eintracht Frankfurt": "Eintracht Frankfurt",
+    "FC Cologne": "1.FC Köln",
+    "FC Heidenheim": "1.FC Heidenheim 1846",
+    "Fortuna Duesseldorf": "Fortuna Düsseldorf",
+    "Freiburg": "SC Freiburg",
+    "Greuther Fuerth": "SpVgg Greuther Fürth",
+    "Hamburger SV": "Hamburger SV",
+    "Hertha Berlin": "Hertha BSC",
+    "Hoffenheim": "TSG 1899 Hoffenheim",
+    "Holstein Kiel": "Holstein Kiel",
+    "Mainz 05": "1.FSV Mainz 05",
+    "Paderborn": "SC Paderborn 07",
+    "RasenBallsport Leipzig": "RB Leipzig",
+    "Schalke 04": "FC Schalke 04",
+    "St. Pauli": "FC St. Pauli",
+    "Union Berlin": "1.FC Union Berlin",
+    "VfB Stuttgart": "VfB Stuttgart",
+    "Werder Bremen": "SV Werder Bremen",
+    "Wolfsburg": "VfL Wolfsburg",
+}
+
+
 def canonical_team_name(raw: str, *, source_aliases: dict[str, str] = FOOTBALL_DATA_ALIASES) -> str:
     """Resolve a raw source team name to its canonical name.
 

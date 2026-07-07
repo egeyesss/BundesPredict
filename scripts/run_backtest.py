@@ -113,6 +113,7 @@ def _write_report(
     temperature: float,
     blend_w: float,
     betting_summary: str,
+    xg_note: str,
     path: Path,
 ) -> None:
     model_rps = next(s for n, s in overall_rows if n == "model (calibrated)").rps
@@ -230,11 +231,14 @@ landing within a hundredth of an RPS point of it means the core model is sound.
 
 {blend_note}
 
+{xg_note}
+
 The value-bet ROI over ~1000 bets is dominated by variance and should not be read
 as edge. **CLV** is the more trustworthy signal of skill, and the number above is
-what to believe over ROI. What would actually move the *base model* further:
-pre-match xG team strength instead of goals and lineup-aware data — enrichment on
-this calibrated core, not changes to it.
+what to believe over ROI. Pre-match xG — the obvious next lever — was tried and
+did not help (see above), which sharpens where the remaining signal isn't:
+lineup-aware data and a genuinely different model family (not another goals-space
+tweak) are the honest candidates left.
 """
     path.write_text(text, encoding="utf-8")
 
@@ -253,6 +257,12 @@ def main() -> int:
 
         logger.info("running walk-forward backtest (this refits per gameweek)...")
         result = run_backtest(session, xi=xi, persist=True)
+
+        # Same walk-forward, but with the pre-match rolling-xG offset switched on,
+        # to measure whether xG earns its place. Not persisted: serving stays
+        # goals-only unless this beats it out of sample.
+        logger.info("running the pre-match xG variant for comparison...")
+        xg_result = run_backtest(session, xi=xi, persist=False, use_xg=True)
 
     holdout_season = max(result.seasons)
     seasons = np.array(result.seasons)
@@ -278,9 +288,11 @@ def main() -> int:
     )
     blended = blend_probs(calibrated, result.market_probs_open, blend_sel.w)
 
+    xg_scores = score_forecast(xg_result.model_probs, xg_result.outcomes)
     overall_rows = [
         ("model (uncalibrated)", score_forecast(result.model_probs, result.outcomes)),
         ("model (calibrated)", score_forecast(calibrated, result.outcomes)),
+        ("model + pre-match xG (uncal)", xg_scores),
         ("blend (model x open)", score_forecast(blended, result.outcomes)),
         ("market (open, de-vig)", score_forecast(result.market_probs_open, result.outcomes)),
         ("market (close, de-vig)", score_forecast(result.market_probs_close, result.outcomes)),
@@ -333,6 +345,28 @@ def main() -> int:
         f"signal to trust over ROI"
     )
 
+    model_uncal_rps = next(s for n, s in overall_rows if n == "model (uncalibrated)").rps
+    xg_gap = xg_scores.rps - model_uncal_rps
+    if xg_gap > 0.0005:
+        xg_note = (
+            f"**Pre-match xG: an honest null.** Adding the rolling pre-match xG offset "
+            f"(xG minus goals, decayed, strictly pre-kickoff) to log-lambda as a fitted "
+            f"global coefficient *improves in-sample fit* (the coefficient lands clearly "
+            f"positive) but **worsens out-of-sample RPS** ({xg_scores.rps:.4f} vs "
+            f"{model_uncal_rps:.4f} goals-only, gap {xg_gap:+.4f}). The finishing-reversion "
+            f"signal is real inside the training window but doesn't generalise, so it is "
+            f"**not adopted into serving**. The machinery (scrape → ingest → offset → "
+            f"backtest `use_xg`) stays, so the null is reproducible and a better xG "
+            f"formulation (the xG level, or an xG–goals mixture target) can be re-measured "
+            f"the same way."
+        )
+    else:
+        xg_note = (
+            f"**Pre-match xG helped.** The rolling pre-match xG offset improved "
+            f"out-of-sample RPS to {xg_scores.rps:.4f} (from {model_uncal_rps:.4f} "
+            f"goals-only, gap {xg_gap:+.4f}); consider adopting it into the serving fit."
+        )
+
     _write_report(
         result,
         xi,
@@ -342,6 +376,7 @@ def main() -> int:
         scaler.temperature,
         blend_sel.w,
         betting_summary,
+        xg_note,
         REPORTS_DIR / "backtest_report.md",
     )
     logger.info("wrote %s", REPORTS_DIR / "backtest_report.md")
