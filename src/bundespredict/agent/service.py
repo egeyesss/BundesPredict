@@ -23,6 +23,11 @@ from bundespredict.data.fixtures import UpcomingFixture, upcoming_fixtures
 from bundespredict.data.form import TeamForm, recent_form
 from bundespredict.data.players import find_player, normalize_name
 from bundespredict.data.results import ResultRow, latest_result_date, recent_results
+from bundespredict.data.weather import (
+    WeatherProvider,
+    WeatherReport,
+    default_weather_provider,
+)
 from bundespredict.model.adjust import predict_adjusted
 from bundespredict.model.dixon_coles import TeamRatings
 from bundespredict.model.markets import Markets
@@ -82,10 +87,14 @@ class PredictionService:
         *,
         session: Session | None = None,
         as_of_date: date | None = None,
+        weather_provider: WeatherProvider | None = None,
     ) -> None:
         self.ratings = ratings
         self.session = session
         self.as_of_date = as_of_date
+        # Injectable so tests (and CI) never hit the network; defaults to the
+        # live Open-Meteo fetch at serve time.
+        self._weather_provider = weather_provider or default_weather_provider
         self._known = set(ratings.teams)
         self.last_prediction: PredictionRecord | None = None
 
@@ -182,3 +191,15 @@ class PredictionService:
         if self.session is None:
             raise RuntimeError("upcoming_fixtures needs a database session")
         return upcoming_fixtures(self.session, team=team, on_or_after=self.context.today, n=n)
+
+    def weather(self, team: str, *, on: date | None = None) -> WeatherReport | None:
+        """Match-day forecast at ``team``'s home stadium, or ``None`` if unavailable.
+
+        ``None`` covers an unmapped venue, a date outside the forecast window, or
+        a network failure — all of which the agent should treat as "no forecast",
+        falling back to the user's stated conditions. Grounding only; the model
+        never sees this. Not gated on the fitted ratings: a venue lookup is valid
+        even for a club with no ratings yet.
+        """
+        target = on if on is not None else self.context.today
+        return self._weather_provider(team, target)

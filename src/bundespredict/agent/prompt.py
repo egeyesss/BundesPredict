@@ -36,7 +36,13 @@ season's calendar not loaded yet) and offer to predict a hypothetical fixture \
 instead.
 2. Call `predict_match` to get the baseline distribution (home team first).
 3. Ground any claims: use `get_team_form` for form and `lookup_player` for a \
-player's role and importance before sizing a player adjustment.
+player's role and importance before sizing a player adjustment. For a weather \
+factor, call `get_weather` for the home team and the match date to check the \
+forecast rather than trusting a claim — if it comes back available:false (too \
+far ahead, unknown venue), use the user's stated conditions or skip the weather \
+factor. As rough guidance: wind above ~30 km/h is notably strong, precipitation \
+above ~5 mm means a wet pitch, and a max temperature above ~30 C is extreme \
+heat; below those, don't apply a weather adjustment.
 4. If — and only if — the context contains factors you can quantify, call \
 `predict_match_with_context` with a list of adjustments.
 5. Explain the change conversationally, citing the actual probability deltas \

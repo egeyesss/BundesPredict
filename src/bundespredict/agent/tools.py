@@ -22,11 +22,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, get_args
 
 from pydantic import ValidationError
 
 from bundespredict.data.form import TeamForm
+from bundespredict.data.weather import WeatherReport
 from bundespredict.model.adjust import clamp_magnitude
 from bundespredict.model.markets import Markets
 
@@ -160,6 +162,34 @@ TOOL_SPECS: list[ToolSpec] = [
         },
     },
     {
+        "name": "get_weather",
+        "description": (
+            "Match-day weather forecast at the home team's stadium: max "
+            "temperature (C), max wind (km/h), and precipitation (mm). Use it to "
+            "CHECK conditions before applying a weather adjustment instead of "
+            "trusting a claim. Forecasts only reach ~16 days ahead; a match "
+            "further out, an unknown venue, or a fetch failure returns "
+            "available:false, and you should then rely on the user's stated "
+            "conditions or skip the weather factor. The model never sees "
+            "weather — this only grounds whether a weather factor applies."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "team": {
+                    "type": "string",
+                    "description": "canonical home team name (the venue)",
+                },
+                "date": {
+                    "type": "string",
+                    "description": "match day as YYYY-MM-DD; defaults to today",
+                },
+            },
+            "required": ["team"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "get_upcoming_fixtures",
         "description": (
             "The scheduled upcoming fixtures (kickoff, matchday, teams), soonest "
@@ -248,6 +278,18 @@ def player_to_dict(player: PlayerInfo) -> dict[str, Any]:
     return out
 
 
+def weather_to_dict(report: WeatherReport) -> dict[str, Any]:
+    return {
+        "available": True,
+        "team": report.team,
+        "city": report.city,
+        "date": report.date.isoformat(),
+        "temperature_c": _round(report.temperature_c, 1),
+        "wind_kmh": _round(report.wind_kmh, 1),
+        "precip_mm": _round(report.precip_mm, 1),
+    }
+
+
 def _applied_adjustment(adj: Adjustment) -> dict[str, Any]:
     """One adjustment as echoed back: requested vs. effective (clamped) magnitude."""
     return {
@@ -319,6 +361,16 @@ def dispatch(name: str, tool_input: dict[str, Any], service: PredictionService) 
                     ]
                 }
             )
+
+        if name == "get_weather":
+            on = tool_input.get("date")
+            # An unparseable date raises ValueError -> recoverable error below,
+            # so the model can retry with a valid YYYY-MM-DD.
+            on_date = date.fromisoformat(on) if on else None
+            report = service.weather(tool_input["team"], on=on_date)
+            if report is None:
+                return ToolOutcome({"available": False, "team": tool_input["team"]})
+            return ToolOutcome(weather_to_dict(report))
 
         if name == "get_upcoming_fixtures":
             fixtures = service.upcoming_fixtures(
