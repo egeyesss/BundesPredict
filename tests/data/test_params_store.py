@@ -19,7 +19,7 @@ def _seed_teams(session: Session, names: list[str]) -> None:
     session.commit()
 
 
-def _ratings(teams: tuple[str, ...], rho: float = -0.12) -> TeamRatings:
+def _ratings(teams: tuple[str, ...], rho: float = -0.12, xg_coef: float = 0.5) -> TeamRatings:
     # Sum-to-zero strengths so the round-trip mirrors a real (gauge-fixed) fit.
     attack = np.array([0.4, -0.1, -0.3], dtype=np.float64)
     defense = np.array([-0.2, 0.25, -0.05], dtype=np.float64)
@@ -30,6 +30,7 @@ def _ratings(teams: tuple[str, ...], rho: float = -0.12) -> TeamRatings:
         home_adv=0.3,
         rho=rho,
         log_likelihood=-1234.5,
+        xg_coef=xg_coef,
     )
 
 
@@ -50,6 +51,7 @@ def test_save_then_load_round_trips(session: Session) -> None:
     assert loaded.home_adv == pytest.approx(0.3)
     assert loaded.rho == pytest.approx(-0.12)
     assert loaded.log_likelihood == pytest.approx(-1234.5)
+    assert loaded.xg_coef == pytest.approx(0.5)
 
 
 def test_run_records_metadata_and_model_type(session: Session) -> None:

@@ -28,6 +28,7 @@ dist/
 data/raw/
 data/processed/
 data/tm_cache/
+data/understat_cache/
 
 # OS / editor
 .DS_Store

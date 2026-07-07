@@ -91,6 +91,14 @@ predictions — full details in [`reports/backtest_report.md`](reports/backtest_
   toward the pure open. A goals-only Dixon-Coles carries no signal the opening
   line hasn't already priced in; the blend machinery stays so that claim gets
   re-tested automatically whenever the base model improves.
+- **Pre-match xG: also an honest null.** Rolling pre-match expected goals (from
+  Understat, xG-minus-goals gap, decayed, strictly pre-kickoff) added to log-λ as
+  a fitted global coefficient *improves in-sample fit* (coefficient ≈ +0.7) but
+  **worsens out-of-sample RPS** (0.2069 vs 0.2046 goals-only). The
+  finishing-reversion signal is real inside the training window and doesn't
+  generalise, so it is **not adopted into serving** — the full pipeline (scrape →
+  ingest → engine offset → backtest `use_xg`) stays so the null is reproducible
+  and a better xG formulation can be re-measured the same way.
 
 The adjustment layer makes no accuracy claims at all. Contextual magnitudes
 ("first-choice striker out ≈ −0.35 xG") can't be backtested — there's no labeled
@@ -157,8 +165,19 @@ values, which the refit uses as shrinkage targets so a promoted club with an
 expensive squad isn't priced like an average newcomer. Run it weekly with the
 refit; historical league pages are fetched once and never again.
 
+Per-match expected goals (for the pre-match xG experiment) come from Understat via
+`scripts/scrape_understat.py`. Understat sits behind Cloudflare and only serves its
+data to a real browser, so the scraper drives a local Chromium through Playwright
+(`pip install playwright && playwright install chromium`) and caches each season's
+JSON to `data/understat_cache/`; a second pass backfills `matches.home_xg/away_xg`.
+It's an **offline analysis step, not part of serving or the CI refit** — the xG
+feature was measured and left out (see the honest-results section), so nothing on
+the request path depends on it.
+
 The backtest + calibration report is regenerated with
-`python scripts/run_backtest.py` (needs `pip install -e ".[model,report]"`).
+`python scripts/run_backtest.py` (needs `pip install -e ".[model,report]"`); it now
+also runs the pre-match xG variant so the report carries the goals-only vs xG
+comparison.
 
 ## Checks
 

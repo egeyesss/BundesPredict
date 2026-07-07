@@ -88,6 +88,13 @@ class Match(Base):
     home_reds: Mapped[int | None]
     away_reds: Mapped[int | None]
 
+    # Per-match expected goals from Understat (nullable: older seasons or the
+    # unplayed current-season rows may lack coverage). These are *final-match* xG
+    # and must never feed a prediction directly — the model only ever consumes a
+    # rolling average over matches strictly before kickoff (see data/loader.py).
+    home_xg: Mapped[float | None]
+    away_xg: Mapped[float | None]
+
     # Bookmaker odds: Bet365 1X2 (benchmark) + market average (de-vig baseline).
     # The plain columns are the early/posted price; the ``*c_*`` columns are the
     # closing price (football-data's "C" suffix). CLV needs both: we bet at the
@@ -201,6 +208,10 @@ class ModelRun(Base):
     xi: Mapped[float]  # time-decay rate the fit used (0 = no decay)
     rho: Mapped[float]  # Dixon-Coles correction (0 = independent Poisson)
     home_adv: Mapped[float]  # gamma, the log-space home advantage
+    # Global coefficient on the pre-match rolling-xG offset in log-lambda. 0 for
+    # a goals-only fit (the model then reduces exactly to the pre-xG engine), so
+    # the server_default keeps every existing run behaving as before.
+    xg_coef: Mapped[float] = mapped_column(default=0.0, server_default="0")
     log_likelihood: Mapped[float]
     n_matches: Mapped[int]  # weighted match count the fit saw
     version: Mapped[str | None] = mapped_column(default=None)

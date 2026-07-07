@@ -60,6 +60,7 @@ def save_ratings(
         xi=xi,
         rho=ratings.rho,
         home_adv=ratings.home_adv,
+        xg_coef=ratings.xg_coef,
         log_likelihood=ratings.log_likelihood,
         n_matches=n_matches,
         version=version,
@@ -107,6 +108,7 @@ def load_ratings(session: Session, model_run_id: int) -> TeamRatings:
         home_adv=run.home_adv,
         rho=run.rho,
         log_likelihood=run.log_likelihood,
+        xg_coef=run.xg_coef,
     )
 
 

@@ -56,10 +56,28 @@ class MatchData:
     home_goals: NDArray[np.intp]
     away_goals: NDArray[np.intp]
     weights: NDArray[np.float64]
+    # Pre-match rolling-xG offsets for the home/away scoring equations. None means
+    # no xG feature (the fit then reduces exactly to the goals-only engine); the
+    # loader fills them when xG is available. See model/xg_offset.py.
+    home_offset: NDArray[np.float64] | None = None
+    away_offset: NDArray[np.float64] | None = None
 
     @property
     def n_teams(self) -> int:
         return len(self.teams)
+
+    @property
+    def home_off(self) -> NDArray[np.float64]:
+        """Home offsets, or zeros when the fit carries no xG feature."""
+        if self.home_offset is None:
+            return np.zeros(len(self.home_idx))
+        return self.home_offset
+
+    @property
+    def away_off(self) -> NDArray[np.float64]:
+        if self.away_offset is None:
+            return np.zeros(len(self.away_idx))
+        return self.away_offset
 
 
 @dataclass(frozen=True)
@@ -76,6 +94,9 @@ class TeamRatings:
     home_adv: float
     rho: float
     log_likelihood: float
+    # Global coefficient on the pre-match rolling-xG offset. 0 (the default) means
+    # a goals-only fit and reduces expected_goals exactly to the pre-xG engine.
+    xg_coef: float = 0.0
     _index: dict[str, int] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -85,16 +106,36 @@ class TeamRatings:
     def index(self, team: str) -> int:
         return self._index[team]
 
-    def expected_goals(self, home: str, away: str) -> tuple[float, float]:
-        """Pre-match expected goals (lambda_home, mu_away) for a fixture."""
+    def expected_goals(
+        self, home: str, away: str, *, home_offset: float = 0.0, away_offset: float = 0.0
+    ) -> tuple[float, float]:
+        """Pre-match expected goals (lambda_home, mu_away) for a fixture.
+
+        ``home_offset`` / ``away_offset`` are the pre-match rolling-xG features for
+        this fixture; they only matter when the fit has a non-zero ``xg_coef``.
+        Both default to 0, so a goals-only model (or a caller that has no xG
+        feature to supply) gets exactly the pre-xG expected goals.
+        """
         h, a = self._index[home], self._index[away]
-        lambda_home = float(np.exp(self.attack[h] + self.defense[a] + self.home_adv))
-        mu_away = float(np.exp(self.attack[a] + self.defense[h]))
+        lambda_home = float(
+            np.exp(self.attack[h] + self.defense[a] + self.home_adv + self.xg_coef * home_offset)
+        )
+        mu_away = float(np.exp(self.attack[a] + self.defense[h] + self.xg_coef * away_offset))
         return lambda_home, mu_away
 
-    def predict(self, home: str, away: str, *, max_goals: int = DEFAULT_MAX_GOALS) -> Markets:
+    def predict(
+        self,
+        home: str,
+        away: str,
+        *,
+        home_offset: float = 0.0,
+        away_offset: float = 0.0,
+        max_goals: int = DEFAULT_MAX_GOALS,
+    ) -> Markets:
         """Full market distribution for a fixture, using this fit's ``rho``."""
-        lambda_home, mu_away = self.expected_goals(home, away)
+        lambda_home, mu_away = self.expected_goals(
+            home, away, home_offset=home_offset, away_offset=away_offset
+        )
         return markets(lambda_home, mu_away, rho=self.rho, max_goals=max_goals)
 
 
@@ -125,13 +166,14 @@ def _log_tau(
 
 
 def _unpack(
-    theta: NDArray[np.float64], n_teams: int, fit_rho: bool
-) -> tuple[NDArray[np.float64], NDArray[np.float64], float, float]:
-    """Map the free parameter vector to (attack, defense, gamma, rho).
+    theta: NDArray[np.float64], n_teams: int, fit_rho: bool, fit_xg: bool
+) -> tuple[NDArray[np.float64], NDArray[np.float64], float, float, float]:
+    """Map the free parameter vector to (attack, defense, gamma, rho, xg_coef).
 
-    Layout: ``[attack_free (n-1), defense_free (n-1), gamma, (rho)]``. The dropped
-    nth attack/defense is reconstructed as minus the sum of the free ones, which
-    is exactly the sum-to-zero gauge.
+    Layout: ``[attack_free (n-1), defense_free (n-1), gamma, (rho), (xg_coef)]``.
+    The dropped nth attack/defense is reconstructed as minus the sum of the free
+    ones, which is exactly the sum-to-zero gauge. ``rho`` sits before ``xg_coef``
+    so the index of the optional xG coefficient shifts with whether rho is fit.
     """
     k = n_teams - 1
     attack_free = theta[:k]
@@ -140,7 +182,8 @@ def _unpack(
     attack = np.append(attack_free, -attack_free.sum())
     defense = np.append(defense_free, -defense_free.sum())
     rho = float(theta[2 * k + 1]) if fit_rho else 0.0
-    return attack, defense, gamma, rho
+    xg_coef = float(theta[2 * k + 1 + int(fit_rho)]) if fit_xg else 0.0
+    return attack, defense, gamma, rho, xg_coef
 
 
 def _neg_log_likelihood(
@@ -149,17 +192,22 @@ def _neg_log_likelihood(
     gammaln_home: NDArray[np.float64],
     gammaln_away: NDArray[np.float64],
     fit_rho: bool,
+    fit_xg: bool,
 ) -> float:
     """Weighted negative log-likelihood — the function scipy minimizes.
 
     Uses ``log P(k; lam) = k*log(lam) - lam - log(k!)`` with ``log(k!)``
     precomputed via ``gammaln`` (the goals never change across iterations), so
-    each evaluation is two exponentials and some array math.
+    each evaluation is two exponentials and some array math. When ``fit_xg`` the
+    pre-match rolling-xG offset enters log-lambda as ``xg_coef * offset``.
     """
-    attack, defense, gamma, rho = _unpack(theta, data.n_teams, fit_rho)
+    attack, defense, gamma, rho, xg_coef = _unpack(theta, data.n_teams, fit_rho, fit_xg)
 
     log_lambda = attack[data.home_idx] + defense[data.away_idx] + gamma
     log_mu = attack[data.away_idx] + defense[data.home_idx]
+    if fit_xg:
+        log_lambda = log_lambda + xg_coef * data.home_off
+        log_mu = log_mu + xg_coef * data.away_off
     lam = np.exp(log_lambda)
     mu = np.exp(log_mu)
 
@@ -177,7 +225,7 @@ def _neg_log_likelihood(
     return -float(np.sum(data.weights * log_lik))
 
 
-def _fit(data: MatchData, *, fit_rho: bool, max_iter: int) -> TeamRatings:
+def _fit(data: MatchData, *, fit_rho: bool, fit_xg: bool, max_iter: int) -> TeamRatings:
     n = data.n_teams
     if n < 2:
         raise ValueError("need at least two teams to fit")
@@ -187,23 +235,26 @@ def _fit(data: MatchData, *, fit_rho: bool, max_iter: int) -> TeamRatings:
     gammaln_away = gammaln(data.away_goals + 1)
 
     n_strength = 2 * (n - 1)
-    x0 = np.zeros(n_strength + 1 + (1 if fit_rho else 0))
+    x0 = np.zeros(n_strength + 1 + int(fit_rho) + int(fit_xg))
     x0[n_strength] = _INIT_HOME_ADV  # gamma
     bounds: list[tuple[float | None, float | None]] = [(None, None)] * (n_strength + 1)
     if fit_rho:
         x0[n_strength + 1] = _INIT_RHO
         bounds.append(_RHO_BOUNDS)
+    if fit_xg:
+        # xg_coef seeds at 0 (start from the goals-only fit) and is unbounded.
+        bounds.append((None, None))
 
     result = minimize(
         _neg_log_likelihood,
         x0,
-        args=(data, gammaln_home, gammaln_away, fit_rho),
+        args=(data, gammaln_home, gammaln_away, fit_rho, fit_xg),
         method="L-BFGS-B",
         bounds=bounds,
         options={"maxiter": max_iter},
     )
 
-    attack, defense, gamma, rho = _unpack(result.x, n, fit_rho)
+    attack, defense, gamma, rho, xg_coef = _unpack(result.x, n, fit_rho, fit_xg)
     return TeamRatings(
         teams=data.teams,
         attack=attack,
@@ -211,6 +262,7 @@ def _fit(data: MatchData, *, fit_rho: bool, max_iter: int) -> TeamRatings:
         home_adv=gamma,
         rho=rho,
         log_likelihood=-float(result.fun),
+        xg_coef=xg_coef,
     )
 
 
@@ -224,6 +276,9 @@ def match_log_likelihood(ratings: TeamRatings, data: MatchData) -> float:
     attack, defense = ratings.attack, ratings.defense
     log_lambda = attack[data.home_idx] + defense[data.away_idx] + ratings.home_adv
     log_mu = attack[data.away_idx] + defense[data.home_idx]
+    if ratings.xg_coef != 0.0:
+        log_lambda = log_lambda + ratings.xg_coef * data.home_off
+        log_mu = log_mu + ratings.xg_coef * data.away_off
     lam = np.exp(log_lambda)
     mu = np.exp(log_mu)
 
@@ -243,9 +298,15 @@ def match_log_likelihood(ratings: TeamRatings, data: MatchData) -> float:
 
 def fit_independent_poisson(data: MatchData, *, max_iter: int = 200) -> TeamRatings:
     """Fit the baseline independent-Poisson model (rho fixed at 0)."""
-    return _fit(data, fit_rho=False, max_iter=max_iter)
+    return _fit(data, fit_rho=False, fit_xg=False, max_iter=max_iter)
 
 
-def fit_dixon_coles(data: MatchData, *, max_iter: int = 200) -> TeamRatings:
-    """Fit the full Dixon-Coles model, estimating rho jointly with the strengths."""
-    return _fit(data, fit_rho=True, max_iter=max_iter)
+def fit_dixon_coles(data: MatchData, *, use_xg: bool = False, max_iter: int = 200) -> TeamRatings:
+    """Fit the full Dixon-Coles model, estimating rho jointly with the strengths.
+
+    With ``use_xg`` the pre-match rolling-xG offset is added to log-lambda with a
+    global coefficient estimated alongside everything else; the data must then
+    carry ``home_offset`` / ``away_offset``. Without it (the default) ``xg_coef``
+    stays 0 and the fit is exactly the goals-only model.
+    """
+    return _fit(data, fit_rho=True, fit_xg=use_xg, max_iter=max_iter)

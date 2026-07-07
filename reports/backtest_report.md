@@ -23,6 +23,7 @@ leakage-safe (each fit sees only results strictly before the round's kickoff).*
 |---|--:|--:|--:|--:|--:|
 | model (uncalibrated) | 1827 | 0.2046 | 1.0019 | 0.5980 | 0.0127 |
 | model (calibrated) | 1827 | 0.2045 | 1.0010 | 0.5978 | 0.0105 |
+| model + pre-match xG (uncal) | 1827 | 0.2069 | 1.0116 | 0.6038 | 0.0251 |
 | blend (model x open) | 1827 | 0.1976 | 0.9775 | 0.5808 | 0.0119 |
 | market (open, de-vig) | 1827 | 0.1976 | 0.9775 | 0.5808 | 0.0119 |
 | market (close, de-vig) | 1827 | 0.1967 | 0.9744 | 0.5787 | 0.0136 |
@@ -56,8 +57,11 @@ Temperature scaling (T = 1.139) found the model only mildly overconfident, and o
 
 The weight search gave the market **full weight (w = 1.00)**: on the pre-holdout folds, walk-forward log-likelihood rises monotonically all the way to the pure de-vigged opening line, so the "blend" row *is* the open (holdout RPS 0.1907 vs model 0.1996). The honest reading: a goals-only Dixon-Coles carries no information the opening odds don't already price in. That is the null result the blend was built to expose — the machinery stays, and the weight is worth re-checking after any base-model improvement (pre-match xG is the obvious candidate); if it moves off 1.0, the model has finally learned something the market hadn't.
 
+**Pre-match xG: an honest null.** Adding the rolling pre-match xG offset (xG minus goals, decayed, strictly pre-kickoff) to log-lambda as a fitted global coefficient *improves in-sample fit* (the coefficient lands clearly positive) but **worsens out-of-sample RPS** (0.2069 vs 0.2046 goals-only, gap +0.0023). The finishing-reversion signal is real inside the training window but doesn't generalise, so it is **not adopted into serving**. The machinery (scrape → ingest → offset → backtest `use_xg`) stays, so the null is reproducible and a better xG formulation (the xG level, or an xG–goals mixture target) can be re-measured the same way.
+
 The value-bet ROI over ~1000 bets is dominated by variance and should not be read
 as edge. **CLV** is the more trustworthy signal of skill, and the number above is
-what to believe over ROI. What would actually move the *base model* further:
-pre-match xG team strength instead of goals and lineup-aware data — enrichment on
-this calibrated core, not changes to it.
+what to believe over ROI. Pre-match xG — the obvious next lever — was tried and
+did not help (see above), which sharpens where the remaining signal isn't:
+lineup-aware data and a genuinely different model family (not another goals-space
+tweak) are the honest candidates left.
