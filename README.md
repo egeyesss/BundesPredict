@@ -45,6 +45,7 @@ adjustments applied.
                         │               │ predict_with_…  │
                         │               │ get_team_form   │
                         │               │ lookup_player   │
+                        │               │ get_weather     │
                         │  ┌────────────▼──────────────┐  │
                         │  │ Model engine (pure)       │  │
                         │  │  Dixon–Coles → score      │  │

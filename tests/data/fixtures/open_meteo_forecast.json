@@ -1,0 +1,21 @@
+{
+  "latitude": 51.484,
+  "longitude": 7.4529996,
+  "generationtime_ms": 0.456,
+  "utc_offset_seconds": 7200,
+  "timezone": "Europe/Berlin",
+  "timezone_abbreviation": "GMT+2",
+  "elevation": 90.0,
+  "daily_units": {
+    "time": "iso8601",
+    "temperature_2m_max": "°C",
+    "precipitation_sum": "mm",
+    "wind_speed_10m_max": "km/h"
+  },
+  "daily": {
+    "time": ["2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10"],
+    "temperature_2m_max": [29.4, 23.4, 27.3, 26.8],
+    "precipitation_sum": [0.0, 0.1, 0.0, 0.0],
+    "wind_speed_10m_max": [23.0, 13.0, 15.5, 12.4]
+  }
+}

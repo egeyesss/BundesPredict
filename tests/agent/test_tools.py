@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import numpy as np
 
 from bundespredict.agent.adjustments import Adjustment
 from bundespredict.agent.service import PredictionService, UnknownTeamError
 from bundespredict.agent.tools import TOOL_SPECS, dispatch
+from bundespredict.data.weather import WeatherProvider, WeatherReport
 from bundespredict.model.adjust import MAGNITUDE_BOUND
 from bundespredict.model.dixon_coles import TeamRatings
 
 
-def _service() -> PredictionService:
+def _service(weather_provider: WeatherProvider | None = None) -> PredictionService:
     ratings = TeamRatings(
         teams=("strong", "weak"),
         attack=np.array([0.5, -0.5]),
@@ -20,13 +23,13 @@ def _service() -> PredictionService:
         rho=-0.12,
         log_likelihood=0.0,
     )
-    return PredictionService(ratings)
+    return PredictionService(ratings, weather_provider=weather_provider)
 
 
 # --- tool specs -----------------------------------------------------------
 
 
-def test_tool_specs_cover_the_six_tools() -> None:
+def test_tool_specs_cover_every_tool() -> None:
     names = {spec["name"] for spec in TOOL_SPECS}
     assert names == {
         "predict_match",
@@ -35,6 +38,7 @@ def test_tool_specs_cover_the_six_tools() -> None:
         "lookup_player",
         "get_recent_results",
         "get_upcoming_fixtures",
+        "get_weather",
     }
 
 
@@ -156,6 +160,60 @@ def test_lookup_player_found_and_not_found() -> None:
 
     missing = dispatch("lookup_player", {"name": "Nobody"}, _service())
     assert missing.payload["found"] is False
+
+
+# --- get_weather ----------------------------------------------------------
+
+
+def test_weather_available_is_serialized() -> None:
+    report = WeatherReport(
+        team="strong",
+        city="Somewhere",
+        date=date(2026, 8, 29),
+        temperature_c=31.2,
+        wind_kmh=34.6,
+        precip_mm=0.0,
+    )
+    out = dispatch(
+        "get_weather",
+        {"team": "strong", "date": "2026-08-29"},
+        _service(lambda team, on: report),
+    )
+    assert not out.is_error
+    assert out.payload["available"] is True
+    assert out.payload["city"] == "Somewhere"
+    assert out.payload["wind_kmh"] == 34.6
+
+
+def test_weather_unavailable_when_provider_returns_none() -> None:
+    out = dispatch("get_weather", {"team": "strong"}, _service(lambda team, on: None))
+    assert not out.is_error
+    assert out.payload["available"] is False
+
+
+def test_weather_provider_receives_requested_date() -> None:
+    seen: list[date] = []
+
+    def provider(team: str, on: date) -> WeatherReport | None:
+        seen.append(on)
+        return None
+
+    dispatch("get_weather", {"team": "strong", "date": "2026-08-29"}, _service(provider))
+    assert seen == [date(2026, 8, 29)]
+
+
+def test_weather_bad_date_is_a_recoverable_error() -> None:
+    out = dispatch(
+        "get_weather", {"team": "strong", "date": "not-a-date"}, _service(lambda t, o: None)
+    )
+    assert out.is_error
+
+
+def test_prompt_mentions_the_weather_tool() -> None:
+    from bundespredict.agent.prompt import build_system_prompt
+
+    prompt = build_system_prompt(("strong", "weak"))
+    assert "get_weather" in prompt
 
 
 # --- service-level --------------------------------------------------------
