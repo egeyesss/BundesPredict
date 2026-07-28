@@ -23,7 +23,11 @@ class Settings(BaseSettings):
     # Haiku by default (cheap); override to the prod model via AGENT_MODEL.
     agent_model: str = DEV_MODEL
     # The browser origin allowed by CORS; set to the deployed web URL in prod.
+    # CORS is a browser policy only -- it does nothing against curl or a script,
+    # so proxy_secret below is what actually gates access.
     web_origin: str = "http://localhost:3000"
+    # Shared with the Next.js proxy. Unset disables the check (local dev).
+    proxy_secret: str | None = None
 
 
 @lru_cache
