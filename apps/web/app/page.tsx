@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  MAX_QUERY_LENGTH,
   streamPredict,
   type ChatTurn,
   type PredictResponse,
@@ -214,6 +215,9 @@ export default function Home() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              // Matches the API's cap, so an over-long query is stopped here
+              // instead of coming back as a 422.
+              maxLength={MAX_QUERY_LENGTH}
               disabled={pending}
               placeholder={pending ? "Predicting…" : "Ask about a fixture…"}
               className="w-full rounded-full border border-black/10 bg-white px-5 py-3 text-sm text-zinc-900 outline-none transition-colors focus:border-black/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-white/30"

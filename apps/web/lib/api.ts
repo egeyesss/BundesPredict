@@ -5,8 +5,10 @@
 // `error` frame if something broke after streaming began. EventSource can't
 // POST, so this parses the SSE frames off a fetch body reader by hand.
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+// Same-origin proxy route, not the API itself. The API's URL is server-side
+// only (API_BASE_URL) so it can't be pulled out of the client bundle and
+// called directly — see app/api/predict/stream/route.ts.
+export const PREDICT_STREAM_PATH = "/api/predict/stream";
 
 export interface Score {
   home: number;
@@ -70,6 +72,9 @@ export interface StreamCallbacks {
 // Rolling history window; must stay within the API's cap (40 turns).
 const MAX_HISTORY_TURNS = 20;
 
+/** Keep in sync with PredictRequest.query's max_length in the API. */
+export const MAX_QUERY_LENGTH = 500;
+
 /** POST the query and dispatch each SSE frame to the matching callback. */
 export async function streamPredict(
   query: string,
@@ -78,7 +83,7 @@ export async function streamPredict(
 ): Promise<void> {
   let resp: Response;
   try {
-    resp = await fetch(`${API_URL}/predict/stream`, {
+    resp = await fetch(PREDICT_STREAM_PATH, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, history: history.slice(-MAX_HISTORY_TURNS) }),
@@ -90,11 +95,19 @@ export async function streamPredict(
 
   if (!resp.ok || resp.body === null) {
     const detail = await resp.text().catch(() => "");
-    onError(
-      resp.status === 503
-        ? "The model isn't ready to serve yet (no fitted parameters or no API key)."
-        : `The API returned ${resp.status}. ${detail}`,
-    );
+    if (resp.status === 429) {
+      onError(
+        "You've hit the hourly limit for predictions. Try again in a little while.",
+      );
+    } else if (resp.status === 422) {
+      onError("That question is too long — keep it under 500 characters.");
+    } else {
+      onError(
+        resp.status === 503
+          ? "The model isn't ready to serve yet (no fitted parameters or no API key)."
+          : `The API returned ${resp.status}. ${detail}`,
+      );
+    }
     return;
   }
 

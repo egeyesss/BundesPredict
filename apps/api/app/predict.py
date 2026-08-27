@@ -18,7 +18,7 @@ import logging
 from collections.abc import Iterator
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -30,10 +30,13 @@ from bundespredict.data.predictions_store import save_prediction
 from .config import Settings, get_settings
 from .deps import get_llm_client, get_session
 from .schemas import PredictRequest, PredictResponse, build_response
+from .security import PREDICT_RATE_LIMIT, limiter, verify_proxy
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+# Both endpoints run the agent loop, so both are gated the same way: only the
+# web proxy may call them, and each caller gets a limited number per hour.
+router = APIRouter(dependencies=[Depends(verify_proxy)])
 
 SessionDep = Annotated[Session, Depends(get_session)]
 ClientDep = Annotated[LLMClient, Depends(get_llm_client)]
@@ -73,7 +76,9 @@ def _persist_and_build(
 
 
 @router.post("/predict", response_model=PredictResponse)
+@limiter.limit(PREDICT_RATE_LIMIT)
 def predict(
+    request: Request,  # unused here; slowapi resolves the limit key from it
     req: PredictRequest,
     session: SessionDep,
     client: ClientDep,
@@ -93,7 +98,9 @@ def _sse(event: str, data: dict[str, Any]) -> str:
 
 
 @router.post("/predict/stream")
+@limiter.limit(PREDICT_RATE_LIMIT)
 def predict_stream(
+    request: Request,  # unused here; slowapi resolves the limit key from it
     req: PredictRequest,
     session: SessionDep,
     client: ClientDep,

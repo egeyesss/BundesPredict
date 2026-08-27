@@ -22,11 +22,15 @@ class ChatTurn(BaseModel):
     """One prior turn of the conversation, plain text only."""
 
     role: Literal["user", "assistant"]
-    content: str = Field(min_length=1)
+    # Assistant turns carry a full explanation, so this is looser than the query
+    # cap -- but still bounded, or `history` becomes the way around that cap.
+    content: str = Field(min_length=1, max_length=4000)
 
 
 class PredictRequest(BaseModel):
-    query: str = Field(min_length=1, description="natural-language match question")
+    # Capped because the query is replayed on every agent turn, so an oversized
+    # one is billed up to MAX_TURNS times over.
+    query: str = Field(min_length=1, max_length=500, description="natural-language match question")
     match_date: date | None = Field(
         default=None,
         description="fixture date; scopes form lookups so nothing after it leaks in",
