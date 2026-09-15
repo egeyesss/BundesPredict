@@ -25,7 +25,7 @@ class UnmappedTeamError(KeyError):
 
 
 # football-data.co.uk name -> canonical (Transfermarkt-style) name.
-# Covers every club seen in Bundesliga seasons 2019/20 through 2025/26.
+# Covers every club seen in Bundesliga seasons 2019/20 through 2026/27.
 FOOTBALL_DATA_ALIASES: dict[str, str] = {
     "Augsburg": "FC Augsburg",
     "Bayern Munich": "Bayern Munich",
@@ -34,6 +34,7 @@ FOOTBALL_DATA_ALIASES: dict[str, str] = {
     "Darmstadt": "SV Darmstadt 98",
     "Dortmund": "Borussia Dortmund",
     "Ein Frankfurt": "Eintracht Frankfurt",
+    "Elversberg": "SV 07 Elversberg",
     "FC Koln": "1.FC Köln",
     "Fortuna Dusseldorf": "Fortuna Düsseldorf",
     "Freiburg": "SC Freiburg",
