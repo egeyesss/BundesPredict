@@ -9,9 +9,11 @@ import pytest
 
 from bundespredict.data.team_aliases import (
     FOOTBALL_DATA_ALIASES,
+    OPENLIGADB_ALIASES,
     UnmappedTeamError,
     canonical_team_name,
 )
+from bundespredict.data.transfermarkt import TRANSFERMARKT_ALIASES
 
 RAW_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
 
@@ -21,6 +23,27 @@ def test_known_name_maps_to_canonical() -> None:
     assert canonical_team_name("Ein Frankfurt") == "Eintracht Frankfurt"
     assert canonical_team_name("FC Koln") == "1.FC Köln"
     assert canonical_team_name("M'gladbach") == "Borussia Mönchengladbach"
+
+
+def test_promoted_2026_27_clubs_map_to_canonical() -> None:
+    # Spellings taken from football-data's D1_2627.csv; Elversberg crashed the
+    # 2026-09-14 scheduled refit.
+    assert canonical_team_name("Elversberg") == "SV 07 Elversberg"
+    assert canonical_team_name("Paderborn") == "SC Paderborn 07"
+    assert canonical_team_name("Schalke 04") == "FC Schalke 04"
+
+
+def test_every_club_known_to_another_source_has_a_football_data_spelling() -> None:
+    """A club added for fixtures or squads will show up in the results CSV too.
+
+    OpenLigaDB and Transfermarkt get updated for a promotion before the first
+    football-data CSV exists, so this fails at that point instead of in the
+    scheduled refit.
+    """
+    football_data_canonicals = set(FOOTBALL_DATA_ALIASES.values())
+    other_canonicals = set(OPENLIGADB_ALIASES.values()) | set(TRANSFERMARKT_ALIASES.values())
+    missing = other_canonicals - football_data_canonicals
+    assert not missing, f"no FOOTBALL_DATA_ALIASES entry for: {sorted(missing)}"
 
 
 def test_surrounding_whitespace_is_ignored() -> None:
