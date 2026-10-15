@@ -55,6 +55,11 @@
 
   --font-heading: var(--font-display);
 
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  @keyframes shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+  }
 }
 
 /* Fallback stacks; the next/font classes on <html> override these with the self-hosted faces. */
