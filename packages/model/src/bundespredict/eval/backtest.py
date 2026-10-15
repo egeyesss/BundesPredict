@@ -24,6 +24,7 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -123,7 +124,9 @@ def _load_fixtures(session: Session, seasons: Sequence[str] | None) -> list[_Fix
         stmt = stmt.where(Match.season.in_(seasons))
 
     fixtures: list[_Fixture] = []
-    for row in session.execute(stmt):
+    # Odds columns are nullable; _odds_ok filters the gaps before they are used.
+    rows: list[Any] = list(session.execute(stmt))
+    for row in rows:
         fixtures.append(
             _Fixture(
                 season=row[0],
