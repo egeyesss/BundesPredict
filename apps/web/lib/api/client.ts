@@ -38,7 +38,15 @@ export function csrfMiddleware(
   };
 }
 
-export function createApiClient({ baseUrl = "", fetch, headers }: ApiClientOptions = {}) {
+// Looked up per call: openapi-fetch otherwise keeps the `fetch` it saw at creation, which would
+// bypass an MSW interceptor that is installed afterwards.
+const lateBoundFetch: typeof globalThis.fetch = (input, init) => globalThis.fetch(input, init);
+
+export function createApiClient({
+  baseUrl = "",
+  fetch = lateBoundFetch,
+  headers,
+}: ApiClientOptions = {}) {
   const client = createClient<paths>({
     baseUrl,
     fetch,
