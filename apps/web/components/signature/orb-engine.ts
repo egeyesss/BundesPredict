@@ -23,6 +23,19 @@ const PERSPECTIVE = 2.8;
 const FONT_STEP_PX = 0.5;
 const GLYPHS = [...ORB_SETTINGS.glyphs];
 
+/** Small seeded generator so a still frame looks the same every time it is drawn. */
+function seededRandom(seed: number) {
+  let state = seed;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const STILL_SEED = 0x0b5ed;
+
 type Glyph = { x: number; y: number; z: number; character: string };
 
 const mix = (from: Rgb, to: Rgb, amount: number): Rgb => [
@@ -31,7 +44,11 @@ const mix = (from: Rgb, to: Rgb, amount: number): Rgb => [
   from[2] + (to[2] - from[2]) * amount,
 ];
 
-/** A rotating sphere of digit glyphs (or dots when small) whose motion follows the agent's phase. */
+/**
+ * A rotating sphere of digit glyphs (or dots when small) whose motion follows the agent's phase.
+ * In `still` mode (reduced motion) it draws a deterministic frame: fixed glyphs, no breathing,
+ * no jitter, and every time-based effect pinned to its starting value.
+ */
 export class OrbEngine {
   private readonly context: CanvasRenderingContext2D;
   private points: Glyph[] = [];
@@ -49,7 +66,13 @@ export class OrbEngine {
   private flashStart = -Infinity;
   private jitterUntil = 0;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  private random: () => number;
+
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly still = false,
+  ) {
+    this.random = still ? seededRandom(STILL_SEED) : Math.random;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("2d canvas is not available");
     this.context = context;
@@ -59,6 +82,7 @@ export class OrbEngine {
 
   resize(cssSize: number) {
     if (cssSize <= 0) return;
+    if (this.still) this.random = seededRandom(STILL_SEED);
     this.cssSize = cssSize;
     this.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     this.canvas.width = Math.round(cssSize * this.dpr);
@@ -74,7 +98,8 @@ export class OrbEngine {
     return this.cssSize > 0;
   }
 
-  setState(state: OrbState, now: number) {
+  setState(state: OrbState, at: number) {
+    const now = this.still ? 0 : at;
     const previous = this.phase;
     this.phase = state.phase;
     if (state.phase === "tool" && state.seq !== this.lastToolSeq) {
@@ -82,7 +107,9 @@ export class OrbEngine {
       this.pulseStart = now;
     }
     if (state.phase === "done" && previous !== "done") this.flashStart = now;
-    if (state.phase === "error" && previous !== "error") this.jitterUntil = now + ORB_SETTINGS.errorJitterMs;
+    if (state.phase === "error" && previous !== "error" && !this.still) {
+      this.jitterUntil = now + ORB_SETTINGS.errorJitterMs;
+    }
     if (state.phase === "thinking" && previous !== "tool") this.lastToolSeq = 0;
   }
 
@@ -101,18 +128,19 @@ export class OrbEngine {
   }
 
   private randomGlyph() {
-    return GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+    return GLYPHS[Math.floor(this.random() * GLYPHS.length)];
   }
 
   private mutate(deltaSeconds: number) {
     const changes = this.live.mutate * deltaSeconds * this.points.length * 0.05;
     for (let change = 0; change < changes; change++) {
-      this.points[Math.floor(Math.random() * this.points.length)].character = this.randomGlyph();
+      this.points[Math.floor(this.random() * this.points.length)].character = this.randomGlyph();
     }
   }
 
-  draw(now: number) {
+  draw(at: number) {
     if (!this.ready) return;
+    const now = this.still ? 0 : at;
     const { context, cssSize, palette, live } = this;
     context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     context.clearRect(0, 0, cssSize, cssSize);
@@ -121,7 +149,7 @@ export class OrbEngine {
     const radius = cssSize * SPHERE_RADIUS;
     this.paintGlow(center, radius);
 
-    const jitter = now < this.jitterUntil ? (Math.random() - 0.5) * 0.12 : 0;
+    const jitter = now < this.jitterUntil ? (this.random() - 0.5) * 0.12 : 0;
     const rotation = this.rotation + jitter;
     const cosY = Math.cos(rotation);
     const sinY = Math.sin(rotation);
@@ -131,7 +159,7 @@ export class OrbEngine {
     const pulseY = pulseProgress >= 0 && pulseProgress <= 1 ? -1.2 + pulseProgress * 2.4 : null;
     const flash = Math.max(0, 1 - (now - this.flashStart) / FLASH_MS);
     const seconds = now / 1000;
-    const breath = 1 + 0.025 * Math.sin(seconds * Math.PI * 0.5);
+    const breath = this.still ? 1 : 1 + 0.025 * Math.sin(seconds * Math.PI * 0.5);
 
     const projected = this.points.map((point) => {
       const x = point.x * cosY + point.z * sinY;

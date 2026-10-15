@@ -25,7 +25,7 @@ export default function OrbCanvas({ state }: { state: OrbState }) {
     const canvas = canvasRef.current;
     if (!supported || !canvas) return;
 
-    const engine = new OrbEngine(canvas);
+    const engine = new OrbEngine(canvas, reducedMotion);
     engineRef.current = engine;
     engine.setState(stateRef.current, performance.now());
 
