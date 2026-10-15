@@ -1,0 +1,14 @@
+from .base import *  # noqa: F403
+from .base import DATABASE_CONNECTION_OPTIONS, env
+
+DEBUG = False
+SECRET_KEY = env.str("DJANGO_SECRET_KEY")
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
+
+DATABASES = {"default": {**env.db("DATABASE_URL"), **DATABASE_CONNECTION_OPTIONS}}
+
+# Railway terminates TLS in front of the app.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True

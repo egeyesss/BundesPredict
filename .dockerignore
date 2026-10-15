@@ -11,3 +11,5 @@ data/raw
 data/processed
 notebooks
 *.md
+**/build
+**/dist

@@ -18,7 +18,7 @@ os.environ.setdefault("TESTCONTAINERS_RYUK_DISABLED", "true")
 import pytest  # noqa: E402
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session
-from testcontainers.postgres import PostgresContainer
+from testcontainers.community.postgres import PostgresContainer
 
 from bundespredict.data.db import make_engine, make_session_factory
 from bundespredict.data.models import Base
@@ -26,7 +26,7 @@ from bundespredict.data.models import Base
 
 @pytest.fixture(scope="session")
 def pg_engine() -> Iterator[Engine]:
-    with PostgresContainer("postgres:16", driver="psycopg") as postgres:
+    with PostgresContainer("postgres:17", driver="psycopg") as postgres:
         engine = make_engine(postgres.get_connection_url())
         Base.metadata.create_all(engine)
         try:

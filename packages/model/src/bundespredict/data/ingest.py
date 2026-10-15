@@ -127,7 +127,7 @@ def ingest_dir(session: Session, raw_dir: Path) -> list[IngestStats]:
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    raw_dir = Path(__file__).resolve().parents[3] / "data" / "raw"
+    raw_dir = Path(__file__).resolve().parents[5] / "data" / "raw"
     engine = make_engine()
     session_factory = make_session_factory(engine)
     with session_factory() as session:

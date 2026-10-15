@@ -9,30 +9,36 @@ on:
   schedule:
     - cron: "0 3 * * 1"
   workflow_dispatch:
+    inputs:
+      database:
+        description: Database to run against
+        type: choice
+        options:
+          - adoption
+          - production
+        default: adoption
 
 jobs:
   refit:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Production only on the schedule or when picked explicitly; an empty secret
+      # then falls through to the adoption branch instead of the other way round.
+      DATABASE_URL: ${{ (github.event_name == 'schedule' || inputs.database == 'production') && secrets.DATABASE_URL || secrets.ADOPTION_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: "3.12"
-          cache: pip
-      - run: pip install -e ".[model]"
+          enable-cache: true
+      - run: uv sync --frozen --no-dev --package bundespredict --extra model
       - name: refresh squads + market values (Transfermarkt)
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         # Scrape failures must not block the retrain: the players/squad_values
         # tables just keep serving the previous snapshot (cache-is-truth design).
         continue-on-error: true
-        run: python scripts/scrape_transfermarkt.py
+        run: uv run --no-sync python scripts/scrape_transfermarkt.py
       - name: refit on the latest results
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python scripts/refit.py
+        run: uv run --no-sync python scripts/refit.py
       - name: refresh the fixture schedule
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python scripts/download_fixtures.py
+        run: uv run --no-sync python scripts/download_fixtures.py
