@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "./styles/tokens.css";
 @import "./styles/theme.css";
+@import "./styles/island.css";
 
 /* The site is dark only, so `dark:` variants always apply. */
 @custom-variant dark (&:is(.dark *));

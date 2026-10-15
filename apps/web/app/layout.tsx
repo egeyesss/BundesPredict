@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google";
 
+import { AppShell } from "@/components/brand/AppShell";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import "./globals.css";
 
 const display = Barlow_Condensed({
@@ -41,7 +45,12 @@ export default function RootLayout({
       lang="en"
       className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <TooltipProvider>
+          <AppShell>{children}</AppShell>
+        </TooltipProvider>
+        <Toaster />
+      </body>
     </html>
   );
 }

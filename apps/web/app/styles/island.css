@@ -1,0 +1,342 @@
+/* Island nav: one black pill that morphs between full, compact, mobile and open-menu layouts while the layers crossfade. */
+.island-wrap {
+  position: fixed;
+  z-index: 40;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px));
+}
+
+.island-wrap[data-preview="true"] {
+  position: relative;
+  top: 0;
+  z-index: 0;
+  padding-inline: 0;
+  justify-content: flex-start;
+}
+
+.island {
+  --island-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+  --island-spring-duration: 450ms;
+  pointer-events: auto;
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  width: 220px;
+  height: 48px;
+  border-radius: 26px;
+  background: #000;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  box-shadow: 0 14px 36px -12px rgb(0 0 0 / 0.75);
+  transition:
+    width var(--island-spring-duration) var(--island-spring),
+    height var(--island-spring-duration) var(--island-spring),
+    border-radius var(--island-spring-duration) var(--island-spring),
+    opacity 150ms ease;
+}
+
+.island[data-ready="false"] {
+  opacity: 0;
+}
+
+.island[data-mode="open"] {
+  border-radius: 28px;
+}
+
+.island-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 6px 0 18px;
+  opacity: 0;
+  transform: scale(0.94);
+  filter: blur(4px);
+  pointer-events: none;
+  transition:
+    opacity 140ms ease,
+    transform 200ms ease,
+    filter 140ms ease;
+}
+
+.island-layer.is-on {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  pointer-events: auto;
+  transition:
+    opacity 220ms ease 90ms,
+    transform var(--island-spring-duration) var(--island-spring) 40ms,
+    filter 220ms ease 90ms;
+}
+
+.island-layer-full {
+  height: 52px;
+  gap: 18px;
+  padding-right: 8px;
+}
+
+.island-layer-open {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: min(calc(100vw - 32px), 420px);
+  height: auto;
+  padding: 8px 8px 18px 18px;
+}
+
+.island-wrap[data-preview="true"] .island-layer-open {
+  width: min(calc(100vw - 64px), 420px);
+}
+
+.isl-logo {
+  display: inline-flex;
+  padding: 2px 0;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.isl-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--bp-text-muted);
+  white-space: nowrap;
+}
+
+.isl-links a {
+  text-decoration: none;
+}
+
+.isl-links a:hover,
+.isl-links a[aria-current="page"] {
+  color: #fff;
+}
+
+.isl-div {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  background: var(--bp-border);
+}
+
+.isl-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.isl-signin {
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--bp-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.isl-signin:hover {
+  color: #fff;
+}
+
+.isl-cta {
+  padding: 11px 15px;
+  border-radius: 999px;
+  background: var(--bp-red);
+  font: 600 13px/1 var(--font-sans);
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.isl-cta:hover {
+  background: #b80412;
+}
+
+.isl-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.isl-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 12px var(--font-mono);
+  color: var(--odds-draw-lead);
+  white-space: nowrap;
+}
+
+.isl-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--odds-win);
+  box-shadow: 0 0 8px rgb(34 197 94 / 0.6);
+}
+
+.isl-orb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--bp-red-text), var(--bp-red-dim) 70%);
+  box-shadow: 0 0 10px var(--bp-red-glow);
+  animation: isl-orb-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes isl-orb-pulse {
+  50% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+}
+
+.burger {
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bp-surface-2);
+}
+
+.burger i {
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: #fff;
+}
+
+.burger-close {
+  font: 500 16px/1 var(--font-sans);
+  color: #fff;
+}
+
+.menu-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+}
+
+.menu-who {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 8px 6px 0;
+  padding: 12px;
+  border: 1px solid #1f1f23;
+  border-radius: 14px;
+  background: #121215;
+}
+
+.menu-who-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.menu-who-email {
+  display: block;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--bp-text-muted);
+  text-overflow: ellipsis;
+}
+
+.menu-quota {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 11px var(--font-mono);
+  color: var(--bp-text-muted);
+}
+
+.menu-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.menu-pips i {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bp-text);
+}
+
+.menu-pips i.used {
+  background: var(--bp-border);
+}
+
+.menu-links {
+  display: grid;
+  margin: 8px 10px 0 0;
+}
+
+.menu-links a {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 0 12px;
+  border-bottom: 1px solid #1f1f23;
+  font: 700 34px/1 var(--font-display);
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-decoration: none;
+}
+
+.menu-links a small {
+  font: 11px var(--font-mono);
+  letter-spacing: 0;
+  color: var(--bp-text-muted);
+}
+
+.menu-links a[aria-current="page"] {
+  color: var(--bp-red-text);
+}
+
+.menu-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 18px 10px 0 0;
+}
+
+.island-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.island-scrim[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .island,
+  .island-layer,
+  .island-layer.is-on {
+    transition: none;
+  }
+
+  .isl-orb {
+    animation: none;
+  }
+}
