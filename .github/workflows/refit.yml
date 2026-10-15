@@ -23,8 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Scheduled runs have no inputs, so they always fall through to production.
-      DATABASE_URL: ${{ inputs.database == 'adoption' && secrets.ADOPTION_DATABASE_URL || secrets.DATABASE_URL }}
+      # Production only on the schedule or when picked explicitly; an empty secret
+      # then falls through to the adoption branch instead of the other way round.
+      DATABASE_URL: ${{ (github.event_name == 'schedule' || inputs.database == 'production') && secrets.DATABASE_URL || secrets.ADOPTION_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v10.3.0
