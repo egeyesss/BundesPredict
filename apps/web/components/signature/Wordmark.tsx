@@ -71,6 +71,7 @@ export function Wordmark({ size = "nav", active = false, className }: WordmarkPr
       ref={rootRef}
       className={cn("wm relative inline-block font-display leading-none font-bold whitespace-nowrap", SIZE_CLASS[size], className)}
       data-size={size}
+      data-active={active}
     >
       <span className="text-bp-text">Bundes</span>
       <span ref={predictRef} className="wm-predict relative inline-block leading-none text-bp-red">

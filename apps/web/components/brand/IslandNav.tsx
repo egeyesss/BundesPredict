@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { SurfaceActive } from "@/components/signature/SurfaceActive";
 import { Button } from "@/components/ui/button";
 import { COMPACT_SCROLL_THRESHOLD, MOBILE_BREAKPOINT, isCurrentSection, islandMode, sectionLabel, type IslandMode } from "@/lib/island";
 import { springEasing } from "@/lib/spring";
@@ -206,7 +207,7 @@ export function IslandNav({ wordmark, user, links = NAV_LINKS, preview }: Island
       inert={mode !== id}
       aria-hidden={mode !== id}
     >
-      {children}
+      <SurfaceActive active={mode === id}>{children}</SurfaceActive>
     </div>
   );
 
