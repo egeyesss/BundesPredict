@@ -116,7 +116,15 @@ test.describe("orb replay", () => {
     await expect(stageOrb(page)).toHaveAttribute("data-orb-state", "idle");
     phases.add("idle");
     expect([...phases].sort()).toEqual(["done", "idle", "thinking", "tool"]);
-    expect(tools).toEqual(["predict_match", "lookup_player", "get_weather", "predict_with_adjustments"]);
+    expect(tools).toEqual([
+      "get_upcoming_fixtures",
+      "predict_match",
+      "get_team_form",
+      "get_team_form",
+      "lookup_player",
+      "get_weather",
+      "predict_match_with_context",
+    ]);
   });
 
   test("an erroring stream ends in error with the server message, and a second send recovers", async ({ page }) => {
@@ -125,7 +133,7 @@ test.describe("orb replay", () => {
     await page.getByTestId("replay-error").click();
     await stepThrough(page, STREAMS.withError.events, (delivered) => expectOrbToFollow(page, delivered));
     await expect(stageOrb(page)).toHaveAttribute("data-orb-state", "error");
-    await expect(caption).toHaveText("The model is unavailable right now. Your chat was not counted.");
+    await expect(caption).toHaveText("The prediction could not be completed. Try again.");
 
     await page.getByTestId("replay-tool-heavy").click();
     await page.clock.runFor(1);
@@ -144,7 +152,7 @@ test.describe("orb replay", () => {
       if (captions.at(-1) !== text) captions.push(text);
     });
     await expect(caption).toHaveText("Done");
-    expect(captions).toEqual(expect.arrayContaining(["Reading the question", "Running the model"]));
+    expect(captions).toEqual(expect.arrayContaining(["Reading the question", "Looking up the schedule", "Running the model"]));
   });
 
   test("the ticker fills with each tool and folds once the answer arrives", async ({ page }) => {
@@ -153,10 +161,10 @@ test.describe("orb replay", () => {
     await page.getByTestId("replay-tool-heavy").click();
     await stepThrough(page, STREAMS.toolHeavy.events.slice(0, 5), async () => {});
     await expect(ticker).toHaveJSProperty("open", true);
-    await expect(ticker.getByText("Ran the model for Bayern v Leipzig")).toBeVisible();
+    await expect(ticker.getByText("2 fixtures, next Bayern Munich v 1.FSV Mainz 05")).toBeVisible();
     await stepThrough(page, STREAMS.toolHeavy.events.slice(5), async () => {});
     await expect(ticker).toHaveJSProperty("open", false);
-    await expect(ticker.locator("li")).toHaveCount(4);
+    await expect(ticker.locator("li")).toHaveCount(7);
   });
 
   test("no task runs longer than 200ms while the stream replays", async ({ page, browser }) => {
@@ -187,13 +195,13 @@ test.describe("bars and chips", () => {
     await open(page);
     const row = page.locator("span", { hasText: /^With your news$/ }).locator("xpath=..");
     const growths = () => row.locator("[data-segment]").evaluateAll((segments) => segments.map((segment) => Number((segment as HTMLElement).style.flexGrow)));
-    await expect.poll(growths).toEqual([0.5811, 0.2424, 0.1765]);
+    await expect.poll(growths).toEqual([0.6805, 0.2299, 0.0896]);
   });
 
   test("a chip shows its rationale on hover", async ({ page }) => {
     await open(page);
-    await page.locator("[tabindex='0']", { hasText: "player_out" }).hover();
-    await expect(page.getByRole("tooltip")).toContainText("Harry Kane ruled out");
+    await page.locator("[tabindex='0']", { hasText: "player_out" }).first().hover();
+    await expect(page.getByRole("tooltip")).toContainText("Kane is doubtful");
   });
 });
 
@@ -228,7 +236,7 @@ test.describe("reduced motion", () => {
     await open(page);
     const row = page.locator("span", { hasText: /^With your news$/ }).locator("xpath=..");
     const growths = await row.locator("[data-segment]").evaluateAll((segments) => segments.map((segment) => Number((segment as HTMLElement).style.flexGrow)));
-    expect(growths).toEqual([0.5811, 0.2424, 0.1765]);
+    expect(growths).toEqual([0.6805, 0.2299, 0.0896]);
   });
 
   test("has no axe violations", async ({ page }) => {

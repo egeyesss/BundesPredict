@@ -3,42 +3,35 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useIslandActivity } from "@/components/brand/IslandActivity";
-import { AdjustmentChip, type AppliedAdjustment } from "@/components/signature/AdjustmentChip";
+import { AdjustmentChip } from "@/components/signature/AdjustmentChip";
 import { AgentCaption } from "@/components/signature/AgentCaption";
 import { AgentOrb } from "@/components/signature/AgentOrb";
-import { ProbabilityBars, type OutcomeMarkets } from "@/components/signature/ProbabilityBars";
+import { ProbabilityBars } from "@/components/signature/ProbabilityBars";
 import { StageTicker } from "@/components/signature/StageTicker";
 import { Wordmark } from "@/components/signature/Wordmark";
 import { Button } from "@/components/ui/button";
 import { captionFor, useAgentState, type OrbState } from "@/lib/agent-state";
+import { recordedStreams } from "@/lib/api/mocks/streams";
+import { KNOWN_TOOL_NAMES, type AppliedAdjustment, type PredictResponse } from "@/lib/api/types";
 
 import { Section } from "../Section";
 import { STREAMS } from "./streams";
 import { useStreamReplay } from "./useStreamReplay";
 
-const BASELINE: OutcomeMarkets = { p_home: 0.6888, p_draw: 0.1664, p_away: 0.1448, exp_home_goals: 2.61, exp_away_goals: 1.14 };
-const ADJUSTED: OutcomeMarkets = { p_home: 0.5811, p_draw: 0.2424, p_away: 0.1765, exp_home_goals: 1.66, exp_away_goals: 0.79 };
+const RESULT = recordedStreams.tool_heavy.find((frame) => frame.event === "result")!.data as PredictResponse;
+const BASELINE = RESULT.baseline!;
+const ADJUSTED = RESULT.adjusted!;
 
-const ADJUSTMENTS: AppliedAdjustment[] = [
-  {
-    factor: "player_out",
-    team: "home",
-    target: "home_attack",
-    requested_magnitude_xg: -0.85,
-    effective_magnitude_xg: -0.6,
-    confidence: "high",
-    rationale: "Harry Kane ruled out (knee). Bayern's top scorer and highest market value in the squad.",
-  },
-  {
-    factor: "weather_rain",
-    team: null,
-    target: "home_attack",
-    requested_magnitude_xg: -0.35,
-    effective_magnitude_xg: -0.35,
-    confidence: "med",
-    rationale: "Heavy rain forecast in Munich at kickoff.",
-  },
-];
+/** The recordings never hit the cap, so one hand-written chip shows the asked-versus-capped line. */
+const CAPPED_ADJUSTMENT: AppliedAdjustment = {
+  factor: "player_out",
+  team: "home",
+  target: "home_attack",
+  requested_magnitude_xg: -0.85,
+  effective_magnitude_xg: -0.6,
+  confidence: "high",
+  rationale: "Harry Kane ruled out (knee). Bayern's top scorer and highest market value in the squad.",
+};
 
 const STATE_GALLERY: ReadonlyArray<{ label: string; state: OrbState }> = [
   { label: "Idle", state: { phase: "idle" } },
@@ -49,7 +42,7 @@ const STATE_GALLERY: ReadonlyArray<{ label: string; state: OrbState }> = [
   { label: "Error", state: { phase: "error", message: "The model is unavailable right now. Your chat was not counted." } },
 ];
 
-const FORCE_TOOLS = ["predict_match", "get_team_form", "lookup_player", "get_weather", "predict_with_adjustments"] as const;
+const FORCE_TOOLS = KNOWN_TOOL_NAMES;
 
 function Panel({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
@@ -184,10 +177,10 @@ export function SignatureDemo() {
       <Section id="bars" title="Probability bars" note="The adjusted bar tweens from the baseline over 400ms. Arrows stay neutral so green and red only mean win and lose.">
         <div className="grid gap-4 md:grid-cols-2">
           <Panel title="Without news">
-            <ProbabilityBars home="Bayern" away="Leipzig" baseline={BASELINE} />
+            <ProbabilityBars home="Bayern" away="Mainz" baseline={BASELINE} />
           </Panel>
           <Panel title="With your news">
-            <ProbabilityBars home="Bayern" away="Leipzig" baseline={BASELINE} adjusted={ADJUSTED} />
+            <ProbabilityBars home="Bayern" away="Mainz" baseline={BASELINE} adjusted={ADJUSTED} />
           </Panel>
           <Panel title="Draw leads, three decimals">
             <ProbabilityBars
@@ -206,10 +199,10 @@ export function SignatureDemo() {
         </div>
       </Section>
 
-      <Section id="chips" title="Adjustment chips" note="Hover or focus a chip to read the agent's rationale.">
+      <Section id="chips" title="Adjustment chips" note="Hover or focus a chip to read the agent's rationale. The last one asks for more than the cap allows.">
         <div className="flex flex-wrap gap-2">
-          {ADJUSTMENTS.map((adjustment) => (
-            <AdjustmentChip key={adjustment.factor} adjustment={adjustment} homeName="Bayern" awayName="Leipzig" />
+          {[...RESULT.adjustments, CAPPED_ADJUSTMENT].map((adjustment) => (
+            <AdjustmentChip key={adjustment.rationale} adjustment={adjustment} homeName="Bayern" awayName="Mainz" />
           ))}
         </div>
       </Section>
