@@ -57,6 +57,8 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Check the styleguide is not in the production build
+        run: npm run check:production-routes
       - name: E2E
         run: npm run e2e
       - name: Upload Playwright report

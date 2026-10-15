@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "e2e": "node e2e/support/run.mjs",
     "e2e:update": "node e2e/support/run.mjs --update-snapshots",
-    "crests:build": "node scripts/build-crests.mjs"
+    "crests:build": "node scripts/build-crests.mjs",
+    "check:production-routes": "node e2e/support/assert-no-styleguide.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
