@@ -1,3 +1,7 @@
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, path
 
-urlpatterns: list[URLPattern | URLResolver] = []
+from .views import UnsubscribeView
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("unsubscribe", UnsubscribeView.as_view(), name="email-unsubscribe"),
+]

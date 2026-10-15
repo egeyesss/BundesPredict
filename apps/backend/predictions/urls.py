@@ -1,3 +1,7 @@
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, path
 
-urlpatterns: list[URLPattern | URLResolver] = []
+from .views import PredictStreamView
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("stream", PredictStreamView.as_view(), name="predict-stream"),
+]

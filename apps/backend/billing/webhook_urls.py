@@ -1,3 +1,8 @@
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, path
 
-urlpatterns: list[URLPattern | URLResolver] = []
+from .views import StripeLiveWebhookView, StripeTestWebhookView
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("live", StripeLiveWebhookView.as_view(), name="stripe-webhook-live"),
+    path("test", StripeTestWebhookView.as_view(), name="stripe-webhook-test"),
+]

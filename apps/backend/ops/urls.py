@@ -1,3 +1,8 @@
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, path
 
-urlpatterns: list[URLPattern | URLResolver] = []
+from .views import AdminMetricsView, DemoStartView
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("admin/metrics", AdminMetricsView.as_view(), name="admin-metrics"),
+    path("demo/start", DemoStartView.as_view(), name="demo-start"),
+]
