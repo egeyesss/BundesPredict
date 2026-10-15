@@ -10,22 +10,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: "3.12"
-          cache: pip
+          enable-cache: true
       - name: Install
-        # [model] for the engine (numpy/scipy); [agent] for the adjustment layer
-        # (PyYAML + Anthropic SDK). Both are part of the checked surface now.
-        run: pip install -e ".[dev,model,agent]"
+        # One lockfile for the whole workspace: the model library, the FastAPI app
+        # and the Django backend, plus the dev tools.
+        run: uv sync --frozen
       - name: Lint (ruff)
-        run: ruff check .
+        run: uv run --no-sync ruff check .
       - name: Format check (ruff)
-        run: ruff format --check .
+        run: uv run --no-sync ruff format --check .
       - name: Types (mypy)
-        run: mypy
+        run: uv run --no-sync mypy
       - name: Tests (pytest)
-        run: pytest
+        run: uv run --no-sync pytest
+      - name: OpenAPI schema is fresh
+        # Placeholder until apps/backend/openapi.json is committed; it will regenerate
+        # the schema here and fail on a diff.
+        run: "true"
 
   web:
     runs-on: ubuntu-latest
