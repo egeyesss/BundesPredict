@@ -84,3 +84,13 @@ export function displayOdds(probs: OutcomeTriple, xg: readonly [number, number])
   units[order[0]] += 10000 - units.reduce((sum, unit) => sum + unit, 0);
   return present(units, 2, order, true);
 }
+
+export type PointChange = { direction: "up" | "down" | "none"; text: string };
+
+/** Formats a change in probability (0.042 is 4.2 points) as "+4.2" or "−3.1", or "0.0" when it rounds away. */
+export function formatPointChange(change: number): PointChange {
+  const points = Math.round(Math.abs(change) * 1000) / 10;
+  if (points === 0) return { direction: "none", text: "0.0" };
+  const text = points.toFixed(1);
+  return change > 0 ? { direction: "up", text: `+${text}` } : { direction: "down", text: `−${text}` };
+}

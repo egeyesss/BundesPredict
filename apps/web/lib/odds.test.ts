@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { displayOdds, type OutcomeTriple } from "./odds";
+import { displayOdds, formatPointChange, type OutcomeTriple } from "./odds";
 
 type Case = {
   name: string;
@@ -48,5 +48,24 @@ describe("displayOdds", () => {
     const odds = displayOdds([0.2, 0.3, 0.5], [1, 2]);
     expect(odds.order).toEqual([2, 1, 0]);
     expect(odds.lead).toBe(2);
+  });
+});
+
+describe("formatPointChange", () => {
+  it("signs a rise with a plus and an up arrow direction", () => {
+    expect(formatPointChange(0.042)).toEqual({ direction: "up", text: "+4.2" });
+  });
+
+  it("signs a fall with a real minus sign", () => {
+    expect(formatPointChange(-0.031)).toEqual({ direction: "down", text: "\u22123.1" });
+  });
+
+  it("calls a change that rounds to 0.0 no change", () => {
+    expect(formatPointChange(0.0004)).toEqual({ direction: "none", text: "0.0" });
+    expect(formatPointChange(-0.0004)).toEqual({ direction: "none", text: "0.0" });
+  });
+
+  it("reads the change in percentage points", () => {
+    expect(formatPointChange(0.5811 - 0.6888).text).toBe("\u221210.8");
   });
 });
