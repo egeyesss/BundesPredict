@@ -6,10 +6,9 @@ against the de-vigged market, calibrates on the pre-holdout seasons and measures
 the held-out season, simulates flat-stake value betting with CLV, and writes a
 committed markdown report plus reliability plots.
 
-Run it with the model + report extras installed::
+Run it with the report extra (matplotlib) added to the workspace install::
 
-    pip install -e ".[model,report]"
-    python scripts/run_backtest.py
+    uv run --package bundespredict --extra report python scripts/run_backtest.py
 
 It persists one ``model_runs`` row per gameweek (clearing any previous
 walk-forward runs first, so re-running stays idempotent).

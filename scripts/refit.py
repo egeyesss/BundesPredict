@@ -7,10 +7,9 @@ to ``model_runs``/``team_params``. The API serves whatever the latest persisted
 run is — it never fits inside a request — so running this weekly (or after every
 matchday) is what keeps predictions current.
 
-Run it with the model extra installed::
+Run it from the repo root (the workspace install includes the model extra)::
 
-    pip install -e ".[model]"
-    python scripts/refit.py
+    uv run python scripts/refit.py
 
 ``--skip-download`` trains on whatever is already in the database (useful
 offline). By default the decay rate is the walk-forward-selected value from the

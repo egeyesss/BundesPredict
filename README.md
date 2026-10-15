@@ -62,7 +62,7 @@ adjustments applied.
                           ingest → fit → persist params)
 ```
 
-The boundaries are the point. `src/bundespredict/model/` is pure — no I/O, no
+The boundaries are the point. `packages/model/src/bundespredict/model/` is pure: no I/O, no
 DB, no LLM; given parameters and adjustments it returns a distribution, which is
 what makes it unit-testable (parameter recovery, invariants, monotonicity,
 clamping). Serving never fits: the API loads the latest persisted run, and
@@ -107,6 +107,21 @@ history of them — so they live in a knowledge base where every range carries
 either a citation or an explicit `heuristic` label, and the feature is framed as
 what it is: an auditable, bounded what-if with an explanation, not an edge.
 
+## Repository layout
+
+```
+packages/model/   the pure model/agent/eval/data library (import name: bundespredict)
+apps/api/         FastAPI service, deployed with infra/Dockerfile.api
+apps/backend/     Django + DRF project (config/, one folder per app, tests/)
+apps/web/         Next.js frontend
+infra/            Dockerfiles and docker-compose.yml
+scripts/          offline jobs (refit, ingest, scrapers, backtest)
+tests/            tests for the library and the FastAPI app
+```
+
+The Python code is a uv workspace (`packages/model`, `apps/api`, `apps/backend`)
+with a single `uv.lock` at the root; ruff, mypy and pytest are configured there too.
+
 ## Running it
 
 Copy the env template into a local `.env` (gitignored):
@@ -127,28 +142,28 @@ Then the whole stack:
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-- Web: http://localhost:3000 · API: http://localhost:8000/health
+- Web: http://localhost:3000 · FastAPI: http://localhost:8000/health · Django: http://localhost:8001/api/v1/health
 - Postgres publishes host port **5433** (`POSTGRES_HOST_PORT` to change)
 
 Or without Docker (Postgres still via compose):
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d db
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,model,agent]"
-uvicorn app.main:app --app-dir apps/api --reload   # api on :8000, from repo root
+uv sync                                            # installs the whole workspace into .venv
+uv run uvicorn app.main:app --app-dir apps/api --reload   # FastAPI on :8000
+uv run apps/backend/manage.py runserver 8001       # Django on :8001
 cd apps/web && npm install && npm run dev          # web on :3000
 ```
 
 ### Data + a fitted model
 
 ```bash
-python scripts/download_seasons.py --start 2019 --end 2025   # CSVs -> data/raw/
-alembic upgrade head                   # create the schema
-python -m bundespredict.data.ingest    # upsert CSVs into Postgres (idempotent)
-python scripts/scrape_transfermarkt.py # squads + market values (polite, cached)
-python scripts/refit.py --skip-download   # fit + persist serving parameters
-python scripts/download_fixtures.py    # upcoming schedule (OpenLigaDB)
+uv run python scripts/download_seasons.py --start 2019 --end 2025   # CSVs -> data/raw/
+uv run alembic upgrade head              # create the schema
+uv run python -m bundespredict.data.ingest # upsert CSVs into Postgres (idempotent)
+uv run python scripts/scrape_transfermarkt.py # squads + market values (polite, cached)
+uv run python scripts/refit.py --skip-download # fit + persist serving parameters
+uv run python scripts/download_fixtures.py # upcoming schedule (OpenLigaDB)
 ```
 
 `refit.py` is also the recurring job: run it after a matchday and it re-pulls
@@ -169,21 +184,21 @@ refit; historical league pages are fetched once and never again.
 Per-match expected goals (for the pre-match xG experiment) come from Understat via
 `scripts/scrape_understat.py`. Understat sits behind Cloudflare and only serves its
 data to a real browser, so the scraper drives a local Chromium through Playwright
-(`pip install playwright && playwright install chromium`) and caches each season's
+(`uv pip install playwright && uv run playwright install chromium`) and caches each season's
 JSON to `data/understat_cache/`; a second pass backfills `matches.home_xg/away_xg`.
 It's an **offline analysis step, not part of serving or the CI refit** — the xG
 feature was measured and left out (see the honest-results section), so nothing on
 the request path depends on it.
 
 The backtest + calibration report is regenerated with
-`python scripts/run_backtest.py` (needs `pip install -e ".[model,report]"`); it now
+`uv run --package bundespredict --extra report python scripts/run_backtest.py`; it now
 also runs the pre-match xG variant so the report carries the goals-only vs xG
 comparison.
 
 ## Checks
 
 ```bash
-ruff check . && ruff format --check . && mypy && pytest
+uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
 cd apps/web && npx tsc --noEmit && npm run lint
 ```
 
