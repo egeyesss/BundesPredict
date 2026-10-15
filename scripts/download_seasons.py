@@ -17,19 +17,12 @@ from __future__ import annotations
 
 import argparse
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
-BASE_URL = "https://www.football-data.co.uk/mmz4281"
-DIVISION = "D1"  # Bundesliga
+from bundespredict.data.footballdata import DownloadError, fetch_season_csv
+from bundespredict.data.seasons import season_code
+
 DEFAULT_DEST = Path(__file__).resolve().parent.parent / "data" / "raw"
-USER_AGENT = "BundesPredict/0.0 (+https://github.com; educational use)"
-
-
-def season_code(start_year: int) -> str:
-    """2023 -> '2324' (the season starting in 2023)."""
-    return f"{start_year % 100:02d}{(start_year + 1) % 100:02d}"
 
 
 def download_one(code: str, dest_dir: Path, *, force: bool) -> bool:
@@ -39,16 +32,10 @@ def download_one(code: str, dest_dir: Path, *, force: bool) -> bool:
         print(f"  skip   {out_path.name} (exists; use --force to overwrite)")
         return False
 
-    url = f"{BASE_URL}/{code}/{DIVISION}.csv"
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 (trusted host)
-            data = resp.read()
-    except urllib.error.HTTPError as exc:
-        print(f"  FAIL   {code}: HTTP {exc.code} ({url})", file=sys.stderr)
-        return False
-    except urllib.error.URLError as exc:
-        print(f"  FAIL   {code}: {exc.reason} ({url})", file=sys.stderr)
+        data = fetch_season_csv(code)
+    except DownloadError as exc:
+        print(f"  FAIL   {exc}", file=sys.stderr)
         return False
 
     dest_dir.mkdir(parents=True, exist_ok=True)
