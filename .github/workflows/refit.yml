@@ -2,7 +2,16 @@
 # Transfermarkt, refit on the full history, persist a new parameter run, and
 # refresh the fixture schedule. Serving reads the newest run on the next
 # request, so this is the whole "keep the model current" story.
-# Monday 03:00 UTC — after the matchday is fully ingested upstream.
+# Monday 03:00 UTC: after the matchday is fully ingested upstream.
+#
+# Two jobs do the same work on different code paths, and the event decides which one runs:
+#   refit-legacy  the SQLAlchemy scripts in scripts/. Runs on the schedule and on a manual
+#                 run against production, because production has not been adopted by the
+#                 Django migrations yet.
+#   refit-django  the manage.py commands. Runs on a manual run against the adoption branch.
+# To move production onto the Django path, delete refit-legacy and widen the `if` of
+# refit-django to `github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'`
+# once production has been adopted.
 name: refit
 
 on:
@@ -19,13 +28,12 @@ on:
         default: adoption
 
 jobs:
-  refit:
+  refit-legacy:
+    if: github.event_name == 'schedule' || inputs.database == 'production'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Production only on the schedule or when picked explicitly; an empty secret
-      # then falls through to the adoption branch instead of the other way round.
-      DATABASE_URL: ${{ (github.event_name == 'schedule' || inputs.database == 'production') && secrets.DATABASE_URL || secrets.ADOPTION_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v10.3.0
@@ -42,3 +50,31 @@ jobs:
         run: uv run --no-sync python scripts/refit.py
       - name: refresh the fixture schedule
         run: uv run --no-sync python scripts/download_fixtures.py
+
+  refit-django:
+    if: github.event_name == 'workflow_dispatch' && inputs.database == 'adoption'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.ADOPTION_DATABASE_URL }}
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      # The commands never sign or serve anything; the prod settings just require values.
+      DJANGO_SECRET_KEY: not-used-by-management-commands
+      DJANGO_ALLOWED_HOSTS: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --no-dev --package bundespredict-backend
+      - name: check the database is fully migrated
+        run: uv run --no-sync apps/backend/manage.py migrate --check
+      - name: refresh squads + market values (Transfermarkt)
+        # Same rule as the legacy job: a failed scrape keeps the previous snapshot serving.
+        continue-on-error: true
+        run: uv run --no-sync apps/backend/manage.py scrape_transfermarkt
+      - name: refit on the latest results
+        run: uv run --no-sync apps/backend/manage.py refit
+      - name: refresh the fixture schedule
+        run: uv run --no-sync apps/backend/manage.py download_fixtures
