@@ -119,7 +119,7 @@ function DeltaTiles({
         const change = formatPointChange(after[index] - before[index]);
         const isLead = odds.lead === index;
         return (
-          <div key={index} data-testid="delta" className="grid min-w-0 gap-0.5 rounded-lg border border-bp-border bg-bp-bg px-3 py-2.5">
+          <div key={index} data-testid="delta" className="grid min-w-0 gap-0.5 rounded-lg border border-bp-border bg-bp-bg px-2.5 py-2.5 sm:px-3">
             <small className="truncate font-mono text-[11px] tracking-wider text-bp-text-muted uppercase">{names[index]}</small>
             <strong
               className={cn(
@@ -129,7 +129,7 @@ function DeltaTiles({
             >
               {odds.text[index]}%
             </strong>
-            <span className="font-mono text-xs font-medium text-bp-text-muted tabular-nums">
+            <span className="font-mono text-[11px] font-medium whitespace-nowrap text-bp-text-muted tabular-nums sm:text-xs">
               {change.direction === "none" ? "no change" : `${ARROW[change.direction]} ${change.text} pts`}
             </span>
           </div>
