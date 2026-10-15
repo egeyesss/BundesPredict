@@ -1,0 +1,57 @@
+.orb {
+  --ring: var(--bp-border);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  max-width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+}
+
+.orb[data-orb-state="thinking"] {
+  --ring: var(--bp-red);
+}
+
+.orb[data-orb-state="tool"] {
+  --ring: var(--bp-red-text);
+}
+
+.orb[data-orb-state="done"] {
+  --ring: var(--bp-text);
+}
+
+.orb[data-orb-state="error"] {
+  --ring: var(--odds-draw);
+}
+
+/* Under reduced motion the canvas is one still frame, so the ring colour carries the state. */
+.orb[data-reduced="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--ring);
+  pointer-events: none;
+}
+
+.orb-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--bp-red-text), var(--bp-red-dim) 70%);
+  box-shadow: 0 0 10px var(--bp-red-glow);
+  animation: orb-fallback-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes orb-fallback-pulse {
+  50% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-fallback {
+    animation: none;
+  }
+}
