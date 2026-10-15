@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "node e2e/support/run.mjs",
-    "e2e:update": "node e2e/support/run.mjs --update-snapshots"
+    "e2e:update": "node e2e/support/run.mjs --update-snapshots",
+    "crests:build": "node scripts/build-crests.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -42,6 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "jsdom": "^30.1.2",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite": "^8.3.4",
