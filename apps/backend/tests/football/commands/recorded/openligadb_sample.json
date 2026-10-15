@@ -1,0 +1,47 @@
+[
+  {
+    "matchDateTimeUTC": "2026-08-29T13:30:00Z",
+    "matchIsFinished": false,
+    "group": {
+      "groupName": "1. Spieltag",
+      "groupOrderID": 1
+    },
+    "team1": {
+      "teamName": "1. FSV Mainz 05"
+    },
+    "team2": {
+      "teamName": "SC Paderborn 07"
+    },
+    "leagueSeason": 2026
+  },
+  {
+    "matchDateTimeUTC": "2026-08-28T18:30:00Z",
+    "matchIsFinished": false,
+    "group": {
+      "groupName": "1. Spieltag",
+      "groupOrderID": 1
+    },
+    "team1": {
+      "teamName": "FC Bayern München"
+    },
+    "team2": {
+      "teamName": "VfB Stuttgart"
+    },
+    "leagueSeason": 2026
+  },
+  {
+    "matchDateTimeUTC": "2026-08-29T13:30:00Z",
+    "matchIsFinished": false,
+    "group": {
+      "groupName": "1. Spieltag",
+      "groupOrderID": 1
+    },
+    "team1": {
+      "teamName": "Borussia Dortmund"
+    },
+    "team2": {
+      "teamName": "Hamburger SV"
+    },
+    "leagueSeason": 2026
+  }
+]
