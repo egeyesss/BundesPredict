@@ -1,18 +1,10 @@
 "use client";
 
+import type { AppliedAdjustment } from "@/lib/api/types";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-/** Mirrors the API's applied adjustment: what the agent asked for next to what the engine allowed. */
-export type AppliedAdjustment = {
-  factor: string;
-  team: string | null;
-  target: string;
-  requested_magnitude_xg: number;
-  effective_magnitude_xg: number;
-  confidence: string;
-  rationale: string;
-};
+export type { AppliedAdjustment };
 
 const MATCH_LEVEL_TARGETS: Record<string, string> = {
   home_adv: "home advantage",

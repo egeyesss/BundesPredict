@@ -1,24 +1,15 @@
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 
+import type { PredictStreamEvent, StageEvent } from "@/lib/api/types";
+
 /** How long the orb holds its "done" flash before settling back to idle. */
 export const DONE_HOLD_MS = 1200;
 
-export type StageData =
-  | { type: "tool_call"; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; name: string; ok: boolean; summary: string };
-
 /**
- * The five SSE frames of the predict stream, plus two events the client adds:
- * `send` when the user submits and `settle` when the done hold elapses.
+ * The predict stream's frames as generated from the API schema, plus two events the
+ * client adds: `send` when the user submits and `settle` when the done hold elapses.
  */
-export type AgentEvent =
-  | { event: "send" }
-  | { event: "conversation"; data: { id: string; title: string } }
-  | { event: "quota"; data: { used: number; limit: number; resets_at: string } }
-  | { event: "stage"; data: StageData }
-  | { event: "result"; data: unknown }
-  | { event: "error"; data: { code: string; message: string } }
-  | { event: "settle" };
+export type AgentEvent = PredictStreamEvent | { event: "send" } | { event: "settle" };
 
 /** `seq` counts tool calls in the run so the orb can pulse again for a repeated tool. */
 export type OrbState =
@@ -50,7 +41,9 @@ const TOOL_CAPTIONS: Record<string, string> = {
   get_team_form: "Checking form",
   lookup_player: "Looking up the squad",
   get_weather: "Checking the weather",
-  predict_with_adjustments: "Applying adjustments",
+  predict_match_with_context: "Applying adjustments",
+  get_recent_results: "Checking the latest results",
+  get_upcoming_fixtures: "Looking up the schedule",
 };
 
 const UNKNOWN_TOOL_CAPTION = "Working on it";
@@ -81,7 +74,7 @@ function settleStages(stages: readonly Stage[], to: StageStatus): readonly Stage
     : stages;
 }
 
-function reduceStage(state: AgentState, data: StageData): AgentState {
+function reduceStage(state: AgentState, data: StageEvent): AgentState {
   if (data.type === "tool_call") {
     const calls = state.calls + 1;
     return {

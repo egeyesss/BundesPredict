@@ -1,13 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { STREAMS } from "@/app/styleguide/signature/streams";
+import { recordedStreams, type RecordedStreamName } from "@/lib/api/mocks/streams";
+import { KNOWN_TOOL_NAMES } from "@/lib/api/types";
 
 import {
   DONE_HOLD_MS,
   INITIAL_AGENT_STATE,
   captionFor,
   foldAgentEvents,
+  foldAgentState,
   reduceAgentState,
   stagesFromEvents,
   useAgentState,
@@ -16,11 +18,12 @@ import {
 
 const send: AgentEvent = { event: "send" };
 const toolCall = (name: string): AgentEvent => ({ event: "stage", data: { type: "tool_call", name, input: {} } });
+const recorded = (name: RecordedStreamName): AgentEvent[] => [{ event: "send" }, ...recordedStreams[name]];
 const toolResult = (name: string, ok = true): AgentEvent => ({
   event: "stage",
   data: { type: "tool_result", name, ok, summary: `${name} finished` },
 });
-const result: AgentEvent = { event: "result", data: {} };
+const result: AgentEvent = { event: "result", data: recordedStreams.happy.at(-1)!.data as never };
 const failure = (message = "The model is unavailable right now."): AgentEvent => ({
   event: "error",
   data: { code: "model_unavailable", message },
@@ -122,8 +125,9 @@ describe("tool calls", () => {
 describe("events that must not change the state", () => {
   it("ignores conversation and quota frames", () => {
     const conversation: AgentEvent = { event: "conversation", data: { id: "c", title: "t" } };
+    const anonymousConversation: AgentEvent = { event: "conversation", data: { id: null, title: "t" } };
     const quota: AgentEvent = { event: "quota", data: { used: 1, limit: 3, resets_at: "2026-10-16T00:00:00Z" } };
-    expect(run(send, conversation, quota)).toEqual({ phase: "thinking" });
+    expect(run(send, conversation, anonymousConversation, quota)).toEqual({ phase: "thinking" });
     expect(run(conversation, quota)).toEqual({ phase: "idle" });
   });
 
@@ -155,34 +159,65 @@ describe("events that must not change the state", () => {
   });
 });
 
-describe("recorded-shape streams", () => {
-  const visit = (name: keyof typeof STREAMS) => {
+describe("recorded streams", () => {
+  const phasesOf = (name: RecordedStreamName) => {
     const phases: string[] = [];
     let state = INITIAL_AGENT_STATE;
-    for (const [, event] of STREAMS[name].events) {
+    for (const event of recorded(name)) {
       state = reduceAgentState(state, event);
       phases.push(state.orb.phase);
     }
     return phases;
   };
 
-  it("walks the tool-heavy stream through thinking, tool and done", () => {
-    const phases = visit("toolHeavy");
+  it("walks the tool-heavy stream through thinking, seven tools and done", () => {
+    const phases = phasesOf("tool_heavy");
     expect(new Set(phases)).toEqual(new Set(["thinking", "tool", "done"]));
+    expect(phases.filter((phase, index) => phase === "tool" && phases[index - 1] !== "tool")).toHaveLength(7);
     expect(phases.at(-1)).toBe("done");
   });
 
-  it("ends the erroring stream in error with the server message", () => {
-    const state = foldAgentEvents(STREAMS.withError.events.map(([, event]) => event));
-    expect(state).toEqual({
-      phase: "error",
-      message: "The model is unavailable right now. Your chat was not counted.",
+  it("pulses the orb once per call, including the repeated get_team_form", () => {
+    const seqs: number[] = [];
+    let state = INITIAL_AGENT_STATE;
+    for (const event of recorded("tool_heavy")) {
+      state = reduceAgentState(state, event);
+      if (state.orb.phase === "tool") seqs.push(state.orb.seq);
+    }
+    expect(seqs).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it("only uses tool names the contract lists", () => {
+    const names = foldAgentState(recorded("tool_heavy")).stages.map((stage) => stage.name);
+    for (const name of names) expect(KNOWN_TOOL_NAMES).toContain(name);
+  });
+
+  it.each(["happy", "last_chat", "tool_heavy"] as const)("%s ends in done with every stage finished", (name) => {
+    const state = foldAgentState(recorded(name));
+    expect(state.orb).toEqual({ phase: "done" });
+    expect(state.stages.every((stage) => stage.status === "done")).toBe(true);
+    expect(state.stages.every((stage) => stage.summary)).toBe(true);
+  });
+
+  it("keeps the server's summary on each stage", () => {
+    const stages = foldAgentState(recorded("tool_heavy")).stages;
+    expect(stages[0]).toEqual({
+      name: "get_upcoming_fixtures",
+      status: "done",
+      summary: "2 fixtures, next Bayern Munich v 1.FSV Mainz 05",
     });
   });
 
+  it("fails the stage whose tool errored, then ends in error with the server message", () => {
+    const state = foldAgentState(recorded("error"));
+    expect(state.stages).toEqual([{ name: "predict_match", status: "failed", summary: "No ratings for Real Madrid" }]);
+    expect(state.orb).toEqual({ phase: "error", message: "The prediction could not be completed. Try again." });
+  });
+
   it("recovers on a second send after the erroring stream", () => {
-    const events = [...STREAMS.withError.events.map(([, event]) => event), ...STREAMS.toolHeavy.events.map(([, event]) => event)];
-    expect(foldAgentEvents(events)).toEqual({ phase: "done" });
+    const state = foldAgentState([...recorded("error"), ...recorded("happy")]);
+    expect(state.orb).toEqual({ phase: "done" });
+    expect(state.stages).toHaveLength(3);
   });
 });
 
@@ -202,9 +237,15 @@ describe("captionFor", () => {
     ["get_team_form", "Checking form"],
     ["lookup_player", "Looking up the squad"],
     ["get_weather", "Checking the weather"],
-    ["predict_with_adjustments", "Applying adjustments"],
+    ["predict_match_with_context", "Applying adjustments"],
+    ["get_recent_results", "Checking the latest results"],
+    ["get_upcoming_fixtures", "Looking up the schedule"],
   ])("maps %s to %s", (tool, caption) => {
     expect(captionFor({ phase: "tool", tool, seq: 1 })).toBe(caption);
+  });
+
+  it("has a caption for every tool the contract lists", () => {
+    for (const tool of KNOWN_TOOL_NAMES) expect(captionFor({ phase: "tool", tool, seq: 1 })).not.toBe("Working on it");
   });
 
   it("falls back to a generic caption for unknown tools", () => {
