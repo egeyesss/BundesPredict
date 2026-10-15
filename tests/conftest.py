@@ -26,7 +26,7 @@ from bundespredict.data.models import Base
 
 @pytest.fixture(scope="session")
 def pg_engine() -> Iterator[Engine]:
-    with PostgresContainer("postgres:16", driver="psycopg") as postgres:
+    with PostgresContainer("postgres:17", driver="psycopg") as postgres:
         engine = make_engine(postgres.get_connection_url())
         Base.metadata.create_all(engine)
         try:

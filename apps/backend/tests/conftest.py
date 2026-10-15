@@ -14,7 +14,7 @@ from django.conf import settings  # noqa: E402
 from testcontainers.community.postgres import PostgresContainer  # noqa: E402
 
 # Keep in step with the db service in infra/docker-compose.yml.
-POSTGRES_IMAGE = "postgres:16"
+POSTGRES_IMAGE = "postgres:17"
 
 
 @pytest.fixture(scope="session")

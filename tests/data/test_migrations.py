@@ -26,7 +26,7 @@ def _alembic_config(url: str) -> Config:
 
 
 def test_migrations_match_models(monkeypatch: pytest.MonkeyPatch) -> None:
-    with PostgresContainer("postgres:16", driver="psycopg") as postgres:
+    with PostgresContainer("postgres:17", driver="psycopg") as postgres:
         url = postgres.get_connection_url()
         # env.py reads DATABASE_URL; point it at this throwaway container.
         monkeypatch.setenv("DATABASE_URL", url)
