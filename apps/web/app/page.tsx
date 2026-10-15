@@ -204,7 +204,7 @@ export default function Home() {
           <div ref={bottomRef} />
         </section>
 
-        <div className="sticky bottom-0 bg-zinc-50 py-4 dark:bg-black">
+        <div className="sticky bottom-0 bg-bp-bg py-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
