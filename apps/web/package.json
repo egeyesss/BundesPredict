@@ -13,13 +13,15 @@
     "e2e": "node e2e/support/run.mjs",
     "e2e:update": "node e2e/support/run.mjs --update-snapshots",
     "crests:build": "node scripts/build-crests.mjs",
-    "check:production-routes": "node e2e/support/assert-no-styleguide.mjs"
+    "check:production-routes": "node e2e/support/assert-no-styleguide.mjs",
+    "api:types": "openapi-typescript ../backend/openapi.json -o lib/api/schema.d.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.57.0",
     "next": "16.2.9",
+    "openapi-fetch": "^0.17.0",
     "radix-ui": "^1.8.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -44,6 +46,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "jsdom": "^30.1.2",
+    "msw": "^3.0.3",
+    "openapi-typescript": "^7.13.0",
     "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5",

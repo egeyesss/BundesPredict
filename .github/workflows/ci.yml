@@ -54,6 +54,12 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - name: Install
         run: npm ci
+      - name: API types are fresh
+        # The container runs as a different user than the checkout, which git refuses without this.
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          npm run api:types
+          git diff --exit-code lib/api/schema.d.ts
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
