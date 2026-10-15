@@ -1,0 +1,20 @@
+[project]
+name = "bundespredict-api"
+version = "0.0.0"
+description = "FastAPI service serving predictions from the bundespredict library."
+requires-python = ">=3.12"
+dependencies = [
+    "bundespredict[model,agent]",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic-settings>=2.3",
+    "slowapi>=0.1.9",
+    "alembic>=1.13",
+]
+
+[tool.uv]
+# Run in place (uvicorn --app-dir apps/api); there is nothing to build or install.
+package = false
+
+[tool.uv.sources]
+bundespredict = { workspace = true }

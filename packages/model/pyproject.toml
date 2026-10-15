@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bundespredict"
+version = "0.0.0"
+description = "Bundesliga match-outcome predictor: a calibrated Dixon-Coles Poisson engine with an LLM adjustment/explanation layer."
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7",
+    "httpx>=0.27",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+]
+
+# The numerical/model stack is optional so the data layer installs without it.
+# Install with: uv sync --package bundespredict --extra model
+[project.optional-dependencies]
+model = [
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "pandas>=2.2",
+    "scikit-learn>=1.5",
+]
+# The LLM adjustment/explanation layer. PyYAML loads the magnitude knowledge
+# base; the Anthropic SDK drives the tool-calling loop. Kept optional so the
+# pure engine and data layers install without it.
+agent = [
+    "anthropic>=0.40",
+    "pyyaml>=6.0",
+    "types-pyyaml>=6.0",
+]
+# Tooling for the exploratory EDA notebook only; not needed by the app or CI.
+eda = [
+    "pandas>=2.2",
+    "matplotlib>=3.8",
+    "jupyterlab>=4.0",
+    "nbconvert>=7.0",
+]
+# Plotting for the offline backtest report (scripts/run_backtest.py). The pure
+# eval library never imports matplotlib; only the report script does.
+report = [
+    "matplotlib>=3.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# Ship the agent's knowledge base and seeded player data inside the wheel; both
+# are read at runtime via importlib.resources.
+"bundespredict.agent" = ["*.yaml", "*.json"]
