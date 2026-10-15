@@ -1,21 +1,38 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google";
+
+import { AppShell } from "@/components/brand/AppShell";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const display = Barlow_Condensed({
   subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-display",
+  fallback: ["Arial Narrow", "sans-serif"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sans = Inter({
   subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
   title: "BundesPredict",
   description:
     "Calibrated Bundesliga match predictor with an LLM context-adjustment layer.",
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#0A0A0B",
 };
 
 export default function RootLayout({
@@ -26,9 +43,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body>
+        <TooltipProvider>
+          <AppShell>{children}</AppShell>
+        </TooltipProvider>
+        <Toaster />
+      </body>
     </html>
   );
 }

@@ -139,7 +139,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-zinc-50 dark:bg-black">
+    <div className="flex flex-1 flex-col items-center bg-bp-bg">
       <main className="flex w-full max-w-2xl flex-1 flex-col px-4">
         <header className="border-b border-black/10 py-6 dark:border-white/10">
           <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
@@ -204,7 +204,7 @@ export default function Home() {
           <div ref={bottomRef} />
         </section>
 
-        <div className="sticky bottom-0 bg-zinc-50 py-4 dark:bg-black">
+        <div className="sticky bottom-0 bg-bp-bg py-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();

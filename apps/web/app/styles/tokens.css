@@ -1,0 +1,37 @@
+:root {
+  color-scheme: dark;
+
+  --bp-bg: #0A0A0B;
+  --bp-surface-1: #131316;
+  --bp-surface-2: #1B1B1F;
+  --bp-border: #2A2A30;
+  --bp-text: #F4F4F5;
+  --bp-text-muted: #A1A1AA;
+
+  --bp-red: #D20515;
+  --bp-red-text: #FF4D5A;
+  --bp-red-dim: #5C0209;
+  --bp-red-glow: rgb(210 5 21 / 0.45);
+
+  --odds-win: #22C55E;
+  --odds-win-text: #4ADE80;
+  --odds-lose: #D20515;
+  --odds-draw: #71717A;
+  --odds-draw-lead: #D4D4D8;
+  --bp-up: #22C55E;
+  --bp-down: #FF4D5A;
+
+  --bp-radius: 10px;
+  --bp-radius-chip: 6px;
+
+  /* Chart series and status colours, validated on --bp-surface-1. They never replace the odds roles above. */
+  --chart-model: #E5484D;
+  --chart-market: #3987E5;
+  --chart-base-rate: #C98500;
+  --plan-pro: #3987E5;
+  --plan-free: #C98500;
+  --plan-demo: #D55181;
+  --status-good: #0CA30C;
+  --status-warning: #FAB219;
+  --status-critical: #D03B3B;
+}

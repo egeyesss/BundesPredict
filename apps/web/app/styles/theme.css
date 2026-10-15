@@ -1,0 +1,98 @@
+/* Maps the --bp-* tokens onto Tailwind utilities and onto the semantic names the shadcn primitives read. */
+@theme inline {
+  --color-bp-bg: var(--bp-bg);
+  --color-bp-surface-1: var(--bp-surface-1);
+  --color-bp-surface-2: var(--bp-surface-2);
+  --color-bp-border: var(--bp-border);
+  --color-bp-text: var(--bp-text);
+  --color-bp-text-muted: var(--bp-text-muted);
+  --color-bp-red: var(--bp-red);
+  --color-bp-red-text: var(--bp-red-text);
+  --color-bp-red-dim: var(--bp-red-dim);
+  --color-bp-red-glow: var(--bp-red-glow);
+  --color-odds-win: var(--odds-win);
+  --color-odds-win-text: var(--odds-win-text);
+  --color-odds-lose: var(--odds-lose);
+  --color-odds-draw: var(--odds-draw);
+  --color-odds-draw-lead: var(--odds-draw-lead);
+  --color-bp-up: var(--bp-up);
+  --color-bp-down: var(--bp-down);
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: var(--bp-radius-chip);
+  --radius-md: 8px;
+  --radius-lg: var(--bp-radius);
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 24px;
+  --radius-4xl: 28px;
+
+  --font-heading: var(--font-display);
+
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  @keyframes shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+  }
+}
+
+/* Fallback stacks; the next/font classes on <html> override these with the self-hosted faces. */
+@theme {
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+:root {
+  --background: var(--bp-bg);
+  --foreground: var(--bp-text);
+  --card: var(--bp-surface-1);
+  --card-foreground: var(--bp-text);
+  --popover: var(--bp-surface-2);
+  --popover-foreground: var(--bp-text);
+  --primary: var(--bp-red);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--bp-surface-2);
+  --secondary-foreground: var(--bp-text);
+  --muted: var(--bp-surface-2);
+  --muted-foreground: var(--bp-text-muted);
+  --accent: var(--bp-surface-2);
+  --accent-foreground: var(--bp-text);
+  --destructive: var(--bp-red-text);
+  --border: var(--bp-border);
+  --input: var(--bp-border);
+  --ring: var(--bp-red-text);
+  --radius: var(--bp-radius);
+
+  --chart-1: var(--chart-model);
+  --chart-2: var(--chart-market);
+  --chart-3: var(--chart-base-rate);
+  --chart-4: var(--plan-demo);
+  --chart-5: var(--odds-draw);
+}
