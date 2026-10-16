@@ -90,3 +90,66 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {"PeriodKindEnum": "track_record.serializers.PERIOD_KINDS"},
 }
+
+# --- accounts: django-allauth headless + django-anymail ---------------------------------------
+INSTALLED_APPS += [
+    "allauth",
+    "allauth.account",
+    "allauth.headless",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "anymail",
+]
+MIDDLEWARE += ["allauth.account.middleware.AccountMiddleware"]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Sign-in is Google or an emailed code; nobody sets a password. A new address signs up with its
+# email alone and proves it with the verification code, an existing one asks for a login code.
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = True
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+
+HEADLESS_ONLY = True
+HEADLESS_CLIENTS = ("browser",)
+HEADLESS_FRONTEND_URLS = {
+    "account_confirm_email": "/login?key={key}",
+    "account_signup": "/login",
+    "socialaccount_login_error": "/login?error=social",
+}
+
+# Google verifies addresses, so a Google sign-in joins the account that already owns the email.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APPS": [
+            {
+                "client_id": env.str("GOOGLE_CLIENT_ID", default=""),
+                "secret": env.str("GOOGLE_CLIENT_SECRET", default=""),
+            }
+        ],
+        "SCOPE": ["profile", "email"],
+    }
+}
+
+# Resend only delivers from the production settings module; dev prints mail to the console and
+# the test runner swaps in the in-memory backend.
+RESEND_API_KEY = env.str("RESEND_API_KEY", default="")
+if RESEND_API_KEY and env.str("DJANGO_SETTINGS_MODULE", default="").endswith(".prod"):
+    MAILERS = {
+        "default": {
+            "BACKEND": "anymail.backends.resend.EmailBackend",
+            "OPTIONS": {"api_key": RESEND_API_KEY},
+        }
+    }
+else:
+    MAILERS = {"default": {"BACKEND": "django.core.mail.backends.console.EmailBackend"}}
+DEFAULT_FROM_EMAIL = env.str("EMAIL_FROM", default="BundesPredict <noreply@example.com>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+# --- end accounts block ------------------------------------------------------------------------
