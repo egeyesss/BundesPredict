@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -155,13 +155,24 @@ def ingest_squads(
     # the first club (stable: ascending tm club id) claims him and later
     # listings are skipped. The mirror is rebuilt every run, so this stays
     # deterministic rather than depending on scrape order.
+    unknown = [tm_club_id for tm_club_id in squads if tm_club_id not in team_ids]
+    if unknown:
+        raise ValueError(f"squad for unknown tm club id {unknown[0]}: not on a league page")
+    # Clear every row the new snapshot replaces before inserting any: a player who moved
+    # clubs still has a row under his old team, which may be rebuilt later in this loop or,
+    # after relegation, not at all.
+    scraped_team_ids = [team_ids[tm_club_id] for tm_club_id in squads]
+    incoming_tm_ids = [p.tm_id for roster in squads.values() for p in roster]
+    session.execute(
+        delete(Player).where(
+            or_(Player.team_id.in_(scraped_team_ids), Player.tm_id.in_(incoming_tm_ids))
+        )
+    )
+
     claimed: set[int] = set()
     for tm_club_id in sorted(squads):
         roster = squads[tm_club_id]
-        if tm_club_id not in team_ids:
-            raise ValueError(f"squad for unknown tm club id {tm_club_id} — not on a league page")
         team_id = team_ids[tm_club_id]
-        session.execute(delete(Player).where(Player.team_id == team_id))
         for p in roster:
             if p.tm_id in claimed:
                 continue
