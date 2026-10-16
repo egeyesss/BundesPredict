@@ -234,8 +234,8 @@ def find_player(session: Session, query: str) -> DbPlayer | None:
     """Find a squad member by full or last name, accent/case-insensitive.
 
     Full-name matches always win; last-name matches are a fallback and, on a
-    collision (two squads with a "Müller"), the more valuable player wins —
-    the likelier subject of a "X is out" claim. Returns ``None`` when the
+    collision (two squads with a "Müller"), the more valuable player wins,
+    being the likelier subject of a "X is out" claim. Returns ``None`` when the
     players table is empty (caller falls back to the seeded offline data).
     """
     return pick_player(fetch_player_rows(session), query)

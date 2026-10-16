@@ -4,7 +4,7 @@ This is the boundary the project rules care about: the agent orchestrates the
 LLM and calls these methods, but it never does the math itself and never touches
 the database except through here. The service owns a fitted
 :class:`~bundespredict.model.dixon_coles.TeamRatings` (loaded from a persisted
-run — serving never refits) and optional data ports for the grounding lookups.
+run, since serving never refits) and optional data ports for the grounding lookups.
 
 It also remembers the *last* prediction it produced, baseline and adjusted, so
 the agent loop can persist exactly what the user was shown without re-deriving it
