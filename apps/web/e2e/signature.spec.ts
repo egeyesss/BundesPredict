@@ -173,17 +173,25 @@ test.describe("orb replay", () => {
     await browser.startTracing(page, {
       categories: ["-*", "toplevel", "devtools.timeline", "disabled-by-default-devtools.timeline"],
     });
+    await page.waitForTimeout(1_000);
     await page.getByTestId("replay-tool-heavy").click();
     await expect(stageOrb(page)).toHaveAttribute("data-orb-state", "done", { timeout: 30_000 });
-    const trace = JSON.parse((await browser.stopTracing()).toString()) as {
-      traceEvents: Array<{ name: string; ph: string; dur?: number; tdur?: number }>;
-    };
+    type TraceEvent = { name: string; ph: string; ts: number; dur?: number; tdur?: number; pid: number; tid: number; args?: { data?: { functionName?: string; url?: string } } };
+    const trace = JSON.parse((await browser.stopTracing()).toString()) as { traceEvents: TraceEvent[] };
 
     const tasks = trace.traceEvents.filter((event) => event.name === "RunTask" && event.ph === "X");
     expect(tasks.length).toBeGreaterThan(100);
     // tdur is the main thread's CPU time, so a busy CI box descheduling the browser cannot fail the check.
-    const longest = Math.max(...tasks.map((task) => (task.tdur ?? task.dur ?? 0) / 1000));
-    test.info().annotations.push({ type: "longest task", description: `${longest.toFixed(1)}ms CPU of ${tasks.length} tasks` });
+    const cpuMs = (task: TraceEvent) => (task.tdur ?? task.dur ?? 0) / 1000;
+    const worst = tasks.reduce((a, b) => (cpuMs(b) > cpuMs(a) ? b : a));
+    const longest = cpuMs(worst);
+    const inside = trace.traceEvents
+      .filter((e) => e.ph === "X" && e.pid === worst.pid && e.tid === worst.tid && e.name !== "RunTask" && e.ts >= worst.ts && e.ts + (e.dur ?? 0) <= worst.ts + (worst.dur ?? 0))
+      .sort((a, b) => (b.dur ?? 0) - (a.dur ?? 0))
+      .slice(0, 5)
+      .map((e) => `${e.name} ${((e.dur ?? 0) / 1000).toFixed(0)}ms ${e.args?.data?.functionName ?? e.args?.data?.url ?? ""}`);
+    test.info().annotations.push({ type: "longest task", description: `${longest.toFixed(1)}ms CPU of ${tasks.length} tasks; ${inside.join("; ")}` });
+    if (longest >= MAX_TASK_MS) console.log(`long task ${longest.toFixed(0)}ms at +${((worst.ts - tasks[0].ts) / 1e6).toFixed(2)}s: ${inside.join("; ")}`);
     expect(longest).toBeLessThan(MAX_TASK_MS);
   });
 });
@@ -230,6 +238,11 @@ test.describe("reduced motion", () => {
   test("the page matches its snapshot", async ({ page }) => {
     await open(page);
     await expect(page).toHaveScreenshot("signature.png", { fullPage: true });
+  });
+
+  test("does not scroll sideways", async ({ page }) => {
+    await open(page);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
   test("the bars jump straight to the adjusted odds", async ({ page }) => {

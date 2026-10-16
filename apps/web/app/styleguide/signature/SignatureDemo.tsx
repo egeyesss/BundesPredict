@@ -108,10 +108,10 @@ export function SignatureDemo() {
 
       <Section id="orb" title="Agent orb" note="Replay a stream or force a state. Each tool call sends one bright band down the sphere.">
         <div className="flex flex-wrap gap-2">
-          <Button data-testid="replay-tool-heavy" onClick={() => start("toolHeavy")}>
+          <Button data-testid="replay-tool-heavy" className="h-auto min-h-8 max-w-full whitespace-normal text-left" onClick={() => start("toolHeavy")}>
             Play: {STREAMS.toolHeavy.label}
           </Button>
-          <Button data-testid="replay-error" variant="secondary" onClick={() => start("withError")}>
+          <Button data-testid="replay-error" variant="secondary" className="h-auto min-h-8 max-w-full whitespace-normal text-left" onClick={() => start("withError")}>
             Play: {STREAMS.withError.label}
           </Button>
         </div>
