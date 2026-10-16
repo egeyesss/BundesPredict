@@ -21,7 +21,8 @@ character, including defaults, nullability, index names and constraint names):
 
 Expected divergences once every migration has run, declared in ``EXPECTED_DIVERGENCES`` below and
 asserted to apply, so they cannot go stale silently: five naive timestamp columns become
-``timestamptz``, and ``teams`` gains ``code`` and ``short_name``.
+``timestamptz``, ``teams`` gains ``code`` and ``short_name``, and ``predictions`` gains its owner,
+conversation, token, cost and response columns.
 """
 
 from __future__ import annotations
@@ -67,6 +68,18 @@ EXPECTED_NEW_FACTS = frozenset(
         "teams.code: character varying(3)",
         "teams.short_name: character varying(20)",
         "teams UNIQUE teams_code_key (code)",
+        "predictions.user_id: integer",
+        "predictions.conversation_id: uuid",
+        "predictions.input_tokens: integer",
+        "predictions.output_tokens: integer",
+        "predictions.cost_usd: numeric(10,6)",
+        "predictions.response_json: jsonb",
+        "predictions.CONSTRAINT: predictions_input_tokens_check CHECK ((input_tokens >= 0))",
+        "predictions.CONSTRAINT: predictions_output_tokens_check CHECK ((output_tokens >= 0))",
+        "predictions FK (user_id) -> auth_user(id) ON DELETE NO ACTION",
+        "predictions FK (conversation_id) -> chat_conversation(id) ON DELETE NO ACTION",
+        "predictions INDEX predictions_user_id_0719d7ef btree (user_id)",
+        "predictions INDEX predictions_conversation_id_deb81265 btree (conversation_id)",
     }
 )
 

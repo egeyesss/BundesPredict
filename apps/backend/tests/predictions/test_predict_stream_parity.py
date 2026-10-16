@@ -178,7 +178,7 @@ def fastapi_client(
 
 @pytest.fixture
 def django_stream(monkeypatch: pytest.MonkeyPatch) -> Callable[[list[FakeResponse]], str]:
-    monkeypatch.setattr("accounts.plans.limit_for", lambda user: 1_000)
+    monkeypatch.setattr("accounts.plans.limit_for", lambda *args, **kwargs: 1_000)
     api_client = APIClient()
     api_client.credentials(HTTP_X_PROXY_SECRET=settings.PROXY_SECRET)
     api_client.force_authenticate(user=User.objects.create_user(username="parity"))

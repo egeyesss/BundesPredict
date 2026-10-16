@@ -79,8 +79,7 @@ class ConversationListView(APIView):
         user: User = request.user  # type: ignore[assignment]
         paginator = ConversationCursorPagination()
         page = paginator.paginate_queryset(Conversation.objects.filter(user=user), request, self)
-        rows = [_summary(conversation) for conversation in page or []]
-        data = ConversationSummarySerializer(rows, many=True).data
+        data = [ConversationSummarySerializer(_summary(c)).data for c in page or []]
         return paginator.get_paginated_response(data)
 
 

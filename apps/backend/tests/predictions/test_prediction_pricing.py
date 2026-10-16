@@ -27,7 +27,12 @@ def test_small_runs_keep_micro_dollar_precision() -> None:
     assert pricing.cost_usd(DEV_MODEL, 4000, 800) == Decimal("0.008000")
 
 
-def test_an_unpriced_model_costs_zero_and_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+def test_an_unpriced_model_costs_zero_and_is_logged(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Alembic's fileConfig in an earlier test disables pre-existing loggers for the session.
+    monkeypatch.setattr(pricing.logger, "disabled", False)
+
     cost = pricing.cost_usd("claude-from-the-future", 1000, 1000)
 
     assert cost == Decimal("0")

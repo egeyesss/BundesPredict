@@ -52,7 +52,7 @@ def signed_in_user() -> User:
 @pytest.fixture(autouse=True)
 def _no_daily_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     """These tests exercise streaming and the hourly throttle, not the daily quota."""
-    monkeypatch.setattr("accounts.plans.limit_for", lambda user: 1_000)
+    monkeypatch.setattr("accounts.plans.limit_for", lambda *args, **kwargs: 1_000)
 
 
 @pytest.fixture
