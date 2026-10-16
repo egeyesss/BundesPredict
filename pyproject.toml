@@ -53,8 +53,10 @@ plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 mypy_path = "apps/backend"
 
 [[tool.mypy.overrides]]
-# These ship no type stubs (scipy/sklearn, django-environ) or none we want to depend on.
-module = ["testcontainers.*", "scipy.*", "sklearn.*", "environ.*"]
+# These ship no type stubs (scipy/sklearn, django-environ) or none we want to depend on, or are
+# optional extras that CI does not install (playwright for the Understat scrape, matplotlib for
+# the backtest report).
+module = ["testcontainers.*", "scipy.*", "sklearn.*", "environ.*", "playwright.*", "matplotlib.*"]
 ignore_missing_imports = true
 
 [tool.django-stubs]

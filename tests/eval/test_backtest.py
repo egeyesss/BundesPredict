@@ -11,15 +11,15 @@ from sqlalchemy.orm import Session
 
 from bundespredict.data.models import Match, ModelRun, Team
 from bundespredict.eval.backtest import (
+    BacktestFixture,
     _assign_gameweeks,
-    _Fixture,
     run_backtest,
 )
 
 
-def _fx(season: str, day: int, home: str, away: str) -> _Fixture:
+def _fx(season: str, day: int, home: str, away: str) -> BacktestFixture:
     triple = (2.0, 3.3, 3.6)
-    return _Fixture(
+    return BacktestFixture(
         season=season,
         match_date=date(2020, 1, 1) + timedelta(days=day),
         home=home,

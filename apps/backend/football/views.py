@@ -19,7 +19,7 @@ from .serializers import (
     FixtureListQuerySerializer,
     TeamSerializer,
 )
-from .services import fixture_card, ratings_for, team_payload
+from .services.cards import fixture_card, ratings_for, team_payload
 
 
 class TeamListView(APIView):

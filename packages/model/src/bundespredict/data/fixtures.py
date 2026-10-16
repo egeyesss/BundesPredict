@@ -26,6 +26,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, aliased
 
 from .models import Fixture, Team, TeamAlias
+from .seasons import season_code
 from .team_aliases import OPENLIGADB_ALIASES, canonical_team_name
 
 SOURCE = "openligadb"
@@ -52,11 +53,6 @@ class UpcomingFixture:
     season: str
     home: str
     away: str
-
-
-def season_code(start_year: int) -> str:
-    """2026 -> "2627", matching the season codes used for matches."""
-    return f"{start_year % 100:02d}{(start_year + 1) % 100:02d}"
 
 
 def fetch_season_json(start_year: int) -> list[dict[str, Any]]:

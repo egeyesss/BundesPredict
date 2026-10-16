@@ -172,6 +172,14 @@ versioned run, which serving picks up on the next request. `download_fixtures.py
 keeps the upcoming schedule mirrored (it's how "predict Dortmund's next game"
 resolves the opponent); run it alongside.
 
+The same jobs also exist as Django management commands in
+`apps/backend/football/management/commands/`: `ingest_results`, `download_fixtures`,
+`scrape_transfermarkt`, `scrape_understat`, `refit` and `run_backtest`. They write through
+the Django models, print a one-line summary, and a second run over the same data changes
+no rows. `refit --as-of 2025-06-01` trains only on matches played before that date.
+`refit.yml` runs the scripts on the schedule and the commands on a manual run against the
+adoption database.
+
 `scrape_transfermarkt.py` fills two things from Transfermarkt (identifying
 User-Agent, ~1 request per 3s, raw pages cached in `data/tm_cache/` so a
 blocked scrape just keeps serving the last snapshot): the `players` table that

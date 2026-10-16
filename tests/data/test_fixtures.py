@@ -15,10 +15,10 @@ from bundespredict.data.fixtures import (
     FixtureRow,
     ingest_fixtures,
     parse_fixtures,
-    season_code,
     upcoming_fixtures,
 )
 from bundespredict.data.models import Fixture, Team
+from bundespredict.data.seasons import season_code
 from bundespredict.data.team_aliases import UnmappedTeamError
 
 SAMPLE = Path(__file__).parent / "fixtures" / "openligadb_sample.json"
