@@ -1,3 +1,7 @@
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, path
 
-urlpatterns: list[URLPattern | URLResolver] = []
+from .views import TrackRecordView
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("track-record", TrackRecordView.as_view(), name="track-record"),
+]

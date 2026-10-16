@@ -1,3 +1,6 @@
+# Generated files are checked byte for byte in CI, so the whitespace fixers must leave them alone.
+exclude: ^(apps/backend/openapi\.json|apps/web/lib/api/schema\.d\.ts)$
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

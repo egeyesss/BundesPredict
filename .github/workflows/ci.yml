@@ -27,9 +27,14 @@ jobs:
       - name: Tests (pytest)
         run: uv run --no-sync pytest
       - name: OpenAPI schema is fresh
-        # Placeholder until apps/backend/openapi.json is committed; it will regenerate
-        # the schema here and fail on a diff.
-        run: "true"
+        # Regenerates the committed schema, which also fails on any spectacular warning, and
+        # then fails if that changed the file. Test settings need no secrets or database.
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+        run: |
+          uv run --no-sync apps/backend/manage.py spectacular --format openapi-json \
+            --validate --fail-on-warn --file apps/backend/openapi.json
+          git diff --exit-code apps/backend/openapi.json
 
   web:
     runs-on: ubuntu-latest
@@ -49,6 +54,12 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - name: Install
         run: npm ci
+      - name: API types are fresh
+        # The container runs as a different user than the checkout, which git refuses without this.
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          npm run api:types
+          git diff --exit-code lib/api/schema.d.ts
       - name: Typecheck
         run: npm run typecheck
       - name: Lint

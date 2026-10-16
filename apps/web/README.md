@@ -20,6 +20,20 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## API client
+
+`lib/api/schema.d.ts` is generated from `apps/backend/openapi.json`; never edit it by hand.
+After the backend schema changes, regenerate it with `npm run api:types` (CI fails on a diff).
+
+The Django backend rejects `/api/*` and `/_allauth/*` requests that lack a matching `x-proxy-secret` header.
+In dev, both sides default to the same value: the backend uses `PROXY_SECRET` or `dev-only-proxy-secret`, so put `PROXY_SECRET=dev-only-proxy-secret` in `.env.local` and send it as `x-proxy-secret` from server-side fetches and the proxy.
+`API_BASE_URL` is the backend origin.
+
+To work without a backend, set `NEXT_PUBLIC_API_MOCKING=enabled` and call `enableApiMocking()` from `lib/api/mocks/browser.ts` before the first render.
+In Vitest, call `setupApiMocks()` from `lib/api/mocks/vitest.ts` at the top of a test file.
+The mock chat picks a scenario from words in the query: "kane" for the tool-heavy run, "error" for a mid-stream failure, "quota" for the 402, "last chat" for the final free chat.
+The recorded streams are regenerated with `uv run python scripts/record_mock_streams.py`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -1,3 +1,8 @@
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, path
 
-urlpatterns: list[URLPattern | URLResolver] = []
+from .views import CheckoutView, PortalView
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("checkout", CheckoutView.as_view(), name="billing-checkout"),
+    path("portal", PortalView.as_view(), name="billing-portal"),
+]

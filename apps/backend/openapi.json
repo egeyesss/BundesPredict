@@ -1,0 +1,2137 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "BundesPredict API",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/v1/admin/metrics": {
+            "get": {
+                "operationId": "admin_metrics_retrieve",
+                "description": "Admins see real values; demo users get the same numbers with emails masked.",
+                "tags": [
+                    "ops"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminMetrics"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/billing/checkout": {
+            "post": {
+                "operationId": "billing_checkout",
+                "description": "Starts a Stripe Checkout session for the Pro plan.",
+                "tags": [
+                    "billing"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingRedirect"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/billing/portal": {
+            "post": {
+                "operationId": "billing_portal",
+                "description": "Opens the Stripe Customer Portal for the signed-in user.",
+                "tags": [
+                    "billing"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingRedirect"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/conversations": {
+            "get": {
+                "operationId": "conversations_list",
+                "description": "The signed-in user's conversations, newest first, cursor-paginated.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "cursor",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "`next` from the last page."
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "Page size, 1 to 50."
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConversationPage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/conversations/{id}": {
+            "get": {
+                "operationId": "conversations_retrieve",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Conversation"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "conversations_destroy",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/demo/start": {
+            "post": {
+                "operationId": "demo_start",
+                "description": "Creates a throwaway demo user and signs the browser in as them.",
+                "tags": [
+                    "ops"
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Me"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/email/unsubscribe": {
+            "post": {
+                "operationId": "email_unsubscribe",
+                "tags": [
+                    "notifications"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Unsubscribe"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Unsubscribe"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Unsubscribe"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "Unsubscribed."
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fixtures": {
+            "get": {
+                "operationId": "fixtures_list",
+                "description": "Fixtures still to be played with the base model's probabilities. Fixtures the newest model run has no ratings for are left out.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "scope",
+                        "schema": {
+                            "enum": [
+                                "next_matchday",
+                                "week"
+                            ],
+                            "type": "string",
+                            "default": "next_matchday",
+                            "minLength": 1
+                        },
+                        "description": "* `next_matchday` - next_matchday\n* `week` - week"
+                    }
+                ],
+                "tags": [
+                    "football"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/FixtureCard"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fixtures/{id}": {
+            "get": {
+                "operationId": "fixtures_retrieve",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "football"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FixtureDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/health": {
+            "get": {
+                "operationId": "api_v1_health_retrieve",
+                "tags": [
+                    "api"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Health"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Health"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/me": {
+            "get": {
+                "operationId": "me_retrieve",
+                "tags": [
+                    "accounts"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Me"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "me_partial_update",
+                "description": "`email_opt_in` and `timezone` are the only writable fields.",
+                "tags": [
+                    "accounts"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedMeUpdate"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedMeUpdate"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedMeUpdate"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Me"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/predict/stream": {
+            "post": {
+                "operationId": "predict_stream",
+                "description": "Runs the agent and streams its progress as server-sent events.\n\nEach frame is `event: <name>` and `data: <json>` followed by a blank line, flushed as soon as it is\nproduced. The response schema describes one decoded frame: `event` is the frame name and `data` is\nits JSON payload.\n\n| event | data | when |\n|---|---|---|\n| `conversation` | `ConversationEventData` | first frame, always |\n| `quota` | `Usage` | right after the chat is counted |\n| `stage` | `ToolCallStage` or `ToolResultStage` | each agent step |\n| `result` | `PredictResponse` | once, at the end |\n| `error` | `StreamErrorData` | instead of `result` when the run fails after the stream started |\n\nFailures before the first frame are plain JSON errors with the statuses listed below.\n",
+                "tags": [
+                    "predictions"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PredictRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PredictRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PredictRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PredictStreamFrame"
+                                }
+                            }
+                        },
+                        "description": "A stream of frames."
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "402": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QuotaExceededError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/teams": {
+            "get": {
+                "operationId": "teams_list",
+                "description": "Clubs that have a code, and so a crest identity, ordered by name.",
+                "tags": [
+                    "football"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Team"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/track-record": {
+            "get": {
+                "operationId": "track_record_retrieve",
+                "description": "Live results of frozen predictions, kept apart from the backtest.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "season",
+                        "schema": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    }
+                ],
+                "tags": [
+                    "track-record"
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TrackRecord"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/stripe/webhook/live": {
+            "post": {
+                "operationId": "stripe_webhook_live",
+                "description": "Signed with the `Stripe-Signature` header; called by Stripe, not the proxy.",
+                "tags": [
+                    "billing"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": {}
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": {}
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event accepted."
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/stripe/webhook/test": {
+            "post": {
+                "operationId": "stripe_webhook_test",
+                "description": "Signed with the `Stripe-Signature` header; called by Stripe, not the proxy.",
+                "tags": [
+                    "billing"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": {}
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": {}
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event accepted."
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AdminMetrics": {
+                "type": "object",
+                "properties": {
+                    "generated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "masked": {
+                        "type": "boolean",
+                        "description": "True when emails are masked for a demo viewer."
+                    },
+                    "active_subscribers": {
+                        "type": "integer"
+                    },
+                    "mrr_cents": {
+                        "type": "integer",
+                        "description": "Live-mode subscriptions only."
+                    },
+                    "signups_7d": {
+                        "type": "integer"
+                    },
+                    "signups_30d": {
+                        "type": "integer"
+                    },
+                    "monthly_churn": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Share of subscribers lost in 30 days."
+                    },
+                    "chats_per_day": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChatsPerDay"
+                        }
+                    },
+                    "llm_cost_per_user_cents": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "cost_to_revenue_per_pro_user": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "webhook_failures": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/WebhookFailure"
+                        }
+                    },
+                    "failed_payments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FailedPayment"
+                        }
+                    }
+                },
+                "required": [
+                    "active_subscribers",
+                    "chats_per_day",
+                    "cost_to_revenue_per_pro_user",
+                    "failed_payments",
+                    "generated_at",
+                    "llm_cost_per_user_cents",
+                    "masked",
+                    "monthly_churn",
+                    "mrr_cents",
+                    "signups_30d",
+                    "signups_7d",
+                    "webhook_failures"
+                ]
+            },
+            "AppliedAdjustment": {
+                "type": "object",
+                "properties": {
+                    "factor": {
+                        "type": "string"
+                    },
+                    "team": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "target": {
+                        "type": "string"
+                    },
+                    "requested_magnitude_xg": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "effective_magnitude_xg": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "confidence": {
+                        "type": "string"
+                    },
+                    "rationale": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "confidence",
+                    "effective_magnitude_xg",
+                    "factor",
+                    "rationale",
+                    "requested_magnitude_xg",
+                    "target",
+                    "team"
+                ]
+            },
+            "BaseProbabilities": {
+                "type": "object",
+                "properties": {
+                    "p_home": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_draw": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_away": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "exp_home_goals": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "exp_away_goals": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                },
+                "required": [
+                    "exp_away_goals",
+                    "exp_home_goals",
+                    "p_away",
+                    "p_draw",
+                    "p_home"
+                ]
+            },
+            "BillingRedirect": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Hosted Stripe page to send the browser to."
+                    }
+                },
+                "required": [
+                    "url"
+                ]
+            },
+            "CalibrationBin": {
+                "type": "object",
+                "properties": {
+                    "lower": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "upper": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "predicted_mean": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "observed_rate": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "count",
+                    "lower",
+                    "observed_rate",
+                    "predicted_mean",
+                    "upper"
+                ]
+            },
+            "ChatsPerDay": {
+                "type": "object",
+                "properties": {
+                    "day": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "free": {
+                        "type": "integer"
+                    },
+                    "pro": {
+                        "type": "integer"
+                    },
+                    "demo": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "day",
+                    "demo",
+                    "free",
+                    "pro"
+                ]
+            },
+            "Conversation": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "fixture_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Message"
+                        }
+                    }
+                },
+                "required": [
+                    "fixture_id",
+                    "id",
+                    "messages",
+                    "title",
+                    "updated_at"
+                ]
+            },
+            "ConversationEventData": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "title": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "title"
+                ]
+            },
+            "ConversationFrame": {
+                "type": "object",
+                "properties": {
+                    "event": {
+                        "$ref": "#/components/schemas/ConversationFrameEventEnum"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/ConversationEventData"
+                    }
+                },
+                "required": [
+                    "data",
+                    "event"
+                ]
+            },
+            "ConversationFrameEventEnum": {
+                "enum": [
+                    "conversation"
+                ],
+                "type": "string",
+                "description": "* `conversation` - conversation"
+            },
+            "ConversationPage": {
+                "type": "object",
+                "description": "One page of the newest-first list; follow `next` for older conversations.",
+                "properties": {
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Opaque cursor, null on the last page."
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ConversationSummary"
+                        }
+                    }
+                },
+                "required": [
+                    "next",
+                    "results"
+                ]
+            },
+            "ConversationSummary": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "fixture_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "fixture_id",
+                    "id",
+                    "title",
+                    "updated_at"
+                ]
+            },
+            "DbEnum": {
+                "enum": [
+                    "ok",
+                    "unavailable"
+                ],
+                "type": "string",
+                "description": "* `ok` - ok\n* `unavailable` - unavailable"
+            },
+            "Error": {
+                "type": "object",
+                "description": "Every non-2xx JSON body: a stable machine code plus a message for people.",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "code",
+                    "message"
+                ]
+            },
+            "ErrorFrame": {
+                "type": "object",
+                "properties": {
+                    "event": {
+                        "$ref": "#/components/schemas/ErrorFrameEventEnum"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/StreamErrorData"
+                    }
+                },
+                "required": [
+                    "data",
+                    "event"
+                ]
+            },
+            "ErrorFrameEventEnum": {
+                "enum": [
+                    "error"
+                ],
+                "type": "string",
+                "description": "* `error` - error"
+            },
+            "FailedPayment": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Masked for demo viewers."
+                    },
+                    "amount_cents": {
+                        "type": "integer"
+                    },
+                    "failed_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "amount_cents",
+                    "email",
+                    "failed_at"
+                ]
+            },
+            "FixtureCard": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "season": {
+                        "type": "string"
+                    },
+                    "matchday": {
+                        "type": "integer"
+                    },
+                    "kickoff_utc": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "home": {
+                        "$ref": "#/components/schemas/Team"
+                    },
+                    "away": {
+                        "$ref": "#/components/schemas/Team"
+                    },
+                    "base": {
+                        "$ref": "#/components/schemas/BaseProbabilities"
+                    },
+                    "model_run_id": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "away",
+                    "base",
+                    "home",
+                    "id",
+                    "kickoff_utc",
+                    "matchday",
+                    "model_run_id",
+                    "season"
+                ]
+            },
+            "FixtureDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "season": {
+                        "type": "string"
+                    },
+                    "matchday": {
+                        "type": "integer"
+                    },
+                    "kickoff_utc": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "home": {
+                        "$ref": "#/components/schemas/Team"
+                    },
+                    "away": {
+                        "$ref": "#/components/schemas/Team"
+                    },
+                    "base": {
+                        "$ref": "#/components/schemas/BaseProbabilities"
+                    },
+                    "model_run_id": {
+                        "type": "integer"
+                    },
+                    "markets": {
+                        "$ref": "#/components/schemas/Markets"
+                    }
+                },
+                "required": [
+                    "away",
+                    "base",
+                    "home",
+                    "id",
+                    "kickoff_utc",
+                    "markets",
+                    "matchday",
+                    "model_run_id",
+                    "season"
+                ]
+            },
+            "Health": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/StatusEnum"
+                    },
+                    "model_run_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "db": {
+                        "$ref": "#/components/schemas/DbEnum"
+                    }
+                },
+                "required": [
+                    "db",
+                    "model_run_id",
+                    "status"
+                ]
+            },
+            "Markets": {
+                "type": "object",
+                "properties": {
+                    "p_home": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_draw": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_away": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_over_2_5": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_under_2_5": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_btts": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "exp_home_goals": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "exp_away_goals": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "top_scores": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Score"
+                        }
+                    },
+                    "score_grid": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "number",
+                                "format": "double"
+                            }
+                        },
+                        "description": "Scoreline distribution, rows are home goals and columns are away goals."
+                    }
+                },
+                "required": [
+                    "exp_away_goals",
+                    "exp_home_goals",
+                    "p_away",
+                    "p_btts",
+                    "p_draw",
+                    "p_home",
+                    "p_over_2_5",
+                    "p_under_2_5",
+                    "score_grid",
+                    "top_scores"
+                ]
+            },
+            "MatchdayRow": {
+                "type": "object",
+                "properties": {
+                    "season": {
+                        "type": "string"
+                    },
+                    "matchday": {
+                        "type": "integer"
+                    },
+                    "n_fixtures": {
+                        "type": "integer"
+                    },
+                    "n_resolved": {
+                        "type": "integer"
+                    },
+                    "rps": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "log_loss": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "hit_rate": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "hit_rate",
+                    "log_loss",
+                    "matchday",
+                    "n_fixtures",
+                    "n_resolved",
+                    "rps",
+                    "season"
+                ]
+            },
+            "Me": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "name": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "plan": {
+                        "$ref": "#/components/schemas/PlanEnum"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/MeRoleEnum"
+                    },
+                    "is_demo": {
+                        "type": "boolean"
+                    },
+                    "usage": {
+                        "$ref": "#/components/schemas/Usage"
+                    },
+                    "subscription": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Subscription"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "email_opt_in": {
+                        "type": "boolean"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "IANA name such as America/Toronto; null until reported."
+                    }
+                },
+                "required": [
+                    "email",
+                    "email_opt_in",
+                    "id",
+                    "is_demo",
+                    "name",
+                    "plan",
+                    "role",
+                    "subscription",
+                    "timezone",
+                    "usage"
+                ]
+            },
+            "MeRoleEnum": {
+                "enum": [
+                    "user",
+                    "admin"
+                ],
+                "type": "string",
+                "description": "* `user` - user\n* `admin` - admin"
+            },
+            "Message": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/MessageRoleEnum"
+                    },
+                    "content": {
+                        "type": "string"
+                    },
+                    "prediction": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/PredictResponse"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "Set on assistant messages that answered with a prediction."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "content",
+                    "created_at",
+                    "id",
+                    "prediction",
+                    "role"
+                ]
+            },
+            "MessageRoleEnum": {
+                "enum": [
+                    "user",
+                    "assistant"
+                ],
+                "type": "string",
+                "description": "* `user` - user\n* `assistant` - assistant"
+            },
+            "MetricSummary": {
+                "type": "object",
+                "properties": {
+                    "n_fixtures": {
+                        "type": "integer"
+                    },
+                    "rps": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Ranked probability score, lower is better."
+                    },
+                    "log_loss": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "hit_rate": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Share of fixtures whose top pick won, in [0, 1]."
+                    }
+                },
+                "required": [
+                    "hit_rate",
+                    "log_loss",
+                    "n_fixtures",
+                    "rps"
+                ]
+            },
+            "PatchedMeUpdate": {
+                "type": "object",
+                "properties": {
+                    "email_opt_in": {
+                        "type": "boolean"
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                }
+            },
+            "PeriodKindEnum": {
+                "enum": [
+                    "live",
+                    "backtest"
+                ],
+                "type": "string",
+                "description": "* `live` - live\n* `backtest` - backtest"
+            },
+            "PlanEnum": {
+                "enum": [
+                    "free",
+                    "pro",
+                    "demo"
+                ],
+                "type": "string",
+                "description": "* `free` - free\n* `pro` - pro\n* `demo` - demo"
+            },
+            "PredictRequest": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "minLength": 1
+                    },
+                    "conversation_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "fixture_id": {
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            },
+            "PredictResponse": {
+                "type": "object",
+                "description": "The agent's answer: baseline vs. adjusted, the adjustments, the words.",
+                "properties": {
+                    "home": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "away": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "explanation": {
+                        "type": "string"
+                    },
+                    "baseline": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Markets"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "adjusted": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Markets"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "adjustments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AppliedAdjustment"
+                        }
+                    },
+                    "prediction_id": {
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "adjusted",
+                    "adjustments",
+                    "away",
+                    "baseline",
+                    "explanation",
+                    "home",
+                    "prediction_id"
+                ]
+            },
+            "PredictStreamFrame": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/ConversationFrame"
+                    },
+                    {
+                        "$ref": "#/components/schemas/QuotaFrame"
+                    },
+                    {
+                        "$ref": "#/components/schemas/StageFrame"
+                    },
+                    {
+                        "$ref": "#/components/schemas/ResultFrame"
+                    },
+                    {
+                        "$ref": "#/components/schemas/ErrorFrame"
+                    }
+                ],
+                "discriminator": {
+                    "propertyName": "event",
+                    "mapping": {
+                        "conversation": "#/components/schemas/ConversationFrame",
+                        "quota": "#/components/schemas/QuotaFrame",
+                        "stage": "#/components/schemas/StageFrame",
+                        "result": "#/components/schemas/ResultFrame",
+                        "error": "#/components/schemas/ErrorFrame"
+                    }
+                }
+            },
+            "QuotaExceededError": {
+                "type": "object",
+                "description": "The 402 body: the usual error plus where the user stands and where to upgrade.",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "usage": {
+                        "$ref": "#/components/schemas/Usage"
+                    },
+                    "upgrade_url": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "code",
+                    "message",
+                    "upgrade_url",
+                    "usage"
+                ]
+            },
+            "QuotaFrame": {
+                "type": "object",
+                "properties": {
+                    "event": {
+                        "$ref": "#/components/schemas/QuotaFrameEventEnum"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Usage"
+                    }
+                },
+                "required": [
+                    "data",
+                    "event"
+                ]
+            },
+            "QuotaFrameEventEnum": {
+                "enum": [
+                    "quota"
+                ],
+                "type": "string",
+                "description": "* `quota` - quota"
+            },
+            "ResultFrame": {
+                "type": "object",
+                "properties": {
+                    "event": {
+                        "$ref": "#/components/schemas/ResultFrameEventEnum"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/PredictResponse"
+                    }
+                },
+                "required": [
+                    "data",
+                    "event"
+                ]
+            },
+            "ResultFrameEventEnum": {
+                "enum": [
+                    "result"
+                ],
+                "type": "string",
+                "description": "* `result` - result"
+            },
+            "Score": {
+                "type": "object",
+                "properties": {
+                    "home": {
+                        "type": "integer"
+                    },
+                    "away": {
+                        "type": "integer"
+                    },
+                    "p": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                },
+                "required": [
+                    "away",
+                    "home",
+                    "p"
+                ]
+            },
+            "StageEventData": {
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/ToolCallStage"
+                    },
+                    {
+                        "$ref": "#/components/schemas/ToolResultStage"
+                    }
+                ],
+                "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {
+                        "tool_call": "#/components/schemas/ToolCallStage",
+                        "tool_result": "#/components/schemas/ToolResultStage"
+                    }
+                }
+            },
+            "StageFrame": {
+                "type": "object",
+                "properties": {
+                    "event": {
+                        "$ref": "#/components/schemas/StageFrameEventEnum"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/StageEventData"
+                    }
+                },
+                "required": [
+                    "data",
+                    "event"
+                ]
+            },
+            "StageFrameEventEnum": {
+                "enum": [
+                    "stage"
+                ],
+                "type": "string",
+                "description": "* `stage` - stage"
+            },
+            "StatusEnum": {
+                "enum": [
+                    "ok",
+                    "error"
+                ],
+                "type": "string",
+                "description": "* `ok` - ok\n* `error` - error"
+            },
+            "StreamErrorData": {
+                "type": "object",
+                "description": "Sent in place of `result` when the run fails after the stream has started.",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "code",
+                    "message"
+                ]
+            },
+            "Subscription": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "description": "The Stripe subscription status, passed through."
+                    },
+                    "current_period_end": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "cancel_at_period_end": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "cancel_at_period_end",
+                    "current_period_end",
+                    "status"
+                ]
+            },
+            "Team": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "short_name": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Three-letter club code; keys the crest set."
+                    },
+                    "crest": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Site-relative path such as \"/crests/BVB.svg\"."
+                    }
+                },
+                "required": [
+                    "code",
+                    "crest",
+                    "id",
+                    "name",
+                    "short_name"
+                ]
+            },
+            "ToolCallStage": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "$ref": "#/components/schemas/ToolCallStageTypeEnum"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "One of KNOWN_TOOL_NAMES today; treat others as opaque."
+                    },
+                    "input": {
+                        "type": "object",
+                        "additionalProperties": {}
+                    }
+                },
+                "required": [
+                    "input",
+                    "name",
+                    "type"
+                ]
+            },
+            "ToolCallStageTypeEnum": {
+                "enum": [
+                    "tool_call"
+                ],
+                "type": "string",
+                "description": "* `tool_call` - tool_call"
+            },
+            "ToolResultStage": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "$ref": "#/components/schemas/ToolResultStageTypeEnum"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "ok": {
+                        "type": "boolean"
+                    },
+                    "summary": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name",
+                    "ok",
+                    "summary",
+                    "type"
+                ]
+            },
+            "ToolResultStageTypeEnum": {
+                "enum": [
+                    "tool_result"
+                ],
+                "type": "string",
+                "description": "* `tool_result` - tool_result"
+            },
+            "TrackRecord": {
+                "type": "object",
+                "properties": {
+                    "season": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The requested season, if any."
+                    },
+                    "live": {
+                        "$ref": "#/components/schemas/TrackRecordPeriod"
+                    },
+                    "backtest": {
+                        "$ref": "#/components/schemas/TrackRecordPeriod"
+                    },
+                    "matchdays": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MatchdayRow"
+                        },
+                        "description": "Live matchdays, newest first."
+                    },
+                    "calibration": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CalibrationBin"
+                        },
+                        "description": "Live predictions, home/draw/away pooled into probability bins."
+                    }
+                },
+                "required": [
+                    "backtest",
+                    "calibration",
+                    "live",
+                    "matchdays",
+                    "season"
+                ]
+            },
+            "TrackRecordPeriod": {
+                "type": "object",
+                "properties": {
+                    "kind": {
+                        "$ref": "#/components/schemas/PeriodKindEnum"
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "For example \"Live since 2026-08-28\"."
+                    },
+                    "since": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "model": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MetricSummary"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "bookmaker": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MetricSummary"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "Bookmaker closing odds over the same fixtures."
+                    },
+                    "home_win_baseline": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MetricSummary"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "A naive model that always backs the home side."
+                    }
+                },
+                "required": [
+                    "bookmaker",
+                    "home_win_baseline",
+                    "kind",
+                    "label",
+                    "model",
+                    "since"
+                ]
+            },
+            "Unsubscribe": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "description": "Signed token from the email's unsubscribe link."
+                    }
+                },
+                "required": [
+                    "token"
+                ]
+            },
+            "Usage": {
+                "type": "object",
+                "properties": {
+                    "used": {
+                        "type": "integer"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "resets_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "limit",
+                    "resets_at",
+                    "used"
+                ]
+            },
+            "WebhookFailure": {
+                "type": "object",
+                "properties": {
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "livemode": {
+                        "type": "boolean"
+                    },
+                    "error": {
+                        "type": "string"
+                    },
+                    "received_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "error",
+                    "event_id",
+                    "livemode",
+                    "received_at",
+                    "type"
+                ]
+            }
+        },
+        "securitySchemes": {
+            "cookieAuth": {
+                "type": "apiKey",
+                "in": "cookie",
+                "name": "sessionid"
+            }
+        }
+    }
+}

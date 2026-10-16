@@ -11,6 +11,8 @@ os.environ.setdefault("TESTCONTAINERS_RYUK_DISABLED", "true")
 
 import pytest  # noqa: E402
 from django.conf import settings  # noqa: E402
+from django.contrib.auth.models import User  # noqa: E402
+from rest_framework.test import APIClient  # noqa: E402
 from testcontainers.community.postgres import PostgresContainer  # noqa: E402
 
 # Keep in step with the db service in infra/docker-compose.yml.
@@ -34,3 +36,18 @@ def django_db_modify_db_settings(postgres_container: PostgresContainer) -> None:
             "PORT": postgres_container.get_exposed_port(5432),
         }
     )
+
+
+@pytest.fixture
+def api_client() -> APIClient:
+    """A DRF client that already carries the proxy secret, like the Next.js proxy does."""
+    client = APIClient()
+    client.credentials(HTTP_X_PROXY_SECRET=settings.PROXY_SECRET)
+    return client
+
+
+@pytest.fixture
+def signed_in_client(api_client: APIClient) -> APIClient:
+    """The same client with a session user, without touching the database."""
+    api_client.force_authenticate(user=User(id=1, username="reader", email="reader@example.com"))
+    return api_client
