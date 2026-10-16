@@ -1,7 +1,8 @@
-# Weekly retrain: pull the latest results, refresh squads/market values from
-# Transfermarkt, refit on the full history, persist a new parameter run, and
-# refresh the fixture schedule. Serving reads the newest run on the next
-# request, so this is the whole "keep the model current" story.
+# Weekly retrain: pull the latest results, refit on the full history, persist a new
+# parameter run, and refresh the fixture schedule. Squads and market values are not
+# scraped here: Transfermarkt's WAF answers GitHub's runners with a bot challenge, so
+# that scrape runs locally and the refit reads whatever squad values the database has.
+# Serving reads the newest run on the next request.
 # Monday 03:00 UTC: after the matchday is fully ingested upstream.
 #
 # Two jobs do the same work on different code paths, and the event decides which one runs:
@@ -41,11 +42,6 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --frozen --no-dev --package bundespredict --extra model
-      - name: refresh squads + market values (Transfermarkt)
-        # Scrape failures must not block the retrain: the players/squad_values
-        # tables just keep serving the previous snapshot (cache-is-truth design).
-        continue-on-error: true
-        run: uv run --no-sync python scripts/scrape_transfermarkt.py
       - name: refit on the latest results
         run: uv run --no-sync python scripts/refit.py
       - name: refresh the fixture schedule
@@ -70,10 +66,6 @@ jobs:
       - run: uv sync --frozen --no-dev --package bundespredict-backend
       - name: check the database is fully migrated
         run: uv run --no-sync apps/backend/manage.py migrate --check
-      - name: refresh squads + market values (Transfermarkt)
-        # Same rule as the legacy job: a failed scrape keeps the previous snapshot serving.
-        continue-on-error: true
-        run: uv run --no-sync apps/backend/manage.py scrape_transfermarkt
       - name: refit on the latest results
         run: uv run --no-sync apps/backend/manage.py refit
       - name: refresh the fixture schedule
