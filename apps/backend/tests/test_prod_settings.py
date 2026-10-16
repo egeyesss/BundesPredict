@@ -35,12 +35,10 @@ def load_prod(monkeypatch: pytest.MonkeyPatch) -> LoadProd:
     return load
 
 
-def test_the_forwarded_host_is_trusted_so_allauth_builds_the_public_redirect_uri(
-    load_prod: LoadProd,
-) -> None:
+def test_scheme_comes_from_the_forwarded_proto_header(load_prod: LoadProd) -> None:
     settings = load_prod()
 
-    assert settings.USE_X_FORWARDED_HOST is True
+    assert not hasattr(settings, "USE_X_FORWARDED_HOST")
     assert settings.SECURE_PROXY_SSL_HEADER == ("HTTP_X_FORWARDED_PROTO", "https")
 
 

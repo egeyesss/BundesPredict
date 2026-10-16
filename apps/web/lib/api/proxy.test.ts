@@ -20,7 +20,7 @@ describe("buildUpstreamHeaders", () => {
 
     expect(headers.get("x-proxy-secret")).toBe("s3cret");
     expect(headers.get("x-client-ip")).toBe("203.0.113.7");
-    expect(headers.get("x-forwarded-host")).toBe("bundespredict.egeyesilyurt.ca");
+    expect(headers.get("x-original-host")).toBe("bundespredict.egeyesilyurt.ca");
     expect(headers.get("x-forwarded-proto")).toBe("https");
   });
 
@@ -36,13 +36,13 @@ describe("buildUpstreamHeaders", () => {
     const spoofed = new Headers(incoming);
     spoofed.set("x-proxy-secret", "guess");
     spoofed.set("x-client-ip", "1.2.3.4");
-    spoofed.set("x-forwarded-host", "evil.example.com");
+    spoofed.set("x-original-host", "evil.example.com");
 
     const headers = buildUpstreamHeaders(spoofed, "s3cret");
 
     expect(headers.get("x-proxy-secret")).toBe("s3cret");
     expect(headers.get("x-client-ip")).toBe("203.0.113.7");
-    expect(headers.get("x-forwarded-host")).toBe("bundespredict.egeyesilyurt.ca");
+    expect(headers.get("x-original-host")).toBe("bundespredict.egeyesilyurt.ca");
   });
 
   it("falls back to x-real-ip, then to unknown, when there is no forwarded chain", () => {

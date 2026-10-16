@@ -3,7 +3,7 @@ export function buildUpstreamHeaders(incoming: Headers, proxySecret: string): He
   const headers = new Headers(incoming);
   headers.set("x-proxy-secret", proxySecret);
   headers.set("x-client-ip", clientIp(incoming));
-  headers.set("x-forwarded-host", incoming.get("host") ?? "");
+  headers.set("x-original-host", incoming.get("host") ?? "");
   headers.set("x-forwarded-proto", incoming.get("x-forwarded-proto") ?? "http");
   return headers;
 }

@@ -116,3 +116,39 @@ def test_a_direct_post_to_the_chat_stream_is_forbidden_without_the_secret(
 
     assert response.status_code == 403
     assert response.json()["code"] == "forbidden"
+
+
+def _host_seen_by_django(client: Client, secret: str | None, original_host: str | None) -> str:
+    headers: dict[str, str] = {}
+    if secret is not None:
+        headers[PROXY_SECRET_HEADER] = secret
+    if original_host is not None:
+        headers["x-original-host"] = original_host
+    with override_settings(ALLOWED_HOSTS=["testserver", "public.example.com"]):
+        captured: list[str] = []
+        original = HttpRequest.get_host
+
+        def spy(self: HttpRequest) -> str:
+            host = original(self)
+            captured.append(host)
+            return host
+
+        HttpRequest.get_host = spy  # type: ignore[method-assign]
+        try:
+            client.get("/api/v1/health", headers=headers)
+        finally:
+            HttpRequest.get_host = original  # type: ignore[method-assign]
+    return captured[0]
+
+
+def test_the_public_host_from_the_proxy_becomes_the_request_host(client: Client) -> None:
+    assert _host_seen_by_django(client, SECRET, "public.example.com") == "public.example.com"
+
+
+def test_the_public_host_is_ignored_without_the_secret(client: Client) -> None:
+    assert _host_seen_by_django(client, None, "public.example.com") == "testserver"
+    assert _host_seen_by_django(client, "wrong", "public.example.com") == "testserver"
+
+
+def test_requests_without_a_public_host_keep_their_own_host(client: Client) -> None:
+    assert _host_seen_by_django(client, SECRET, None) == "testserver"

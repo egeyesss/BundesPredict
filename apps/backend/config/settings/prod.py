@@ -15,10 +15,8 @@ CSRF_TRUSTED_ORIGINS = env.list(
 
 DATABASES = {"default": {**env.db("DATABASE_URL"), **DATABASE_CONNECTION_OPTIONS}}
 
-# Railway terminates TLS, and the Vercel rewrite forwards the public host so allauth builds its
-# Google redirect_uri on the web origin instead of the Railway one.
+# Railway terminates TLS. The public host arrives as x-original-host (see original_host_middleware).
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = True
 
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "Lax"
