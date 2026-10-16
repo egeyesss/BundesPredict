@@ -19,5 +19,11 @@ COPY packages/model packages/model
 COPY apps/backend apps/backend
 RUN uv sync --frozen --no-dev --package bundespredict-backend
 
+# Collects the admin's static files for whitenoise. The prod settings insist on real-looking
+# values, but collectstatic never reads them.
+RUN DJANGO_SECRET_KEY=build DJANGO_ALLOWED_HOSTS=localhost PROXY_SECRET=build \
+    DATABASE_URL=postgresql://build:build@localhost/build \
+    python apps/backend/manage.py collectstatic --noinput
+
 EXPOSE 8001
 CMD uvicorn config.asgi:application --app-dir apps/backend --host 0.0.0.0 --port ${PORT:-8001}
