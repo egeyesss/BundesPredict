@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import models
 
 from football.fields import DB_NOW, PlainJSONField
@@ -41,6 +42,30 @@ class Prediction(models.Model):
 
     adjustments_json = PlainJSONField(default=list)
     explanation = models.CharField(max_length=None, null=True, blank=True)
+
+    # Rows written before chat history existed carry no owner, conversation or usage.
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="predictions",
+    )
+    conversation = models.ForeignKey(
+        "chat.Conversation",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="predictions",
+    )
+    input_tokens = models.PositiveIntegerField(null=True, blank=True)
+    output_tokens = models.PositiveIntegerField(null=True, blank=True)
+    cost_usd = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+    response_json = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="The PredictResponse as streamed, replayed by saved conversations.",
+    )
 
     class Meta:
         db_table = "predictions"

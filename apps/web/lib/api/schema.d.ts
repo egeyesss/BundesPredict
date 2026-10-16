@@ -211,6 +211,10 @@ export interface paths {
          *     | `result` | `PredictResponse` | once, at the end |
          *     | `error` | `StreamErrorData` | instead of `result` when the run fails after the stream started |
          *
+         *     Needs a session. Each call spends one chat from the daily quota; a call over the limit is a 402
+         *     before any frame. A run that fails before its first model response gives the chat back. Send
+         *     `conversation_id` to continue a saved conversation; the server builds the history from it.
+         *
          *     Failures before the first frame are plain JSON errors with the statuses listed below.
          */
         post: operations["predict_stream"];
@@ -1234,6 +1238,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuotaExceededError"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             429: {

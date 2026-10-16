@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import time
-import uuid
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
 from typing import Any
@@ -12,6 +11,7 @@ from typing import Any
 import pytest
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.test import AsyncClient
 from rest_framework.test import APIClient
 from tests.agent.fakes import (
@@ -42,6 +42,25 @@ def _empty_throttle() -> Iterator[None]:
     throttle_cache.clear()
     yield
     throttle_cache.clear()
+
+
+@pytest.fixture
+def signed_in_user() -> User:
+    return User.objects.create_user(username="reader", email="reader@example.com")
+
+
+@pytest.fixture(autouse=True)
+def _no_daily_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests exercise streaming and the hourly throttle, not the daily quota."""
+    monkeypatch.setattr("accounts.plans.limit_for", lambda *args, **kwargs: 1_000)
+
+
+@pytest.fixture
+def api_client(signed_in_user: User) -> APIClient:
+    client = APIClient()
+    client.credentials(HTTP_X_PROXY_SECRET=settings.PROXY_SECRET)
+    client.force_authenticate(user=signed_in_user)
+    return client
 
 
 @pytest.fixture
@@ -97,7 +116,7 @@ def stream_body(response: Any) -> bytes:
 
 
 @pytest.mark.usefixtures("serving_run")
-def test_streams_conversation_then_one_stage_per_step_then_result(
+def test_streams_conversation_quota_then_one_stage_per_step_then_result(
     api_client: APIClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     use_transcript(monkeypatch, transcript_full(HOME, AWAY))
@@ -109,8 +128,8 @@ def test_streams_conversation_then_one_stage_per_step_then_result(
     assert response["Cache-Control"] == "no-cache"
     assert response["X-Accel-Buffering"] == "no"
     frames = parse_sse(stream_body(response))
-    assert [name for name, _ in frames] == ["conversation", *["stage"] * 6, "result"]
-    assert frames[0][1] == {"id": None, "title": ""}
+    assert [name for name, _ in frames] == ["conversation", "quota", *["stage"] * 6, "result"]
+    assert frames[0][1]["title"] == BODY["query"]
     stages = [data for name, data in frames if name == "stage"]
     assert [(s["type"], s["name"]) for s in stages] == [
         ("tool_call", "predict_match"),
@@ -190,7 +209,7 @@ def test_an_answer_without_a_fixture_stores_nothing(
 
     frames = parse_sse(stream_body(api_client.post(URL, BODY, format="json")))
 
-    assert [name for name, _ in frames] == ["conversation", "result"]
+    assert [name for name, _ in frames] == ["conversation", "quota", "result"]
     assert frames[-1][1]["prediction_id"] is None
     assert Prediction.objects.count() == 0
 
@@ -214,7 +233,7 @@ def test_a_failure_after_the_stream_started_arrives_as_an_error_frame(
 
     assert response.status_code == 200
     frames = parse_sse(stream_body(response))
-    assert [name for name, _ in frames] == ["conversation", "error"]
+    assert [name for name, _ in frames] == ["conversation", "quota", "error"]
     assert set(frames[-1][1]) == {"code", "message"}
     assert frames[-1][1]["code"] == "prediction_failed"
     assert "down" not in frames[-1][1]["message"]
@@ -274,19 +293,6 @@ def test_a_malformed_conversation_id_is_rejected(api_client: APIClient) -> None:
 
 
 @pytest.mark.usefixtures("serving_run")
-def test_a_conversation_and_fixture_id_are_accepted(
-    api_client: APIClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    use_transcript(monkeypatch, transcript_full(HOME, AWAY))
-    body = {"query": "Kane is out", "conversation_id": str(uuid.UUID(int=1)), "fixture_id": 123}
-
-    response = api_client.post(URL, body, format="json")
-
-    assert response.status_code == 200
-    stream_body(response)
-
-
-@pytest.mark.usefixtures("serving_run")
 def test_a_browser_asking_for_an_event_stream_is_not_turned_away(
     api_client: APIClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -324,13 +330,17 @@ class SlowClient:
 
 
 @pytest.mark.usefixtures("serving_run")
-def test_each_frame_is_flushed_before_the_agent_finishes(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_each_frame_is_flushed_before_the_agent_finishes(
+    monkeypatch: pytest.MonkeyPatch, signed_in_user: User
+) -> None:
     """The first stage frame must reach the client while later LLM calls are still ahead."""
     log: list[str] = []
     use_client(monkeypatch, lambda: SlowClient(transcript_full(HOME, AWAY), log))
 
     async def consume() -> None:
-        response = await AsyncClient().post(
+        browser = AsyncClient()
+        await browser.aforce_login(signed_in_user)
+        response = await browser.post(
             URL,
             BODY,
             content_type="application/json",
@@ -346,6 +356,7 @@ def test_each_frame_is_flushed_before_the_agent_finishes(monkeypatch: pytest.Mon
     llm_calls = [i for i, entry in enumerate(log) if entry == "llm"]
     first_stage = log.index("frame:stage")
     assert log[0] == "frame:conversation"
+    assert log[1] == "frame:quota"
     assert len(llm_calls) == 4
     assert llm_calls[0] < first_stage < llm_calls[1]
     assert llm_calls[-1] < log.index("frame:result")

@@ -14,6 +14,8 @@ from typing import Any
 
 import pytest
 from asgiref.sync import async_to_sync
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import connection
 from fastapi.testclient import TestClient
 from rest_framework.test import APIClient
@@ -175,9 +177,12 @@ def fastapi_client(
 
 
 @pytest.fixture
-def django_stream(
-    api_client: APIClient, monkeypatch: pytest.MonkeyPatch
-) -> Callable[[list[FakeResponse]], str]:
+def django_stream(monkeypatch: pytest.MonkeyPatch) -> Callable[[list[FakeResponse]], str]:
+    monkeypatch.setattr("accounts.plans.limit_for", lambda *args, **kwargs: 1_000)
+    api_client = APIClient()
+    api_client.credentials(HTTP_X_PROXY_SECRET=settings.PROXY_SECRET)
+    api_client.force_authenticate(user=User.objects.create_user(username="parity"))
+
     def stream(responses: list[FakeResponse]) -> str:
         monkeypatch.setattr(
             "predictions.views.get_llm_client", lambda: ScriptedClient(list(responses))

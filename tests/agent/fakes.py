@@ -28,9 +28,16 @@ class FakeToolUseBlock:
 
 
 @dataclass
+class FakeUsage:
+    input_tokens: int
+    output_tokens: int
+
+
+@dataclass
 class FakeResponse:
     content: list[Any]
     stop_reason: str
+    usage: FakeUsage | None = None
 
 
 class _ScriptedMessages:
