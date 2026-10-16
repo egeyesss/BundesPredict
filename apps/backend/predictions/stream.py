@@ -13,14 +13,23 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import AsyncIterator, Iterator
+from dataclasses import asdict
 from typing import Any
 
 from asgiref.sync import sync_to_async
+from django.contrib.auth.models import User
+from django.db import transaction
 
+from accounts import quota
+from accounts.serializers import UsageSerializer
 from bundespredict.agent.loop import AgentEvent, AgentResult, LLMClient, run_agent_events
 from bundespredict.agent.ports import PredictionStore, ServingRun
 from bundespredict.agent.service import PredictionService
+from chat.models import Conversation, Message
+from chat.services import history_for
 
+from . import pricing
+from .models import Prediction
 from .ports import DjangoAgentPorts
 from .serializers import serialize_predict_response
 
@@ -112,30 +121,99 @@ def _save(store: PredictionStore, run_id: int, query: str, result: AgentResult) 
     )
 
 
-async def stream_prediction(
-    query: str, serving: ServingRun, client: LLMClient, model: str
-) -> AsyncIterator[str]:
-    """Frames for one run: `conversation`, a `stage` per tool step, then `result` or `error`.
+def _persist_turn(
+    ports: DjangoAgentPorts,
+    serving: ServingRun,
+    user: User,
+    conversation: Conversation,
+    query: str,
+    result: AgentResult,
+    model: str,
+) -> dict[str, Any]:
+    """Saves the audit row and both messages together; returns the `result` frame payload."""
+    with transaction.atomic():
+        prediction_id = _save(ports, serving.run_id, query, result)
+        payload = serialize_predict_response(result, prediction_id)
+        if prediction_id is not None:
+            Prediction.objects.filter(pk=prediction_id).update(
+                user=user,
+                conversation=conversation,
+                input_tokens=result.usage.input_tokens,
+                output_tokens=result.usage.output_tokens,
+                cost_usd=pricing.cost_usd(
+                    model, result.usage.input_tokens, result.usage.output_tokens
+                ),
+                response_json=payload,
+            )
+        Message.objects.create(conversation=conversation, role="user", content=query)
+        Message.objects.create(
+            conversation=conversation,
+            role="assistant",
+            content=result.explanation,
+            prediction_id=prediction_id,
+        )
+        conversation.save(update_fields=["updated_at"])
+    return payload
 
-    A failure here cannot change the HTTP status any more, so it is logged and sent as an
-    `error` frame whose message never carries the exception text.
+
+def _settle_failure(user: User, conversation: Conversation, query: str, tokens_spent: bool) -> None:
+    """Keeps the question and, if no LLM call finished, gives the chat back.
+
+    A run that failed after a call completed has already spent tokens, so its chat stays counted.
     """
-    yield sse_frame("conversation", {"id": None, "title": ""})
+    if not tokens_spent:
+        quota.refund(user)
+    Message.objects.create(conversation=conversation, role="user", content=query)
+    conversation.save(update_fields=["updated_at"])
+
+
+async def stream_prediction(
+    query: str,
+    serving: ServingRun,
+    client: LLMClient,
+    model: str,
+    *,
+    user: User,
+    conversation: Conversation,
+    usage: quota.Usage,
+) -> AsyncIterator[str]:
+    """Frames for one chat turn: `conversation`, `quota`, a `stage` per tool step, then `result`.
+
+    The turn has already been counted against the quota. A failure here cannot change the HTTP
+    status any more, so it is logged and sent as an `error` frame whose message never carries the
+    exception text.
+    """
+    yield sse_frame("conversation", {"id": str(conversation.id), "title": conversation.title})
+    yield sse_frame("quota", dict(UsageSerializer(asdict(usage)).data))
 
     ports = DjangoAgentPorts()
-    events = run_agent_events(
-        query, PredictionService(serving.ratings, ports=ports), client=client, model=model
-    )
+    llm_call_finished = False
     try:
+        history = await sync_to_async(history_for)(conversation)
+        events = run_agent_events(
+            query,
+            PredictionService(serving.ratings, ports=ports),
+            client=client,
+            history=history,
+            model=model,
+        )
         result: AgentResult | None = None
         while (event := await sync_to_async(_next_event)(events)) is not None:
+            # The loop yields only after a model response, so any event means tokens were spent.
+            llm_call_finished = True
             if event.type == "final":
                 result = event.result
             else:
                 yield sse_frame("stage", stage_data(event))
         assert result is not None  # the loop always ends with a final event
-        prediction_id = await sync_to_async(_save)(ports, serving.run_id, query, result)
-        yield sse_frame("result", serialize_predict_response(result, prediction_id))
+        payload = await sync_to_async(_persist_turn)(
+            ports, serving, user, conversation, query, result, model
+        )
+        yield sse_frame("result", payload)
     except Exception:
         logger.exception("streaming prediction failed")
+        try:
+            await sync_to_async(_settle_failure)(user, conversation, query, llm_call_finished)
+        except Exception:
+            logger.exception("settling a failed prediction failed")
         yield sse_frame("error", {"code": FAILURE_CODE, "message": FAILURE_MESSAGE})

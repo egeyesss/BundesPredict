@@ -605,7 +605,7 @@
         "/api/v1/predict/stream": {
             "post": {
                 "operationId": "predict_stream",
-                "description": "Runs the agent and streams its progress as server-sent events.\n\nEach frame is `event: <name>` and `data: <json>` followed by a blank line, flushed as soon as it is\nproduced. The response schema describes one decoded frame: `event` is the frame name and `data` is\nits JSON payload.\n\n| event | data | when |\n|---|---|---|\n| `conversation` | `ConversationEventData` | first frame, always |\n| `quota` | `Usage` | right after the chat is counted |\n| `stage` | `ToolCallStage` or `ToolResultStage` | each agent step |\n| `result` | `PredictResponse` | once, at the end |\n| `error` | `StreamErrorData` | instead of `result` when the run fails after the stream started |\n\nFailures before the first frame are plain JSON errors with the statuses listed below.\n",
+                "description": "Runs the agent and streams its progress as server-sent events.\n\nEach frame is `event: <name>` and `data: <json>` followed by a blank line, flushed as soon as it is\nproduced. The response schema describes one decoded frame: `event` is the frame name and `data` is\nits JSON payload.\n\n| event | data | when |\n|---|---|---|\n| `conversation` | `ConversationEventData` | first frame, always |\n| `quota` | `Usage` | right after the chat is counted |\n| `stage` | `ToolCallStage` or `ToolResultStage` | each agent step |\n| `result` | `PredictResponse` | once, at the end |\n| `error` | `StreamErrorData` | instead of `result` when the run fails after the stream started |\n\nNeeds a session. Each call spends one chat from the daily quota; a call over the limit is a 402\nbefore any frame. A run that fails before its first model response gives the chat back. Send\n`conversation_id` to continue a saved conversation; the server builds the history from it.\n\nFailures before the first frame are plain JSON errors with the statuses listed below.\n",
                 "tags": [
                     "predictions"
                 ],
@@ -632,8 +632,7 @@
                 "security": [
                     {
                         "cookieAuth": []
-                    },
-                    {}
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -671,6 +670,16 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/QuotaExceededError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
                                 }
                             }
                         },
