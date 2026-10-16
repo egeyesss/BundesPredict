@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll } from "vitest";
 
 import { server } from "./node";
+import { mockUsage } from "./state";
 
 /**
  * Call once at the top of a test file to serve the contract mocks. Requests with no handler
@@ -9,6 +10,9 @@ import { server } from "./node";
  */
 export function setupApiMocks(): void {
   beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
-  afterEach(() => server.resetHandlers());
+  afterEach(() => {
+    server.resetHandlers();
+    mockUsage.reset();
+  });
   afterAll(() => server.close());
 }

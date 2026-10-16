@@ -19,7 +19,19 @@ export interface PredictStreamOptions {
 export type PredictStreamStart =
   | { ok: true; events: AsyncGenerator<PredictStreamEvent> }
   /** A plain JSON failure before the first frame: 400, 401, 402, 429 or 503. */
-  | { ok: false; status: number; error: ApiError | QuotaExceededError };
+  | {
+      ok: false;
+      status: number;
+      error: ApiError | QuotaExceededError;
+      /** From the `Retry-After` header of a 429, when the server sent one. */
+      retryAfterSeconds: number | null;
+    };
+
+function retryAfterSeconds(response: Response): number | null {
+  const header = response.headers.get("Retry-After");
+  const seconds = header === null ? Number.NaN : Number(header);
+  return Number.isFinite(seconds) && seconds >= 0 ? Math.ceil(seconds) : null;
+}
 
 async function readError(response: Response): Promise<ApiError | QuotaExceededError> {
   const text = await response.text().catch(() => "");
@@ -59,7 +71,12 @@ export async function startPredictStream(
   });
 
   if (!response.ok || response.body === null) {
-    return { ok: false, status: response.status, error: await readError(response) };
+    return {
+      ok: false,
+      status: response.status,
+      error: await readError(response),
+      retryAfterSeconds: retryAfterSeconds(response),
+    };
   }
   return { ok: true, events: readPredictStream(response.body) };
 }

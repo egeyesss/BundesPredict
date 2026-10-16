@@ -111,6 +111,9 @@ describe("scenarioForQuery", () => {
     ["trigger an error please", "error"],
     ["quota check", "quota_exceeded"],
     ["this is my last chat", "last_chat"],
+    ["the model is unavailable", "model_unavailable"],
+    ["rate limited", "rate_limited"],
+    ["cut off mid answer", "cut_off"],
   ])("%s -> %s", (query, scenario) => {
     expect(scenarioForQuery(query)).toBe(scenario);
   });
@@ -156,5 +159,59 @@ describe("predict stream", () => {
   it("rejects an empty query with a validation error", async () => {
     const outcome = await drain("");
     expect(outcome).toMatchObject({ ok: false, status: 400, error: { code: "validation_error" } });
+  });
+});
+
+describe("mock chat quota", () => {
+  async function drain(query: string) {
+    const started = await startPredictStream({ query }, { baseUrl: BASE_URL });
+    if (!started.ok) return started;
+    const events = [];
+    for await (const event of started.events) events.push(event);
+    return { ok: true as const, events };
+  }
+
+  it("counts each streamed chat against the free plan and reports it in /me and the quota event", async () => {
+    const first = await drain("Guirassy is out");
+    if (!first.ok) throw new Error("expected a stream");
+    expect(first.events.find((e) => e.event === "quota")?.data).toMatchObject({ used: 2, limit: 3 });
+    expect((await client.GET("/api/v1/me")).data?.usage.used).toBe(2);
+
+    const second = await drain("Guirassy is out again");
+    if (!second.ok) throw new Error("expected a stream");
+    expect(second.events.find((e) => e.event === "quota")?.data).toMatchObject({ used: 3, limit: 3 });
+
+    expect(await drain("one more")).toMatchObject({ ok: false, status: 402 });
+  });
+
+  it("does not count a chat that failed before the stream started", async () => {
+    await drain("the model is unavailable");
+    expect((await client.GET("/api/v1/me")).data?.usage.used).toBe(1);
+  });
+
+  it("starts every test with the first chat already used", async () => {
+    expect((await client.GET("/api/v1/me")).data?.usage.used).toBe(1);
+  });
+});
+
+describe("mock failure scenarios", () => {
+  it("answers 503 model_unavailable before the stream", async () => {
+    const started = await startPredictStream({ query: "the model is unavailable" }, { baseUrl: BASE_URL });
+    expect(started).toMatchObject({ ok: false, status: 503, error: { code: "model_unavailable" } });
+  });
+
+  it("answers 429 with a Retry-After the client passes on", async () => {
+    const started = await startPredictStream({ query: "rate limited" }, { baseUrl: BASE_URL });
+    expect(started).toMatchObject({ ok: false, status: 429, error: { code: "rate_limited" }, retryAfterSeconds: 3 });
+  });
+
+  it("ends a cut-off stream after the stages with neither result nor error", async () => {
+    const started = await startPredictStream({ query: "cut off mid answer" }, { baseUrl: BASE_URL });
+    if (!started.ok) throw new Error("expected a stream");
+    const names = [];
+    for await (const event of started.events) names.push(event.event);
+    expect(names).toContain("stage");
+    expect(names).not.toContain("result");
+    expect(names).not.toContain("error");
   });
 });
