@@ -128,8 +128,12 @@ export function MoreMarkets({ home, away, baseline, adjusted }: MoreMarketsProps
               ))}
             </div>
             <p className="pt-1 font-mono text-xs text-bp-text-muted">
-              Expected goals {home}–{away}: <b className="font-medium text-bp-text">{goals(shown)}</b>
-              {comparing && <>, {goals(baseline)} model only</>}
+              Expected goals {home}–{away}: <b className="font-medium whitespace-nowrap text-bp-text">{goals(shown)}</b>
+              {comparing && (
+                <>
+                  {" "}with your news, <span className="whitespace-nowrap">{goals(baseline)}</span> model only
+                </>
+              )}
             </p>
 
             <h3 className="mt-1.5 font-display text-[17px] leading-tight font-semibold tracking-[0.02em]">Most likely scores</h3>

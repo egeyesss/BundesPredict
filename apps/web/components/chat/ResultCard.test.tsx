@@ -51,6 +51,16 @@ describe("ResultCard with news applied", () => {
     await userEvent.click(screen.getByRole("button", { name: "Model only" }));
     expect(screen.queryByText("Change")).not.toBeInTheDocument();
   });
+
+  it("labels both expected-goals pairs and keeps each pair on one line", () => {
+    renderCard();
+    const line = screen.getByText(/^Expected goals/);
+    expect(line.textContent).toMatch(/^Expected goals .+: \d\.\d\d – \d\.\d\d with your news, \d\.\d\d – \d\.\d\d model only$/);
+    // Browsers may break right after an en dash, so only nowrap keeps "1.62 –" with "0.92".
+    const pairs = within(line).getAllByText(/^\d\.\d\d – \d\.\d\d$/);
+    expect(pairs).toHaveLength(2);
+    for (const pair of pairs) expect(pair).toHaveClass("whitespace-nowrap");
+  });
 });
 
 describe("ResultCard without news", () => {

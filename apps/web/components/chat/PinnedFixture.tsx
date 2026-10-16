@@ -113,11 +113,11 @@ function FixtureOdds({
   const label = news === null ? "Model" : showingNews ? "With your news" : "Original model";
 
   return (
-    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 max-[520px]:grid-cols-[6.5rem_minmax(0,1fr)]">
-      <div className="grid justify-items-start gap-1">
-        <span className={`font-mono text-[11px] tracking-wider uppercase ${showingNews ? "text-bp-text" : "text-bp-text-muted"}`}>{label}</span>
+    <div className="grid grid-cols-[9.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 max-[520px]:grid-cols-1">
+      <div className="grid justify-items-start gap-1 max-[520px]:flex max-[520px]:items-baseline max-[520px]:justify-between">
+        <span className={`font-mono text-[11px] tracking-wider whitespace-nowrap uppercase ${showingNews ? "text-bp-text" : "text-bp-text-muted"}`}>{label}</span>
         {news !== null && (
-          <button type="button" onClick={onToggle} className="rounded-sm text-[11px] text-bp-text-muted underline underline-offset-2 hover:text-bp-text">
+          <button type="button" onClick={onToggle} className="rounded-sm text-[11px] whitespace-nowrap text-bp-text-muted underline underline-offset-2 hover:text-bp-text">
             {showingNews ? "Show original odds" : "Show odds with your news"}
           </button>
         )}
