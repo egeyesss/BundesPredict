@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any, get_args
 
 from pydantic import ValidationError
@@ -221,6 +221,13 @@ class ToolOutcome:
         return json.dumps(self.payload)
 
 
+def _utc_iso(moment: datetime) -> str:
+    """ISO 8601 UTC with a ``Z`` suffix, for naive-UTC and timezone-aware datetimes alike."""
+    if moment.tzinfo is not None:
+        moment = moment.astimezone(UTC).replace(tzinfo=None)
+    return moment.isoformat() + "Z"
+
+
 def _round(value: float, places: int = 4) -> float:
     return round(value, places)
 
@@ -380,7 +387,7 @@ def dispatch(name: str, tool_input: dict[str, Any], service: PredictionService) 
                 {
                     "fixtures": [
                         {
-                            "kickoff_utc": f.kickoff_utc.isoformat() + "Z",
+                            "kickoff_utc": _utc_iso(f.kickoff_utc),
                             "matchday": f.matchday,
                             "home": f.home,
                             "away": f.away,
