@@ -15,11 +15,14 @@ def make_team(name: str, **fields: object) -> Team:
     return Team.objects.create(name=name, **fields)
 
 
-def make_run(trained_at: datetime, as_of_date: date | None = None) -> ModelRun:
+def make_run(
+    trained_at: datetime, as_of_date: date | None = None, version: str | None = None
+) -> ModelRun:
     return ModelRun.objects.create(
         trained_at=trained_at,
         model_type="dixon_coles",
         as_of_date=as_of_date,
+        version=version,
         xi=0.0018,
         rho=-0.1,
         home_adv=0.25,
@@ -73,6 +76,39 @@ class TestLatestModelRun:
 
         assert repositories.latest_model_run(as_of_date=date(2026, 8, 28)) == cutoff_run
         assert repositories.latest_model_run(as_of_date=date(2026, 1, 1)) is None
+
+    def test_can_be_limited_to_one_version(self) -> None:
+        serving = make_run(datetime(2026, 9, 1, tzinfo=UTC), version="serve")
+        make_run(datetime(2026, 10, 1, tzinfo=UTC), version="walk-forward")
+        make_run(datetime(2026, 10, 2, tzinfo=UTC))
+
+        assert repositories.latest_model_run(version="serve") == serving
+        assert repositories.latest_model_run(version="missing") is None
+
+    def test_version_and_cutoff_combine(self) -> None:
+        make_run(datetime(2026, 9, 1, tzinfo=UTC), as_of_date=date(2026, 8, 28), version="serve")
+        wanted = make_run(
+            datetime(2026, 9, 2, tzinfo=UTC), as_of_date=date(2026, 8, 28), version="walk-forward"
+        )
+
+        run = repositories.latest_model_run(as_of_date=date(2026, 8, 28), version="walk-forward")
+
+        assert run == wanted
+
+
+class TestRatingsFor:
+    def test_rebuilds_the_run_as_engine_ratings_sorted_by_team_name(self) -> None:
+        bayern, augsburg = make_team("Bayern Munich"), make_team("FC Augsburg")
+        run = make_run(datetime(2026, 10, 1, tzinfo=UTC))
+        TeamParam.objects.create(model_run=run, team=bayern, attack=0.4, defense=-0.3)
+        TeamParam.objects.create(model_run=run, team=augsburg, attack=0.1, defense=0.2)
+
+        ratings = repositories.ratings_for(run)
+
+        assert ratings.teams == ("Bayern Munich", "FC Augsburg")
+        assert list(ratings.attack) == [0.4, 0.1]
+        assert list(ratings.defense) == [-0.3, 0.2]
+        assert (ratings.home_adv, ratings.rho) == (run.home_adv, run.rho)
 
 
 class TestTeamParamsFor:

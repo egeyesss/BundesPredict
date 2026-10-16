@@ -10,7 +10,10 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Literal
 
+import numpy as np
 from django.db.models import Q
+
+from bundespredict.model.dixon_coles import TeamRatings
 
 from .models import Fixture, Match, ModelRun, Team, TeamAlias, TeamParam
 
@@ -44,15 +47,20 @@ class TeamForm:
     matches: tuple[FormMatch, ...]  # most recent first
 
 
-def latest_model_run(*, as_of_date: date | None = None) -> ModelRun | None:
+def latest_model_run(
+    *, as_of_date: date | None = None, version: str | None = None
+) -> ModelRun | None:
     """The most recently trained run, or the newest run written for the cutoff `as_of_date`.
 
     Walk-forward backtests write one run per cutoff, so passing the cutoff selects the run fit
-    on matches strictly before that date.
+    on matches strictly before that date. `version` limits the search to one kind of run
+    (`"serve"` for the fits that answer requests, `"walk-forward"` for backtest cutoffs).
     """
     runs = ModelRun.objects.order_by("-trained_at", "-id")
     if as_of_date is not None:
         runs = runs.filter(as_of_date=as_of_date)
+    if version is not None:
+        runs = runs.filter(version=version)
     return runs.first()
 
 
@@ -63,6 +71,20 @@ def team_params_for(run: ModelRun) -> list[TeamParam]:
     """
     return list(
         TeamParam.objects.filter(model_run=run).select_related("team").order_by("team__name")
+    )
+
+
+def ratings_for(run: ModelRun) -> TeamRatings:
+    """The run's stored parameters as the engine's `TeamRatings`, teams sorted by name."""
+    params = team_params_for(run)
+    return TeamRatings(
+        teams=tuple(param.team.name for param in params),
+        attack=np.array([param.attack for param in params], dtype=np.float64),
+        defense=np.array([param.defense for param in params], dtype=np.float64),
+        home_adv=run.home_adv,
+        rho=run.rho,
+        log_likelihood=run.log_likelihood,
+        xg_coef=run.xg_coef,
     )
 
 

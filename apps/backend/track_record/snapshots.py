@@ -5,13 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-import numpy as np
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from bundespredict.model.dixon_coles import TeamRatings
 from football.models import Fixture, ModelRun
-from football.repositories import latest_model_run, team_params_for
+from football.repositories import latest_model_run, ratings_for
 
 from .models import FixturePrediction
 
@@ -30,20 +29,6 @@ class NoModelRunError(RuntimeError):
 class SnapshotReport:
     created: list[FixturePrediction] = field(default_factory=list)
     skipped_without_ratings: list[Fixture] = field(default_factory=list)
-
-
-def ratings_for(run: ModelRun) -> TeamRatings:
-    """The engine's ratings for `run`, rebuilt from its stored team parameters."""
-    params = team_params_for(run)
-    return TeamRatings(
-        teams=tuple(param.team.name for param in params),
-        attack=np.array([param.attack for param in params], dtype=np.float64),
-        defense=np.array([param.defense for param in params], dtype=np.float64),
-        home_adv=run.home_adv,
-        rho=run.rho,
-        log_likelihood=run.log_likelihood,
-        xg_coef=run.xg_coef,
-    )
 
 
 def freeze_fixture(
