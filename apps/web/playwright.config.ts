@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const port = 3100;
+const port = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -28,7 +28,12 @@ export default defineConfig({
   webServer: {
     command: `npm run build && npm run start -- --port ${port}`,
     url: `http://localhost:${port}`,
-    env: { ENABLE_STYLEGUIDE: "1" },
+    env: {
+      ENABLE_STYLEGUIDE: "1",
+      NEXT_PUBLIC_API_MOCKING: "enabled",
+      API_MOCKING: "enabled",
+      API_BASE_URL: "http://api.mock.test",
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
     stdout: "ignore",

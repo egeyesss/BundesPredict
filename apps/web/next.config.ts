@@ -8,6 +8,10 @@ const styleguideEnabled =
   process.env.ENABLE_STYLEGUIDE === "1";
 
 const nextConfig: NextConfig = {
+  // msw's package exports hide `msw/browser` from the server pass; the worker only ever runs in the browser.
+  turbopack: {
+    resolveAlias: { "msw/browser": "./node_modules/msw/lib/browser/index.js" },
+  },
   pageExtensions: ["tsx", "ts", "jsx", "js", ...(styleguideEnabled ? ["styleguide.tsx"] : [])],
 };
 
