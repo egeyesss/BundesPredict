@@ -245,12 +245,12 @@ def test_service_records_last_prediction() -> None:
     assert service.last_prediction.served is service.last_prediction.adjusted
 
 
-def test_team_form_without_session_raises() -> None:
+def test_team_form_without_ports_raises() -> None:
     service = _service()
     try:
         service.team_form("strong")
     except RuntimeError as exc:
-        assert "session" in str(exc)
+        assert "data ports" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("expected RuntimeError")
 

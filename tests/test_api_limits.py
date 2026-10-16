@@ -5,7 +5,7 @@ oversized prompt, calling the API directly instead of through the web proxy,
 and hammering it in a loop.
 
 No Postgres and no API key here -- the session and LLM dependencies are
-overridden, and `latest_run_id` is stubbed to report nothing fitted, so an
+overridden, and `SqlAlchemyPorts.latest_ratings` is stubbed to report nothing fitted, so an
 allowed request stops at 503 just before the agent would run.
 
 `run_agent` is stubbed to raise, which is what makes these tests about money
@@ -28,6 +28,7 @@ from app.config import get_settings
 from app.deps import get_llm_client, get_session
 from app.main import app
 from app.security import CLIENT_IP_HEADER, PROXY_SECRET_HEADER, limiter
+from bundespredict.data.agent_ports import SqlAlchemyPorts
 
 SECRET = "test-proxy-secret"
 
@@ -54,7 +55,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     get_settings.cache_clear()
 
     # Nothing fitted => 503 before the agent loop, so no DB and no API key.
-    monkeypatch.setattr(predict_module, "latest_run_id", lambda _session: None)
+    monkeypatch.setattr(SqlAlchemyPorts, "latest_ratings", lambda _ports: None)
     monkeypatch.setattr(predict_module, "run_agent", _must_not_run)
     monkeypatch.setattr(predict_module, "run_agent_events", _must_not_run)
     app.dependency_overrides[get_session] = _no_session
