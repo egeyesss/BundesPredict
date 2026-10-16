@@ -1,0 +1,4 @@
+/* The canvas holds the base layer and the rain, so the real text steps aside once it has drawn. */
+.wm[data-live="true"] [data-wordmark-text] {
+  color: transparent;
+}

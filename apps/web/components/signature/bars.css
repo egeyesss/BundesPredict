@@ -1,0 +1,43 @@
+/* Segment colours follow likelihood: the leader gets full colour, the others are mixed into the card surface. */
+.odds-bar {
+  --odds-surface: var(--bp-surface-1);
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.odds-bar [data-segment] {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 2px;
+  transition:
+    flex-grow 400ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 200ms;
+}
+
+.odds-bar [data-role="win"] {
+  background: color-mix(in oklab, var(--odds-win) 38%, var(--odds-surface));
+}
+
+.odds-bar [data-role="lose"] {
+  background: color-mix(in oklab, var(--odds-lose) 38%, var(--odds-surface));
+}
+
+.odds-bar [data-role="draw"] {
+  background: color-mix(in oklab, var(--odds-draw) 55%, var(--odds-surface));
+}
+
+.odds-bar [data-role="win"][data-lead] {
+  background: var(--odds-win);
+}
+
+.odds-bar [data-role="draw"][data-lead] {
+  background: var(--odds-draw-lead);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .odds-bar [data-segment] {
+    transition: none;
+  }
+}

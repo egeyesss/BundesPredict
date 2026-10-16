@@ -1,19 +1,20 @@
 import type { ReactNode } from "react";
 
+import { ShellWordmark } from "@/components/signature/ShellWordmark";
+
 import { IslandActivityProvider } from "./IslandActivity";
 import { IslandNav } from "./IslandNav";
 import type { NavUser } from "./nav";
 import { SiteFooter } from "./SiteFooter";
-import { WordmarkPlaceholder } from "./WordmarkPlaceholder";
 
 type AppShellProps = {
   children: ReactNode;
   user?: NavUser | null;
-  /** Shown in the nav and footer; swap in the animated wordmark here. */
+  /** Shown in the nav and footer; defaults to the animated wordmark. */
   wordmark?: ReactNode;
 };
 
-export function AppShell({ children, user = null, wordmark = <WordmarkPlaceholder /> }: AppShellProps) {
+export function AppShell({ children, user = null, wordmark = <ShellWordmark /> }: AppShellProps) {
   return (
     <IslandActivityProvider>
       <a
