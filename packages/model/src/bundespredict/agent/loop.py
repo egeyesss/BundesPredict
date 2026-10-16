@@ -44,6 +44,19 @@ class LLMClient(Protocol):
 
 
 @dataclass(frozen=True)
+class TokenUsage:
+    """Billed tokens summed over every LLM call of a run."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+    def __add__(self, other: TokenUsage) -> TokenUsage:
+        return TokenUsage(
+            self.input_tokens + other.input_tokens, self.output_tokens + other.output_tokens
+        )
+
+
+@dataclass(frozen=True)
 class AgentResult:
     """What one agent run produced: the served prediction and its explanation."""
 
@@ -51,6 +64,7 @@ class AgentResult:
     explanation: str
     record: PredictionRecord | None
     messages: list[dict[str, Any]] = field(default_factory=list)
+    usage: TokenUsage = field(default_factory=TokenUsage)
 
 
 @dataclass(frozen=True)
@@ -71,6 +85,14 @@ def _text_of(response: Any) -> str:
     """Concatenate the text blocks of a model response into one string."""
     parts = [block.text for block in response.content if getattr(block, "type", None) == "text"]
     return "\n".join(p for p in parts if p).strip()
+
+
+def _usage_of(response: Any) -> TokenUsage:
+    """The response's token counts; a client that reports none (a test fake) counts as zero."""
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return TokenUsage()
+    return TokenUsage(usage.input_tokens, usage.output_tokens)
 
 
 def _normalize_turns(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -125,6 +147,7 @@ def run_agent_events(
     )
 
     response: Any = None
+    usage = TokenUsage()
     for _ in range(max_turns):
         response = client.messages.create(
             model=model,
@@ -133,6 +156,7 @@ def run_agent_events(
             tools=TOOL_SPECS,
             messages=messages,
         )
+        usage += _usage_of(response)
         messages.append({"role": "assistant", "content": response.content})
 
         if response.stop_reason != "tool_use":
@@ -167,6 +191,7 @@ def run_agent_events(
             explanation=explanation,
             record=service.last_prediction,
             messages=messages,
+            usage=usage,
         ),
     )
 
