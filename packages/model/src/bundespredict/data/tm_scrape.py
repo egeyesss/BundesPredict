@@ -37,7 +37,7 @@ LEAGUE_URL = BASE_URL + "/bundesliga/startseite/wettbewerb/L1/plus/?saison_id={y
 SQUAD_URL = BASE_URL + "/{slug}/kader/verein/{tm_id}/saison_id/{year}"
 
 # Identify ourselves; hiding behind a browser UA is the impolite option.
-USER_AGENT = "BundesPredict/0.1 (hobby Bundesliga model; contact: egeyesilyurtca@gmail.com)"
+USER_AGENT = "BundesPredict/0.1 (hobby Bundesliga model; contact: bundespredict@egeyesilyurt.ca)"
 REQUEST_GAP_SECONDS = 3.0
 MAX_ATTEMPTS = 3
 
