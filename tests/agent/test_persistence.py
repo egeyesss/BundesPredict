@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from bundespredict.agent.loop import run_agent
 from bundespredict.agent.service import PredictionService
+from bundespredict.data.agent_ports import SqlAlchemyPorts
 from bundespredict.data.models import Prediction, Team
 from bundespredict.data.params_store import load_ratings, save_ratings
 from bundespredict.data.predictions_store import save_prediction
@@ -38,7 +39,7 @@ def test_agent_run_is_persisted_and_auditable(session: Session) -> None:
     run_id = _seed_run(session)
     # Serving reads persisted params, never refits.
     ratings = load_ratings(session, run_id)
-    service = PredictionService(ratings, session=session)
+    service = PredictionService(ratings, ports=SqlAlchemyPorts(session))
 
     client = ScriptedClient(transcript_full(HOME, AWAY))
     result = run_agent("striker out, windy", service, client=client)
@@ -75,7 +76,7 @@ def test_agent_run_is_persisted_and_auditable(session: Session) -> None:
 def test_clamped_magnitude_is_recorded_as_effective(session: Session) -> None:
     run_id = _seed_run(session)
     ratings = load_ratings(session, run_id)
-    service = PredictionService(ratings, session=session)
+    service = PredictionService(ratings, ports=SqlAlchemyPorts(session))
 
     # Hand an out-of-range request straight to the service (as if the LLM asked).
     from bundespredict.agent.adjustments import Adjustment

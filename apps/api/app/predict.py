@@ -24,8 +24,7 @@ from sqlalchemy.orm import Session
 
 from bundespredict.agent.loop import AgentResult, LLMClient, run_agent, run_agent_events
 from bundespredict.agent.service import PredictionService
-from bundespredict.data.params_store import latest_run_id, load_ratings
-from bundespredict.data.predictions_store import save_prediction
+from bundespredict.data.agent_ports import SqlAlchemyPorts
 
 from .config import Settings, get_settings
 from .deps import get_llm_client, get_session
@@ -43,13 +42,13 @@ ClientDep = Annotated[LLMClient, Depends(get_llm_client)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
-def _load_service(session: Session, req: PredictRequest) -> tuple[int, PredictionService]:
+def _load_service(ports: SqlAlchemyPorts, req: PredictRequest) -> tuple[int, PredictionService]:
     """Latest persisted run + a service over it, or 503 when nothing is fitted."""
-    run_id = latest_run_id(session)
-    if run_id is None:
+    serving = ports.latest_ratings()
+    if serving is None:
         raise HTTPException(status_code=503, detail="no fitted model available yet")
-    ratings = load_ratings(session, run_id)
-    return run_id, PredictionService(ratings, session=session, as_of_date=req.match_date)
+    service = PredictionService(serving.ratings, ports=ports, as_of_date=req.match_date)
+    return serving.run_id, service
 
 
 def _history(req: PredictRequest) -> list[dict[str, Any]]:
@@ -58,14 +57,13 @@ def _history(req: PredictRequest) -> list[dict[str, Any]]:
 
 
 def _persist_and_build(
-    session: Session, run_id: int, req: PredictRequest, result: AgentResult
+    ports: SqlAlchemyPorts, run_id: int, req: PredictRequest, result: AgentResult
 ) -> PredictResponse:
     """Save the audit row (when a fixture was predicted) and shape the response."""
     record = result.record
     prediction_id = None
     if record is not None:
-        prediction_id = save_prediction(
-            session,
+        prediction_id = ports.save(
             model_run_id=run_id,
             record=record,
             explanation=result.explanation,
@@ -85,11 +83,12 @@ def predict(
     settings: SettingsDep,
 ) -> PredictResponse:
     """Answer a natural-language match question with a calibrated, audited prediction."""
-    run_id, service = _load_service(session, req)
+    ports = SqlAlchemyPorts(session)
+    run_id, service = _load_service(ports, req)
     result = run_agent(
         req.query, service, client=client, history=_history(req), model=settings.agent_model
     )
-    return _persist_and_build(session, run_id, req, result)
+    return _persist_and_build(ports, run_id, req, result)
 
 
 def _sse(event: str, data: dict[str, Any]) -> str:
@@ -114,7 +113,8 @@ def predict_stream(
     an ``error`` event instead; the setup failures that *can* still be real
     status codes (no fitted model, no API key) are raised before streaming.
     """
-    run_id, service = _load_service(session, req)
+    ports = SqlAlchemyPorts(session)
+    run_id, service = _load_service(ports, req)
 
     def frames() -> Iterator[str]:
         try:
@@ -131,7 +131,7 @@ def predict_stream(
                 else:
                     yield _sse("stage", {"type": event.type, **event.data})
             assert result is not None  # the loop always ends with a final event
-            response = _persist_and_build(session, run_id, req, result)
+            response = _persist_and_build(ports, run_id, req, result)
             yield _sse("result", response.model_dump(mode="json"))
         except Exception:
             logger.exception("streaming prediction failed")

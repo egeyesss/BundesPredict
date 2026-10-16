@@ -6,53 +6,39 @@ reading the clock, so a prediction for a given date can never see data from afte
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
 
-from django.db.models import Q
+import numpy as np
+from django.db.models import F, Q
 
-from .models import Fixture, Match, ModelRun, Team, TeamAlias, TeamParam
+from bundespredict.data.fixtures import UpcomingFixture
+from bundespredict.data.form import FormMatch, TeamForm
+from bundespredict.data.players import PlayerRow
+from bundespredict.data.results import ResultRow
+from bundespredict.model.dixon_coles import TeamRatings
+
+from .models import Fixture, Match, ModelRun, Player, Team, TeamAlias, TeamParam
 
 FixtureScope = Literal["next_matchday", "week"]
 
 WEEK = timedelta(days=7)
 
 
-@dataclass(frozen=True)
-class FormMatch:
-    """One past result from the team's perspective."""
-
-    date: date
-    opponent: str
-    venue: str  # "H" if the team played at home, else "A"
-    goals_for: int
-    goals_against: int
-    result: str  # "W" | "D" | "L"
-
-
-@dataclass(frozen=True)
-class TeamForm:
-    team: str
-    played: int
-    wins: int
-    draws: int
-    losses: int
-    points: int
-    goals_for: int
-    goals_against: int
-    matches: tuple[FormMatch, ...]  # most recent first
-
-
-def latest_model_run(*, as_of_date: date | None = None) -> ModelRun | None:
+def latest_model_run(
+    *, as_of_date: date | None = None, version: str | None = None
+) -> ModelRun | None:
     """The most recently trained run, or the newest run written for the cutoff `as_of_date`.
 
     Walk-forward backtests write one run per cutoff, so passing the cutoff selects the run fit
-    on matches strictly before that date.
+    on matches strictly before that date. `version` limits the search to one kind of run
+    (`"serve"` for the fits that answer requests, `"walk-forward"` for backtest cutoffs).
     """
     runs = ModelRun.objects.order_by("-trained_at", "-id")
     if as_of_date is not None:
         runs = runs.filter(as_of_date=as_of_date)
+    if version is not None:
+        runs = runs.filter(version=version)
     return runs.first()
 
 
@@ -63,6 +49,20 @@ def team_params_for(run: ModelRun) -> list[TeamParam]:
     """
     return list(
         TeamParam.objects.filter(model_run=run).select_related("team").order_by("team__name")
+    )
+
+
+def ratings_for(run: ModelRun) -> TeamRatings:
+    """The run's stored parameters as the engine's `TeamRatings`, teams sorted by name."""
+    params = team_params_for(run)
+    return TeamRatings(
+        teams=tuple(param.team.name for param in params),
+        attack=np.array([param.attack for param in params], dtype=np.float64),
+        defense=np.array([param.defense for param in params], dtype=np.float64),
+        home_adv=run.home_adv,
+        rho=run.rho,
+        log_likelihood=run.log_likelihood,
+        xg_coef=run.xg_coef,
     )
 
 
@@ -105,16 +105,16 @@ def resolve_team(name_or_alias: str) -> Team | None:
     return loose_alias.team if loose_alias is not None else None
 
 
-def team_form(team: Team, as_of: date, *, n: int = 5) -> TeamForm:
+def team_form(team: Team, as_of: date | None, *, n: int = 5) -> TeamForm:
     """The team's last `n` results strictly before `as_of`, newest first.
 
-    A team with no earlier matches (a newcomer at the start of a season) gets an empty form.
+    `as_of=None` means no cutoff, which is what a request without a match date gets. A team with
+    no earlier matches (a newcomer at the start of a season) gets an empty form.
     """
-    played = (
-        Match.objects.filter(Q(home=team) | Q(away=team), date__lt=as_of)
-        .select_related("home", "away")
-        .order_by("-date", "-id")[:n]
-    )
+    matches_of_team = Match.objects.filter(Q(home=team) | Q(away=team))
+    if as_of is not None:
+        matches_of_team = matches_of_team.filter(date__lt=as_of)
+    played = matches_of_team.select_related("home", "away").order_by("-date", "-id")[:n]
 
     matches: list[FormMatch] = []
     for match in played:
@@ -154,3 +154,58 @@ def _result(goals_for: int, goals_against: int) -> str:
     if goals_for < goals_against:
         return "L"
     return "D"
+
+
+def latest_result_date() -> date | None:
+    """Date of the most recent completed match, or `None` on an empty table."""
+    return Match.objects.order_by("-date").values_list("date", flat=True).first()
+
+
+def recent_results(as_of: date | None, *, n: int = 9) -> tuple[ResultRow, ...]:
+    """The last `n` completed matches league-wide strictly before `as_of`, newest first."""
+    matches = Match.objects.select_related("home", "away")
+    if as_of is not None:
+        matches = matches.filter(date__lt=as_of)
+    return tuple(
+        ResultRow(
+            date=match.date,
+            season=match.season,
+            home=match.home.name,
+            away=match.away.name,
+            home_goals=match.home_goals,
+            away_goals=match.away_goals,
+        )
+        for match in matches.order_by("-date", "-id")[:n]
+    )
+
+
+def scheduled_fixtures(
+    on_or_after: date, *, team: Team | None = None, n: int = 9
+) -> tuple[UpcomingFixture, ...]:
+    """The next `n` fixtures kicking off from the start of `on_or_after`, soonest first.
+
+    `team` narrows the list to one club's schedule.
+    """
+    fixtures = Fixture.objects.select_related("home", "away").filter(
+        kickoff_utc__gte=datetime.combine(on_or_after, time.min, tzinfo=UTC)
+    )
+    if team is not None:
+        fixtures = fixtures.filter(Q(home=team) | Q(away=team))
+    return tuple(
+        UpcomingFixture(
+            kickoff_utc=fixture.kickoff_utc,
+            matchday=fixture.matchday,
+            season=fixture.season,
+            home=fixture.home.name,
+            away=fixture.away.name,
+        )
+        for fixture in fixtures.order_by("kickoff_utc", "id")[:n]
+    )
+
+
+def player_rows() -> list[PlayerRow]:
+    """Every stored squad member as `(name, team, position, value, scraped_at)`, richest first."""
+    players = Player.objects.select_related("team").order_by(
+        F("market_value_eur").desc(nulls_last=True)
+    )
+    return [(p.name, p.team.name, p.position, p.market_value_eur, p.scraped_at) for p in players]

@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import numpy as np
+import pytest
 
 from bundespredict.agent.adjustments import Adjustment
 from bundespredict.agent.service import PredictionService, UnknownTeamError
 from bundespredict.agent.tools import TOOL_SPECS, dispatch
+from bundespredict.data.fixtures import UpcomingFixture
 from bundespredict.data.weather import WeatherProvider, WeatherReport
 from bundespredict.model.adjust import MAGNITUDE_BOUND
 from bundespredict.model.dixon_coles import TeamRatings
@@ -243,12 +245,12 @@ def test_service_records_last_prediction() -> None:
     assert service.last_prediction.served is service.last_prediction.adjusted
 
 
-def test_team_form_without_session_raises() -> None:
+def test_team_form_without_ports_raises() -> None:
     service = _service()
     try:
         service.team_form("strong")
     except RuntimeError as exc:
-        assert "session" in str(exc)
+        assert "data ports" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("expected RuntimeError")
 
@@ -261,3 +263,40 @@ def test_require_team_raises_unknown() -> None:
         assert str(exc) == "ghost"
     else:  # pragma: no cover
         raise AssertionError("expected UnknownTeamError")
+
+
+# --- upcoming fixtures: kickoff formatting ---------------------------------
+
+
+def _kickoffs_from_tool(monkeypatch: pytest.MonkeyPatch, kickoff: datetime) -> list[str]:
+    service = _service()
+    fixture = UpcomingFixture(
+        kickoff_utc=kickoff, matchday=1, season="2627", home="strong", away="weak"
+    )
+    monkeypatch.setattr(service, "upcoming_fixtures", lambda team=None, n=9: (fixture,))
+
+    outcome = dispatch("get_upcoming_fixtures", {}, service)
+
+    return [f["kickoff_utc"] for f in outcome.payload["fixtures"]]
+
+
+def test_naive_utc_kickoff_gets_a_z_suffix(monkeypatch: pytest.MonkeyPatch) -> None:
+    kickoffs = _kickoffs_from_tool(monkeypatch, datetime(2026, 8, 29, 13, 30))
+
+    assert kickoffs == ["2026-08-29T13:30:00Z"]
+
+
+def test_aware_kickoff_is_not_given_a_second_offset(monkeypatch: pytest.MonkeyPatch) -> None:
+    kickoffs = _kickoffs_from_tool(monkeypatch, datetime(2026, 8, 29, 13, 30, tzinfo=UTC))
+
+    assert kickoffs == ["2026-08-29T13:30:00Z"]
+
+
+def test_aware_kickoff_in_another_zone_is_converted_to_utc(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    berlin = timezone(timedelta(hours=2))
+
+    kickoffs = _kickoffs_from_tool(monkeypatch, datetime(2026, 8, 29, 15, 30, tzinfo=berlin))
+
+    assert kickoffs == ["2026-08-29T13:30:00Z"]

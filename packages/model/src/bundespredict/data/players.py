@@ -208,15 +208,13 @@ def _importance(value: int | None, squad_values: list[int]) -> Literal["high", "
     return "low"
 
 
-def find_player(session: Session, query: str) -> DbPlayer | None:
-    """Find a squad member by full or last name, accent/case-insensitive.
+PlayerRow = tuple[str, str, str, int | None, datetime]
+"""``(name, team, position, market_value_eur, scraped_at)`` for one squad member."""
 
-    Full-name matches always win; last-name matches are a fallback and, on a
-    collision (two squads with a "Müller"), the more valuable player wins —
-    the likelier subject of a "X is out" claim. Returns ``None`` when the
-    players table is empty (caller falls back to the seeded offline data).
-    """
-    rows: list[tuple[str, str, str, int | None, datetime]] = [
+
+def fetch_player_rows(session: Session) -> list[PlayerRow]:
+    """Every stored squad member, richest first."""
+    return [
         (r[0], r[1], r[2], r[3], r[4])
         for r in session.execute(
             select(
@@ -230,6 +228,25 @@ def find_player(session: Session, query: str) -> DbPlayer | None:
             .order_by(Player.market_value_eur.desc().nulls_last())
         )
     ]
+
+
+def find_player(session: Session, query: str) -> DbPlayer | None:
+    """Find a squad member by full or last name, accent/case-insensitive.
+
+    Full-name matches always win; last-name matches are a fallback and, on a
+    collision (two squads with a "Müller"), the more valuable player wins,
+    being the likelier subject of a "X is out" claim. Returns ``None`` when the
+    players table is empty (caller falls back to the seeded offline data).
+    """
+    return pick_player(fetch_player_rows(session), query)
+
+
+def pick_player(rows: list[PlayerRow], query: str) -> DbPlayer | None:
+    """The best match for ``query`` among ``rows``, which must be value-descending.
+
+    Split from :func:`find_player` so any backend that can list the squad table can reuse the
+    matching and the importance rule.
+    """
     if not rows:
         return None
 
@@ -238,7 +255,7 @@ def find_player(session: Session, query: str) -> DbPlayer | None:
         if value is not None:
             values_by_team.setdefault(team, []).append(value)
 
-    def to_player(row: tuple[str, str, str, int | None, datetime]) -> DbPlayer:
+    def to_player(row: PlayerRow) -> DbPlayer:
         name, team, position, value, scraped_at = row
         return DbPlayer(
             name=name,

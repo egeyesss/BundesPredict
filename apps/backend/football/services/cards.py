@@ -4,27 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-
 from bundespredict.model.dixon_coles import TeamRatings
 
 from ..models import Fixture, ModelRun, Team
-from ..repositories import team_params_for
 from ..serializers import markets_payload
-
-
-def ratings_for(run: ModelRun) -> TeamRatings:
-    """The run's stored parameters as the engine's `TeamRatings`, teams sorted by name."""
-    params = team_params_for(run)
-    return TeamRatings(
-        teams=tuple(p.team.name for p in params),
-        attack=np.array([p.attack for p in params], dtype=np.float64),
-        defense=np.array([p.defense for p in params], dtype=np.float64),
-        home_adv=run.home_adv,
-        rho=run.rho,
-        log_likelihood=run.log_likelihood,
-        xg_coef=run.xg_coef,
-    )
 
 
 def team_payload(team: Team) -> dict[str, Any]:

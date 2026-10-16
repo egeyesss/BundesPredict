@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from bundespredict.agent.prompt import build_system_prompt
 from bundespredict.agent.service import GroundingContext, PredictionService
 from bundespredict.agent.tools import dispatch
+from bundespredict.data.agent_ports import SqlAlchemyPorts
 from bundespredict.data.fixtures import FixtureRow, ingest_fixtures
 from bundespredict.data.models import Match, Team
 from bundespredict.model.dixon_coles import TeamRatings
@@ -67,7 +68,9 @@ def _seed(session: Session) -> None:
 
 def test_context_reports_today_and_data_freshness(session: Session) -> None:
     _seed(session)
-    service = PredictionService(_ratings(), session=session, as_of_date=date(2026, 7, 4))
+    service = PredictionService(
+        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
+    )
     assert service.context == GroundingContext(
         today=date(2026, 7, 4), data_through=date(2026, 5, 16)
     )
@@ -87,7 +90,9 @@ def test_prompt_carries_dates_and_the_break_hint() -> None:
 
 def test_dispatch_recent_results(session: Session) -> None:
     _seed(session)
-    service = PredictionService(_ratings(), session=session, as_of_date=date(2026, 7, 4))
+    service = PredictionService(
+        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
+    )
     out = dispatch("get_recent_results", {"n": 5}, service)
     assert not out.is_error
     assert out.payload["results"][0] == {
@@ -100,7 +105,9 @@ def test_dispatch_recent_results(session: Session) -> None:
 
 def test_dispatch_upcoming_fixtures_resolves_the_next_game(session: Session) -> None:
     _seed(session)
-    service = PredictionService(_ratings(), session=session, as_of_date=date(2026, 7, 4))
+    service = PredictionService(
+        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
+    )
     out = dispatch("get_upcoming_fixtures", {"team": HOME}, service)
     assert not out.is_error
     fixture = out.payload["fixtures"][0]
@@ -113,7 +120,9 @@ def test_dispatch_upcoming_fixtures_resolves_the_next_game(session: Session) -> 
 def test_dispatch_upcoming_fixtures_empty_when_no_schedule(session: Session) -> None:
     _seed(session)
     # A service dated after the only stored kickoff sees an empty schedule.
-    service = PredictionService(_ratings(), session=session, as_of_date=date(2026, 9, 1))
+    service = PredictionService(
+        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 9, 1)
+    )
     out = dispatch("get_upcoming_fixtures", {}, service)
     assert not out.is_error
     assert out.payload["fixtures"] == []
@@ -121,6 +130,8 @@ def test_dispatch_upcoming_fixtures_empty_when_no_schedule(session: Session) -> 
 
 def test_dispatch_upcoming_fixtures_unknown_team_is_recoverable(session: Session) -> None:
     _seed(session)
-    service = PredictionService(_ratings(), session=session, as_of_date=date(2026, 7, 4))
+    service = PredictionService(
+        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
+    )
     out = dispatch("get_upcoming_fixtures", {"team": "Atlantis FC"}, service)
     assert out.is_error

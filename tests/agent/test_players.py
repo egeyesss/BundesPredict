@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from bundespredict.agent.players import PlayerInfo, lookup_player
 from bundespredict.agent.service import PredictionService
 from bundespredict.agent.tools import player_to_dict
+from bundespredict.data.agent_ports import SqlAlchemyPorts
 from bundespredict.data.players import ingest_squads
 from bundespredict.data.transfermarkt import LeagueClub, SquadPlayer
 from bundespredict.model.dixon_coles import TeamRatings
@@ -63,7 +64,7 @@ def _service(session: Session) -> PredictionService:
         rho=-0.1,
         log_likelihood=0.0,
     )
-    return PredictionService(ratings, session=session)
+    return PredictionService(ratings, ports=SqlAlchemyPorts(session))
 
 
 def _ingest_bayern(session: Session) -> None:

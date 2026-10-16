@@ -6,7 +6,7 @@ import pytest
 from pytest_django.fixtures import DjangoAssertNumQueries
 
 from football import repositories
-from football.models import Fixture, Match, ModelRun, Team, TeamAlias, TeamParam
+from football.models import Fixture, Match, ModelRun, Player, Team, TeamAlias, TeamParam
 
 pytestmark = pytest.mark.django_db
 
@@ -15,11 +15,14 @@ def make_team(name: str, **fields: object) -> Team:
     return Team.objects.create(name=name, **fields)
 
 
-def make_run(trained_at: datetime, as_of_date: date | None = None) -> ModelRun:
+def make_run(
+    trained_at: datetime, as_of_date: date | None = None, version: str | None = None
+) -> ModelRun:
     return ModelRun.objects.create(
         trained_at=trained_at,
         model_type="dixon_coles",
         as_of_date=as_of_date,
+        version=version,
         xi=0.0018,
         rho=-0.1,
         home_adv=0.25,
@@ -73,6 +76,39 @@ class TestLatestModelRun:
 
         assert repositories.latest_model_run(as_of_date=date(2026, 8, 28)) == cutoff_run
         assert repositories.latest_model_run(as_of_date=date(2026, 1, 1)) is None
+
+    def test_can_be_limited_to_one_version(self) -> None:
+        serving = make_run(datetime(2026, 9, 1, tzinfo=UTC), version="serve")
+        make_run(datetime(2026, 10, 1, tzinfo=UTC), version="walk-forward")
+        make_run(datetime(2026, 10, 2, tzinfo=UTC))
+
+        assert repositories.latest_model_run(version="serve") == serving
+        assert repositories.latest_model_run(version="missing") is None
+
+    def test_version_and_cutoff_combine(self) -> None:
+        make_run(datetime(2026, 9, 1, tzinfo=UTC), as_of_date=date(2026, 8, 28), version="serve")
+        wanted = make_run(
+            datetime(2026, 9, 2, tzinfo=UTC), as_of_date=date(2026, 8, 28), version="walk-forward"
+        )
+
+        run = repositories.latest_model_run(as_of_date=date(2026, 8, 28), version="walk-forward")
+
+        assert run == wanted
+
+
+class TestRatingsFor:
+    def test_rebuilds_the_run_as_engine_ratings_sorted_by_team_name(self) -> None:
+        bayern, augsburg = make_team("Bayern Munich"), make_team("FC Augsburg")
+        run = make_run(datetime(2026, 10, 1, tzinfo=UTC))
+        TeamParam.objects.create(model_run=run, team=bayern, attack=0.4, defense=-0.3)
+        TeamParam.objects.create(model_run=run, team=augsburg, attack=0.1, defense=0.2)
+
+        ratings = repositories.ratings_for(run)
+
+        assert ratings.teams == ("Bayern Munich", "FC Augsburg")
+        assert list(ratings.attack) == [0.4, 0.1]
+        assert list(ratings.defense) == [-0.3, 0.2]
+        assert (ratings.home_adv, ratings.rho) == (run.home_adv, run.rho)
 
 
 class TestTeamParamsFor:
@@ -180,6 +216,14 @@ class TestTeamForm:
         assert [m.date.day for m in form.matches] == [7, 6, 5]
         assert form.played == 3
 
+    def test_without_a_cutoff_every_match_counts(self) -> None:
+        make_match(self.team, self.rival, date(2026, 9, 1), 1, 0)
+        make_match(self.team, self.rival, date(2026, 12, 1), 2, 0)
+
+        form = repositories.team_form(self.team, None)
+
+        assert [m.date for m in form.matches] == [date(2026, 12, 1), date(2026, 9, 1)]
+
     def test_a_team_without_earlier_matches_has_empty_form(self) -> None:
         form = repositories.team_form(self.team, date(2026, 8, 1))
 
@@ -254,3 +298,93 @@ class TestUpcomingFixtures:
     def test_a_naive_as_of_is_rejected(self) -> None:
         with pytest.raises(ValueError, match="timezone-aware"):
             repositories.upcoming_fixtures("week", datetime(2026, 9, 1, 12))
+
+
+class TestResults:
+    def setup_method(self) -> None:
+        self.bayern = Team.objects.create(name="Bayern Munich")
+        self.dortmund = Team.objects.create(name="Borussia Dortmund")
+
+    def test_latest_result_date_is_none_without_matches(self) -> None:
+        assert repositories.latest_result_date() is None
+
+    def test_latest_result_date_is_the_newest_match(self) -> None:
+        make_match(self.bayern, self.dortmund, date(2026, 9, 1), 1, 0)
+        make_match(self.dortmund, self.bayern, date(2026, 9, 8), 1, 1)
+
+        assert repositories.latest_result_date() == date(2026, 9, 8)
+
+    def test_recent_results_are_newest_first_and_stop_before_the_cutoff(self) -> None:
+        make_match(self.bayern, self.dortmund, date(2026, 9, 1), 3, 0)
+        make_match(self.dortmund, self.bayern, date(2026, 9, 8), 2, 2)
+        make_match(self.bayern, self.dortmund, date(2026, 9, 15), 0, 1)
+
+        results = repositories.recent_results(date(2026, 9, 15), n=5)
+
+        assert [(r.date, r.home, r.away, r.home_goals, r.away_goals) for r in results] == [
+            (date(2026, 9, 8), "Borussia Dortmund", "Bayern Munich", 2, 2),
+            (date(2026, 9, 1), "Bayern Munich", "Borussia Dortmund", 3, 0),
+        ]
+
+    def test_recent_results_without_a_cutoff_are_limited_to_n(self) -> None:
+        for day in range(1, 6):
+            make_match(self.bayern, self.dortmund, date(2026, 9, day), day, 0)
+
+        results = repositories.recent_results(None, n=2)
+
+        assert [r.date.day for r in results] == [5, 4]
+
+
+class TestScheduledFixtures:
+    def setup_method(self) -> None:
+        self.bayern = Team.objects.create(name="Bayern Munich")
+        self.dortmund = Team.objects.create(name="Borussia Dortmund")
+        self.leipzig = Team.objects.create(name="RB Leipzig")
+        self.friday = datetime(2026, 8, 28, 18, 30, tzinfo=UTC)
+
+    def test_starts_at_midnight_utc_of_the_given_day_soonest_first(self) -> None:
+        make_fixture(self.bayern, self.dortmund, self.friday - timedelta(days=1), 1)
+        later = make_fixture(self.dortmund, self.leipzig, self.friday + timedelta(days=7), 2)
+        same_day = make_fixture(self.bayern, self.leipzig, self.friday, 1)
+
+        fixtures = repositories.scheduled_fixtures(date(2026, 8, 28))
+
+        assert [(f.matchday, f.home, f.kickoff_utc) for f in fixtures] == [
+            (1, same_day.home.name, same_day.kickoff_utc),
+            (2, later.home.name, later.kickoff_utc),
+        ]
+        assert fixtures[0].season == "2627"
+
+    def test_can_be_narrowed_to_one_team_and_limited(self) -> None:
+        make_fixture(self.bayern, self.dortmund, self.friday, 1)
+        make_fixture(self.dortmund, self.leipzig, self.friday + timedelta(days=7), 2)
+        make_fixture(self.leipzig, self.dortmund, self.friday + timedelta(days=14), 3)
+
+        only_leipzig = repositories.scheduled_fixtures(date(2026, 8, 1), team=self.leipzig)
+        first = repositories.scheduled_fixtures(date(2026, 8, 1), n=1)
+
+        assert [f.matchday for f in only_leipzig] == [2, 3]
+        assert [f.matchday for f in first] == [1]
+
+
+class TestPlayerRows:
+    def test_lists_players_with_their_club_richest_first_and_unvalued_last(self) -> None:
+        bayern = Team.objects.create(name="Bayern Munich")
+        scraped = datetime(2026, 10, 1, tzinfo=UTC)
+        for tm_id, name, value in ((1, "Unvalued", None), (2, "Cheap", 1), (3, "Rich", 9)):
+            Player.objects.create(
+                tm_id=tm_id,
+                team=bayern,
+                name=name,
+                position="Midfield",
+                market_value_eur=value,
+                scraped_at=scraped,
+            )
+
+        rows = repositories.player_rows()
+
+        assert rows == [
+            ("Rich", "Bayern Munich", "Midfield", 9, scraped),
+            ("Cheap", "Bayern Munich", "Midfield", 1, scraped),
+            ("Unvalued", "Bayern Munich", "Midfield", None, scraped),
+        ]

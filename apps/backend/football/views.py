@@ -12,14 +12,14 @@ from rest_framework.views import APIView
 from config.api import ErrorSerializer, ModelUnavailable
 
 from .models import Fixture, Team
-from .repositories import FixtureScope, latest_model_run, upcoming_fixtures
+from .repositories import FixtureScope, latest_model_run, ratings_for, upcoming_fixtures
 from .serializers import (
     FixtureCardSerializer,
     FixtureDetailSerializer,
     FixtureListQuerySerializer,
     TeamSerializer,
 )
-from .services.cards import fixture_card, ratings_for, team_payload
+from .services.cards import fixture_card, team_payload
 
 
 class TeamListView(APIView):
