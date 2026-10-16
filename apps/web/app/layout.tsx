@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google";
 
 import { AppShell } from "@/components/brand/AppShell";
+import { ApiMockingGate } from "@/components/dev/ApiMockingGate";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -46,10 +47,12 @@ export default function RootLayout({
       className={`dark ${display.variable} ${sans.variable} ${mono.variable}`}
     >
       <body>
-        <TooltipProvider>
-          <AppShell>{children}</AppShell>
-        </TooltipProvider>
-        <Toaster />
+        <ApiMockingGate>
+          <TooltipProvider>
+            <AppShell>{children}</AppShell>
+          </TooltipProvider>
+          <Toaster />
+        </ApiMockingGate>
       </body>
     </html>
   );

@@ -55,8 +55,8 @@ test.describe("island on desktop", () => {
     await expect(island(page)).toHaveAttribute("data-mode", "full");
   });
 
-  test("clicking the wordmark on the home page scrolls to the top", async ({ page }) => {
-    await page.goto("/");
+  test("clicking the wordmark scrolls to the top", async ({ page }) => {
+    await page.goto("/matchday");
     await expect(island(page)).toHaveAttribute("data-ready", "true");
     await page.evaluate(() => {
       document.body.style.minHeight = "3000px";

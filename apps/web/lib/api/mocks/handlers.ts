@@ -10,26 +10,37 @@ import {
   fixtureDetails,
   health,
   meFor,
+  modelUnavailable,
   notFound,
   quotaExceeded,
+  rateLimited,
   sampleConversation,
   teams,
   trackRecord,
 } from "./data";
+import { mockUsage } from "./state";
 import { recordedStreams, sseResponse } from "./streams";
 
 const API = "*/api/v1";
+
+const cutOffStream = recordedStreams.happy.slice(0, 5);
 
 export type PredictScenario =
   | "happy"
   | "tool_heavy"
   | "last_chat"
   | "error"
-  | "quota_exceeded";
+  | "quota_exceeded"
+  | "model_unavailable"
+  | "rate_limited"
+  | "cut_off";
 
 /** Keywords in the query pick the scenario, so a dev can steer the mock from the chat box. */
 export function scenarioForQuery(query: string): PredictScenario {
   if (/quota/i.test(query)) return "quota_exceeded";
+  if (/unavailable/i.test(query)) return "model_unavailable";
+  if (/rate.?limit/i.test(query)) return "rate_limited";
+  if (/cut.?off/i.test(query)) return "cut_off";
   if (/error|fail/i.test(query)) return "error";
   if (/last chat/i.test(query)) return "last_chat";
   if (/kane|mainz|tool|weather/i.test(query)) return "tool_heavy";
@@ -64,11 +75,11 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
       return detail ? HttpResponse.json(detail) : HttpResponse.json(notFound, { status: 404 });
     }),
 
-    http.get(`${API}/me`, () => HttpResponse.json(meFor("free"))),
+    http.get(`${API}/me`, () => HttpResponse.json({ ...meFor("free"), usage: mockUsage.current() })),
 
     http.patch(`${API}/me`, async ({ request }) => {
       const changes = (await request.json()) as { email_opt_in?: boolean; timezone?: string | null };
-      return HttpResponse.json({ ...meFor("free"), ...changes });
+      return HttpResponse.json({ ...meFor("free"), usage: mockUsage.current(), ...changes });
     }),
 
     http.get(`${API}/conversations`, () => HttpResponse.json(conversationPage)),
@@ -100,11 +111,23 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
       }
 
       const scenario = scenarioForQuery(query);
-      if (scenario === "quota_exceeded") {
+      if (scenario === "model_unavailable") {
+        return HttpResponse.json(modelUnavailable, { status: 503 });
+      }
+      if (scenario === "rate_limited") {
+        return HttpResponse.json(rateLimited, { status: 429, headers: { "Retry-After": "3" } });
+      }
+      if (scenario === "quota_exceeded" || mockUsage.isExhausted()) {
         return HttpResponse.json(quotaExceeded, { status: 402 });
       }
+
+      if (scenario === "last_chat") mockUsage.leaveOneChat();
+      const usage = mockUsage.spend();
+      const recording = scenario === "cut_off" ? cutOffStream : recordedStreams[scenario];
+      const events = recording.map((frame) => (frame.event === "quota" ? { ...frame, data: usage } : frame));
+
       await delay(streamFrameDelayMs);
-      return sseResponse(recordedStreams[scenario], { frameDelayMs: streamFrameDelayMs });
+      return sseResponse(events, { frameDelayMs: streamFrameDelayMs });
     }),
   ];
 }

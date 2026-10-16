@@ -1,0 +1,13 @@
+@media (prefers-reduced-motion: no-preference) {
+  .fixture-card[data-enter] {
+    animation: fixture-rise 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+}
+
+@keyframes fixture-rise {
+  from {
+    opacity: 0.001;
+    transform: translateY(6px);
+  }
+}
