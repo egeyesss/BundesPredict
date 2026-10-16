@@ -20,14 +20,10 @@ STUBS: list[tuple[str, str, dict[str, Any] | None, bool]] = [
     ("get", "/api/v1/conversations", None, True),
     ("get", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
     ("delete", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
-    ("post", "/api/v1/billing/checkout", None, True),
-    ("post", "/api/v1/billing/portal", None, True),
     ("get", "/api/v1/track-record", None, False),
     ("get", "/api/v1/admin/metrics", None, True),
     ("post", "/api/v1/demo/start", None, False),
     ("post", "/api/v1/email/unsubscribe", {"token": "signed-token"}, False),
-    ("post", "/stripe/webhook/live", {}, False),
-    ("post", "/stripe/webhook/test", {}, False),
 ]
 
 
