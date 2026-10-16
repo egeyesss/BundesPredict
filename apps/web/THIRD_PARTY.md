@@ -5,6 +5,7 @@ Components copied into this repo (not installed from npm) and the licence they c
 | Component | Where | Source | Licence |
 |---|---|---|---|
 | shadcn/ui primitives (button, input, dialog, sheet, tabs, tooltip, dropdown-menu, sonner, skeleton, avatar, badge, card, chart) | `components/ui/` | https://ui.shadcn.com | MIT |
+| OtpInput (sign-in code field) | `components/ui/otp-input.tsx` | https://www.rareui.com/components/otpinput | Free for commercial use with a visible credit link (the footer links to rareui.com) |
 
 The primitives are restyled with the project's design tokens.
 Packages they pull in from npm (Radix UI, `cn`, Recharts, Sonner, Lucide) keep their own licences in `node_modules`.
