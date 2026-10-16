@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google";
 
+import { SessionProvider } from "@/components/account/SessionProvider";
 import { AppShell } from "@/components/brand/AppShell";
 import { ApiMockingGate } from "@/components/dev/ApiMockingGate";
 import { Toaster } from "@/components/ui/sonner";
@@ -48,9 +49,11 @@ export default function RootLayout({
     >
       <body>
         <ApiMockingGate>
-          <TooltipProvider>
-            <AppShell>{children}</AppShell>
-          </TooltipProvider>
+          <SessionProvider>
+            <TooltipProvider>
+              <AppShell>{children}</AppShell>
+            </TooltipProvider>
+          </SessionProvider>
           <Toaster />
         </ApiMockingGate>
       </body>
