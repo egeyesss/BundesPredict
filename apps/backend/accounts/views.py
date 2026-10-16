@@ -15,6 +15,7 @@ from .serializers import MeSerializer, MeUpdateSerializer
 
 def _serialize_me(user: User, profile: UserProfile) -> dict[str, object]:
     usage = quota.current(user)
+    subscription = plans.current_subscription(user)
     return MeSerializer(
         {
             "id": user.pk,
@@ -24,7 +25,15 @@ def _serialize_me(user: User, profile: UserProfile) -> dict[str, object]:
             "role": profile.role,
             "is_demo": profile.is_demo,
             "usage": {"used": usage.used, "limit": usage.limit, "resets_at": usage.resets_at},
-            "subscription": None,
+            "subscription": (
+                {
+                    "status": subscription.status,
+                    "current_period_end": subscription.current_period_end,
+                    "cancel_at_period_end": subscription.cancel_at_period_end,
+                }
+                if subscription
+                else None
+            ),
             "email_opt_in": profile.email_opt_in,
             "timezone": profile.timezone,
         }

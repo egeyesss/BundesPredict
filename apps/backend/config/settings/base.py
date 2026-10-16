@@ -153,3 +153,14 @@ else:
 DEFAULT_FROM_EMAIL = env.str("EMAIL_FROM", default="BundesPredict <noreply@example.com>")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # --- end accounts block ------------------------------------------------------------------------
+
+# --- billing: Stripe ---------------------------------------------------------------------------
+STRIPE_SECRET_KEY_TEST = env.str("STRIPE_SECRET_KEY_TEST", default="")
+STRIPE_SECRET_KEY_LIVE = env.str("STRIPE_SECRET_KEY_LIVE", default="")
+STRIPE_WEBHOOK_SECRET_TEST = env.str("STRIPE_WEBHOOK_SECRET_TEST", default="")
+STRIPE_WEBHOOK_SECRET_LIVE = env.str("STRIPE_WEBHOOK_SECRET_LIVE", default="")
+STRIPE_PRICE_ID_TEST = env.str("STRIPE_PRICE_ID_TEST", default="")
+STRIPE_PRICE_ID_LIVE = env.str("STRIPE_PRICE_ID_LIVE", default="")
+# Origin of the web app, where Checkout and the Customer Portal send the browser back.
+STRIPE_RETURN_BASE_URL = env.str("STRIPE_RETURN_BASE_URL", default="http://localhost:3000")
+# --- end billing block -------------------------------------------------------------------------

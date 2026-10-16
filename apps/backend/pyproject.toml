@@ -13,6 +13,7 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "django-allauth[socialaccount]>=65.19.7",
     "django-anymail[resend]>=15.2",
+    "stripe>=16.0.0",
 ]
 
 [tool.uv]
