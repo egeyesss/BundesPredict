@@ -90,7 +90,7 @@
         "/api/v1/billing/portal": {
             "post": {
                 "operationId": "billing_portal",
-                "description": "Opens the Stripe Customer Portal for the signed-in user.",
+                "description": "Opens the Stripe Customer Portal for the signed-in user; 404 `no_billing_account` when they never started a checkout.",
                 "tags": [
                     "billing"
                 ],
@@ -111,6 +111,16 @@
                         "description": ""
                     },
                     "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
                         "content": {
                             "application/json": {
                                 "schema": {

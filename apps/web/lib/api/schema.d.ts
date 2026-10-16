@@ -47,7 +47,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Opens the Stripe Customer Portal for the signed-in user. */
+        /** @description Opens the Stripe Customer Portal for the signed-in user; 404 `no_billing_account` when they never started a checkout. */
         post: operations["billing_portal"];
         delete?: never;
         options?: never;
@@ -834,6 +834,14 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

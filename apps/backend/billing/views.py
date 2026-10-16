@@ -87,8 +87,11 @@ class PortalView(APIView):
         operation_id="billing_portal",
         tags=["billing"],
         request=None,
-        responses={200: BillingRedirectSerializer, 401: ErrorSerializer},
-        description="Opens the Stripe Customer Portal for the signed-in user.",
+        responses={200: BillingRedirectSerializer, 401: ErrorSerializer, 404: ErrorSerializer},
+        description=(
+            "Opens the Stripe Customer Portal for the signed-in user; 404 `no_billing_account` "
+            "when they never started a checkout."
+        ),
     )
     def post(self, request: Request) -> Response:
         user: User = request.user  # type: ignore[assignment]
