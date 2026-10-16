@@ -152,7 +152,7 @@ def parse_league_page(html: str, start_year: int) -> list[LeagueClub]:
         )
     if len(clubs) != 18:
         raise ValueError(
-            f"league page for {start_year} parsed {len(clubs)} clubs, expected 18 — "
+            f"league page for {start_year} parsed {len(clubs)} clubs, expected 18; "
             "Transfermarkt markup may have changed"
         )
     return list(clubs.values())

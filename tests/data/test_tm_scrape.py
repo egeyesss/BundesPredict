@@ -7,7 +7,10 @@ from __future__ import annotations
 
 import gzip
 import json
+import threading
+from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import pytest
@@ -85,3 +88,75 @@ def test_read_cache_skips_pages_that_were_never_fetched(tmp_path: Path) -> None:
     assert len(snapshot.clubs) == 18
     assert snapshot.squads == {}
     assert snapshot.scraped_at.tzinfo is not None
+
+
+SiteStarter = Callable[[type[BaseHTTPRequestHandler]], str]
+
+
+class _ChallengeHandler(BaseHTTPRequestHandler):
+    """Answers like Transfermarkt's AWS WAF does for a datacenter IP: 202, empty body."""
+
+    def do_GET(self) -> None:
+        self.send_response(202)
+        self.send_header("x-amzn-waf-action", "challenge")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def log_message(self, format: str, *args: object) -> None:
+        pass
+
+
+class _PageHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        body = _page("tm_league_2025.html.gz").encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format: str, *args: object) -> None:
+        pass
+
+
+@pytest.fixture
+def local_site(monkeypatch: pytest.MonkeyPatch) -> Iterator[SiteStarter]:
+    monkeypatch.setattr(tm_scrape, "REQUEST_GAP_SECONDS", 0.0)
+    servers: list[HTTPServer] = []
+
+    def start(handler: type[BaseHTTPRequestHandler]) -> str:
+        server = HTTPServer(("127.0.0.1", 0), handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        servers.append(server)
+        return f"http://127.0.0.1:{server.server_port}/bundesliga/startseite/wettbewerb/L1"
+
+    yield start
+    for server in servers:
+        server.shutdown()
+        server.server_close()
+
+
+def test_a_bot_challenge_is_reported_as_blocked_not_as_an_empty_page(
+    local_site: SiteStarter,
+) -> None:
+    url = local_site(_ChallengeHandler)
+
+    with pytest.raises(tm_scrape.ScrapeBlocked, match="challenge"):
+        tm_scrape.polite_fetch(url)
+
+
+def test_a_normal_page_still_comes_back_as_text(
+    local_site: SiteStarter,
+) -> None:
+    url = local_site(_PageHandler)
+
+    assert "startseite/verein" in tm_scrape.polite_fetch(url)
+
+
+def test_an_empty_fetch_never_overwrites_the_cached_page(tmp_path: Path) -> None:
+    tm_scrape.fetch_all(tmp_path, 2025, fetch=RecordedSite())
+    cached = (tmp_path / "league_2025.html").read_text(encoding="utf-8")
+
+    with pytest.raises(tm_scrape.ScrapeBlocked):
+        tm_scrape.fetch_all(tmp_path, 2025, fetch=lambda url: "")
+
+    assert (tmp_path / "league_2025.html").read_text(encoding="utf-8") == cached

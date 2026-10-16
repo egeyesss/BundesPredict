@@ -46,6 +46,10 @@ FIRST_SEASON = 2019  # matches the ingested results history
 PageFetcher = Callable[[str], str]
 
 
+class ScrapeBlocked(RuntimeError):
+    """Transfermarkt refused to serve the page (its AWS WAF challenges datacenter IPs)."""
+
+
 @dataclass(frozen=True)
 class TransfermarktSnapshot:
     """Everything the cache holds, parsed. ``scraped_at`` is when the squads were fetched."""
@@ -62,6 +66,13 @@ def polite_fetch(url: str) -> str:
         request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
+                # The WAF answers a challenge with 202 and an empty body instead of an error
+                # status, so urlopen treats it as success; retrying never clears it.
+                if response.headers.get("x-amzn-waf-action") or response.status == 202:
+                    raise ScrapeBlocked(
+                        f"Transfermarkt answered with a bot challenge for {url}; "
+                        "run the scrape from a residential connection"
+                    )
                 return str(response.read().decode("utf-8"))
         except (urllib.error.URLError, TimeoutError) as exc:
             if attempt == MAX_ATTEMPTS:
@@ -93,7 +104,10 @@ def _cache_page(
         logger.info("cached: %s", name)
         return
     logger.info("fetching %s", url)
-    path.write_text(fetch(url), encoding="utf-8")
+    html = fetch(url)
+    if not html.strip():
+        raise ScrapeBlocked(f"empty page for {url}; keeping the cached copy")
+    path.write_text(html, encoding="utf-8")
     meta[name] = datetime.now(UTC).isoformat()
 
 
