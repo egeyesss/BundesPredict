@@ -42,3 +42,20 @@
     }
   }
 }
+
+.link-quiet {
+  color: var(--bp-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  border-radius: 3px;
+}
+
+.link-quiet:hover:not(:disabled) {
+  color: var(--bp-text);
+}
+
+.link-quiet:disabled {
+  text-decoration: none;
+  cursor: default;
+  opacity: 0.7;
+}
