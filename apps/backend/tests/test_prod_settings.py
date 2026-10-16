@@ -44,6 +44,10 @@ def test_the_forwarded_host_is_trusted_so_allauth_builds_the_public_redirect_uri
     assert settings.SECURE_PROXY_SSL_HEADER == ("HTTP_X_FORWARDED_PROTO", "https")
 
 
+def test_railways_healthcheck_host_is_always_allowed(load_prod: LoadProd) -> None:
+    assert load_prod().ALLOWED_HOSTS == ["backend.example.com", "healthcheck.railway.app"]
+
+
 def test_the_public_origin_is_a_csrf_trusted_origin_by_default(load_prod: LoadProd) -> None:
     assert load_prod().CSRF_TRUSTED_ORIGINS == ["https://bundespredict.egeyesilyurt.ca"]
 

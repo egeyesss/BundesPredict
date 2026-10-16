@@ -6,7 +6,8 @@ from .base import BASE_DIR, DATABASE_CONNECTION_OPTIONS, MIDDLEWARE, env
 
 DEBUG = False
 SECRET_KEY = env.str("DJANGO_SECRET_KEY")
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
+# Railway probes /api/v1/health with this Host header.
+ALLOWED_HOSTS = [*env.list("DJANGO_ALLOWED_HOSTS"), "healthcheck.railway.app"]
 PROXY_SECRET = env.str("PROXY_SECRET")
 CSRF_TRUSTED_ORIGINS = env.list(
     "DJANGO_CSRF_TRUSTED_ORIGINS", default=["https://bundespredict.egeyesilyurt.ca"]
