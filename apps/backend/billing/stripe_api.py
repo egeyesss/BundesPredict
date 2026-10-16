@@ -106,10 +106,7 @@ def clock_create(frozen_time: datetime) -> str:
 def clock_add_subscriber(*, clock_id: str, email: str, payment_method: str) -> tuple[str, str]:
     client = _client(False)
     customer = client.v1.customers.create({"email": email, "test_clock": clock_id})
-    client.v1.payment_methods.attach(payment_method, {"customer": customer.id})
-    client.v1.customers.update(
-        customer.id, {"invoice_settings": {"default_payment_method": payment_method}}
-    )
+    clock_set_payment_method(customer.id, payment_method)
     subscription = client.v1.subscriptions.create(
         {"customer": customer.id, "items": [{"price": price_id(False)}]}
     )
@@ -118,9 +115,10 @@ def clock_add_subscriber(*, clock_id: str, email: str, payment_method: str) -> t
 
 def clock_set_payment_method(customer_id: str, payment_method: str) -> None:
     client = _client(False)
-    client.v1.payment_methods.attach(payment_method, {"customer": customer_id})
+    # Attaching a test token such as pm_card_visa returns a fresh payment method with its own id.
+    attached = client.v1.payment_methods.attach(payment_method, {"customer": customer_id})
     client.v1.customers.update(
-        customer_id, {"invoice_settings": {"default_payment_method": payment_method}}
+        customer_id, {"invoice_settings": {"default_payment_method": attached.id}}
     )
 
 
