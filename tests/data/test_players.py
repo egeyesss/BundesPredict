@@ -153,3 +153,34 @@ def test_player_listed_by_two_clubs_is_stored_once(session: Session) -> None:
     # Ascending tm club id claims first: Bayern (27) before Heidenheim (2036).
     team = session.execute(select(Team).where(Team.id == rows[0].team_id)).scalar_one()
     assert team.name == "Bayern Munich"
+
+
+TRANSFER = SquadPlayer(
+    tm_id=777, name="Moving Striker", position="Centre-Forward", market_value_eur=9_000_000
+)
+
+
+def _team_of(session: Session, tm_id: int) -> str:
+    player = session.execute(select(Player).where(Player.tm_id == tm_id)).scalar_one()
+    return session.execute(select(Team.name).where(Team.id == player.team_id)).scalar_one()
+
+
+def test_a_transfer_from_a_club_rebuilt_later_moves_the_player(session: Session) -> None:
+    clubs = [_club(27, "Bayern Munich"), _club(2036, "1.FC Heidenheim 1846")]
+    ingest_squads(session, clubs, {27: [], 2036: [TRANSFER]}, scraped_at=SCRAPED)
+
+    # Bayern (27) is rebuilt before Heidenheim (2036), while his old row still exists.
+    ingest_squads(session, clubs, {27: [TRANSFER], 2036: []}, scraped_at=SCRAPED)
+
+    assert _team_of(session, 777) == "Bayern Munich"
+
+
+def test_a_transfer_from_a_club_no_longer_scraped_moves_the_player(session: Session) -> None:
+    ingest_squads(
+        session, [_club(2036, "1.FC Heidenheim 1846")], {2036: [TRANSFER]}, scraped_at=SCRAPED
+    )
+
+    # Next season Heidenheim is relegated, so its squad page is not part of the scrape.
+    ingest_squads(session, [_club(27, "Bayern Munich")], {27: [TRANSFER]}, scraped_at=SCRAPED)
+
+    assert _team_of(session, 777) == "Bayern Munich"
