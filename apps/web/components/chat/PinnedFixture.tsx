@@ -20,6 +20,8 @@ type PinnedFixtureProps = {
   news: Markets | null;
   orb: OrbState;
   onOpenHistory: () => void;
+  /** The landmark name; only the styleguide shows two at once and needs to tell them apart. */
+  label?: string;
 };
 
 const probsOf = (markets: Pick<Markets, "p_home" | "p_draw" | "p_away">) => [markets.p_home, markets.p_draw, markets.p_away] as const;
@@ -29,16 +31,16 @@ const goalsOf = (markets: Pick<Markets, "exp_home_goals" | "exp_away_goals">) =>
  * The match the conversation is about, with its odds. Plain "Model" odds until an answer applies
  * news; then the odds with that news, and a toggle back to the original.
  */
-export function PinnedFixture({ fixture, news, orb, onOpenHistory }: PinnedFixtureProps) {
+export function PinnedFixture({ fixture, news, orb, onOpenHistory, label = "Pinned fixture" }: PinnedFixtureProps) {
   const [showOriginal, setShowOriginal] = useState(false);
 
   return (
     <section
-      aria-label="Pinned fixture"
+      aria-label={label}
       aria-busy={fixture.status === "loading"}
       className="grid gap-2.5 border-b border-bp-border bg-bp-bg px-5 py-3 max-[860px]:px-3.5"
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-3 min-[521px]:flex-nowrap">
         <Button type="button" variant="secondary" size="sm" onClick={onOpenHistory} className="min-[860px]:hidden">
           <History /> History
         </Button>
@@ -64,7 +66,7 @@ function FixtureTitle({ fixture }: { fixture: Resource<FixtureDetail> }) {
   if (fixture.status === "ready") {
     const { home, away } = fixture.data;
     return (
-      <div className="flex min-w-0 items-center gap-2.5 font-display text-[22px] leading-none font-bold tracking-[0.02em] max-[520px]:text-[19px]">
+      <div className="flex min-w-0 items-center gap-2.5 font-display text-[22px] leading-none font-bold tracking-[0.02em] max-[520px]:order-last max-[520px]:basis-full max-[520px]:text-[20px]">
         <ClubCrest team={home} size={32} />
         <span className="truncate">{home.short_name}</span>
         <span className="font-mono text-xs font-medium text-bp-text-muted">v</span>
@@ -111,7 +113,7 @@ function FixtureOdds({
   const label = news === null ? "Model" : showingNews ? "With your news" : "Original model";
 
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1">
+    <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 max-[520px]:grid-cols-[6.5rem_minmax(0,1fr)]">
       <div className="grid justify-items-start gap-1">
         <span className={`font-mono text-[11px] tracking-wider uppercase ${showingNews ? "text-bp-text" : "text-bp-text-muted"}`}>{label}</span>
         {news !== null && (

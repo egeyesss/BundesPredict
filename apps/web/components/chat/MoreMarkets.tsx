@@ -74,7 +74,7 @@ export function MoreMarkets({ home, away, baseline, adjusted }: MoreMarketsProps
           </span>
         </div>
 
-        <div className="grid items-start gap-6 min-[700px]:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div className="grid items-start gap-6 min-[700px]:grid-cols-[minmax(0,290px)_minmax(0,1fr)]">
           <ScoreHeatmap
             home={home}
             away={away}
@@ -86,7 +86,7 @@ export function MoreMarkets({ home, away, baseline, adjusted }: MoreMarketsProps
           <div className="grid min-w-0 content-start gap-2.5">
             <h3 className="font-display text-[17px] leading-tight font-semibold tracking-[0.02em]">Markets</h3>
             <div role="table" aria-label="Goal markets" className="grid gap-0.5">
-              <div role="row" className={cn("grid gap-2 pb-2 font-mono text-[10px] tracking-wider text-bp-text-muted uppercase", comparing ? "grid-cols-[minmax(0,1fr)_46px_46px_64px]" : "grid-cols-[minmax(0,1fr)_54px]")}>
+              <div role="row" className={cn("grid gap-2 pb-2 font-mono text-[10px] tracking-wider text-bp-text-muted uppercase", comparing ? "grid-cols-[minmax(0,1fr)_46px_46px_80px]" : "grid-cols-[minmax(0,1fr)_54px]")}>
                 <span role="columnheader">Market</span>
                 {comparing ? (
                   <>
@@ -104,7 +104,7 @@ export function MoreMarkets({ home, away, baseline, adjusted }: MoreMarketsProps
                   role="row"
                   className={cn(
                     "grid items-center gap-2 border-t border-bp-border py-2 text-sm",
-                    comparing ? "grid-cols-[minmax(0,1fr)_46px_46px_64px]" : "grid-cols-[minmax(0,1fr)_54px]",
+                    comparing ? "grid-cols-[minmax(0,1fr)_46px_46px_80px]" : "grid-cols-[minmax(0,1fr)_54px]",
                   )}
                 >
                   <span role="rowheader" className="min-w-0">

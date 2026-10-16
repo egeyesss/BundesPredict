@@ -3,6 +3,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 test.use({ timezoneId: "America/Toronto", locale: "en-US" });
 
+// The mock conversations are dated 2026-10-15; fixing the clock keeps their Today and This week groups stable.
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-10-16T15:00:00Z"));
+});
+
 const message = (page: Page) => page.getByRole("textbox", { name: "Message" });
 const send = (page: Page) => page.getByRole("button", { name: "Send" });
 const pinned = (page: Page) => page.getByRole("region", { name: "Pinned fixture" });

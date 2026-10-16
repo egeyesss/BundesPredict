@@ -28,22 +28,8 @@ export function HistoryList() {
       </Link>
 
       {conversations.status === "loading" && <HistorySkeleton />}
-      {conversations.status === "error" && <HistoryError />}
-      {conversations.status === "ready" && conversations.data.length === 0 && (
-        <StateMessage
-          as="h3"
-          icon={<MessageSquarePlus className="size-4" />}
-          title="No chats yet"
-          actions={
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/matchday">Go to matchday</Link>
-            </Button>
-          }
-          className="px-1"
-        >
-          Pick a fixture on the matchday page and tell the agent what changed: a lineup, an injury, the weather.
-        </StateMessage>
-      )}
+      {conversations.status === "error" && <HistoryFailed status={conversations.failure.status} onRetry={history.reload} />}
+      {conversations.status === "ready" && conversations.data.length === 0 && <HistoryEmpty />}
       {conversations.status === "ready" && <HistoryGroups />}
     </div>
   );
@@ -103,7 +89,25 @@ function HistoryGroups() {
   );
 }
 
-function HistorySkeleton() {
+export function HistoryEmpty() {
+  return (
+    <StateMessage
+      as="h3"
+      icon={<MessageSquarePlus className="size-4" />}
+      title="No chats yet"
+      actions={
+        <Button asChild variant="secondary" size="sm">
+          <Link href="/matchday">Go to matchday</Link>
+        </Button>
+      }
+      className="px-1"
+    >
+      Pick a fixture on the matchday page and tell the agent what changed: a lineup, an injury, the weather.
+    </StateMessage>
+  );
+}
+
+export function HistorySkeleton() {
   return (
     <div role="status" aria-busy="true" aria-label="Loading chats" className="grid gap-3 px-1">
       {Array.from({ length: 4 }, (_, index) => (
@@ -119,11 +123,8 @@ function HistorySkeleton() {
   );
 }
 
-function HistoryError() {
-  const { conversations, reload } = useChatHistory();
-  if (conversations.status !== "error") return null;
-
-  if (conversations.failure.status === 401) {
+export function HistoryFailed({ status, onRetry }: { status: number; onRetry: () => void }) {
+  if (status === 401) {
     return (
       <StateMessage
         as="h3"
@@ -148,7 +149,7 @@ function HistoryError() {
       icon={<X className="size-4" />}
       title="Couldn't load your chats"
       actions={
-        <Button type="button" variant="secondary" size="sm" onClick={reload}>
+        <Button type="button" variant="secondary" size="sm" onClick={onRetry}>
           <RefreshCw /> Retry
         </Button>
       }

@@ -13,21 +13,25 @@ const SCOPES: ReadonlyArray<{ scope: FixtureScope; label: string; href: string }
   { scope: "week", label: "This week", href: "/matchday?scope=week" },
 ];
 
-function headline(outcome: FixturesOutcome): string {
-  if (outcome.status !== "ok" || outcome.fixtures.length === 0) return "Bundesliga";
+function headline(outcome: FixturesOutcome): { title: string; detail: string | null } {
+  if (outcome.status !== "ok" || outcome.fixtures.length === 0) return { title: "Bundesliga", detail: null };
   const groups = groupByMatchday(outcome.fixtures);
-  const season = seasonLabel(outcome.fixtures[0].season);
-  return groups.length === 1 ? `Bundesliga ${season} · Matchday ${groups[0].matchday}` : `Bundesliga ${season} · This week`;
+  const title = `Bundesliga ${seasonLabel(outcome.fixtures[0].season)}`;
+  return { title, detail: groups.length === 1 ? `Matchday ${groups[0].matchday}` : "This week" };
 }
 
 export function MatchdayView({ outcome, scope }: { outcome: FixturesOutcome; scope: FixtureScope }) {
   const groups = outcome.status === "ok" ? groupByMatchday(outcome.fixtures) : [];
+  const { title, detail } = headline(outcome);
 
   return (
     <div className="mx-auto grid w-full max-w-[1120px] gap-5 px-[max(16px,env(safe-area-inset-left))] pt-6 pb-12">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <LeagueMark placement="matchday-header" size={24} />
-        <h1 className="font-display text-[clamp(24px,4vw,34px)] leading-none font-bold tracking-[0.02em] uppercase">{headline(outcome)}</h1>
+        <h1 className="font-display text-[clamp(24px,4vw,34px)] leading-none font-bold tracking-[0.02em] uppercase">
+          {title}
+          {detail && <span className="font-medium text-bp-text-muted"> · {detail}</span>}
+        </h1>
         <nav aria-label="Fixture range" className="ml-auto inline-flex gap-0.5 rounded-full border border-bp-border bg-bp-bg p-[3px]">
           {SCOPES.map((option) => (
             <Link
