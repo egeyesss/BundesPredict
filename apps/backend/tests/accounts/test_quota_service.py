@@ -109,8 +109,10 @@ def test_consume_is_a_single_statement(user: User) -> None:
     with CaptureQueriesContext(connection) as captured:
         quota.consume(user, now=NOON)
 
-    assert len(captured) == 1
-    assert "ON CONFLICT" in captured[0]["sql"]
+    # The plan lookup reads subscriptions first; the counter itself is still one statement.
+    counter_queries = [q["sql"] for q in captured if "accounts_dailyusage" in q["sql"]]
+    assert len(counter_queries) == 1
+    assert "ON CONFLICT" in counter_queries[0]
 
 
 def _race_two_consumers(user: User) -> tuple[list[quota.Usage | None], list[BaseException]]:
