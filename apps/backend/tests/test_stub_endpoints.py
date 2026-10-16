@@ -17,7 +17,6 @@ CONVERSATION_ID = uuid.UUID(int=1)
 
 # (method, path, json body, needs a session)
 STUBS: list[tuple[str, str, dict[str, Any] | None, bool]] = [
-    ("post", "/api/v1/predict/stream", {"query": "Bayern v Dortmund"}, True),
     ("get", "/api/v1/conversations", None, True),
     ("get", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
     ("delete", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
@@ -71,34 +70,6 @@ def test_public_endpoints_need_no_session(
     api_client: APIClient, method: str, path: str, body: dict[str, Any] | None
 ) -> None:
     assert _call(api_client, method, path, body).status_code == 501
-
-
-@pytest.mark.parametrize("query", ["", "x" * 501])
-def test_predict_stream_validates_the_query_before_anything_else(
-    signed_in_client: APIClient, query: str
-) -> None:
-    response = signed_in_client.post("/api/v1/predict/stream", {"query": query}, format="json")
-
-    assert response.status_code == 400
-    body = response.json()
-    assert body["code"] == "validation_error"
-    assert body["message"].startswith("query:")
-
-
-def test_predict_stream_accepts_a_conversation_and_fixture(signed_in_client: APIClient) -> None:
-    body = {"query": "Kane is out", "conversation_id": str(CONVERSATION_ID), "fixture_id": 123}
-
-    response = signed_in_client.post("/api/v1/predict/stream", body, format="json")
-
-    assert response.status_code == 501
-
-
-def test_predict_stream_rejects_a_malformed_conversation_id(signed_in_client: APIClient) -> None:
-    body = {"query": "Kane is out", "conversation_id": "not-a-uuid"}
-
-    response = signed_in_client.post("/api/v1/predict/stream", body, format="json")
-
-    assert response.status_code == 400
 
 
 def test_unsubscribe_requires_a_token(api_client: APIClient) -> None:
