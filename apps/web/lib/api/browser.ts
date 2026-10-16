@@ -1,5 +1,5 @@
 import { createApiClient, type ApiClient } from "./client";
-import type { Conversation, ConversationPage, FixtureCard, FixtureDetail, Me, Team } from "./types";
+import type { Conversation, ConversationPage, FixtureCard, FixtureDetail, Me, MeUpdate, Team } from "./types";
 import { ApiFailure } from "./use-resource";
 
 let client: ApiClient | null = null;
@@ -43,4 +43,17 @@ export async function fetchConversation(id: string, signal: AbortSignal): Promis
 
 export async function fetchTeams(signal: AbortSignal): Promise<Team[]> {
   return unwrap(await api().GET("/api/v1/teams", { signal }));
+}
+
+export async function updateMe(changes: MeUpdate): Promise<Me> {
+  return unwrap(await api().PATCH("/api/v1/me", { body: changes }));
+}
+
+/** Returns the Stripe Checkout URL, or the portal URL when the user is already Pro. */
+export async function createCheckout(): Promise<string> {
+  return unwrap(await api().POST("/api/v1/billing/checkout")).url;
+}
+
+export async function createPortal(): Promise<string> {
+  return unwrap(await api().POST("/api/v1/billing/portal")).url;
 }

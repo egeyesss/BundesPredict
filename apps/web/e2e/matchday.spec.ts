@@ -26,7 +26,14 @@ test.describe("matchday", () => {
     await expect(frankfurt.locator("time")).toHaveText(/Fri.*2:30 PM/);
   });
 
-  test("asking about a match opens the chat pinned to that fixture", async ({ page }) => {
+  test("asking about a match as a signed-out visitor goes through login first", async ({ page }) => {
+    const dortmund = page.getByRole("article", { name: "Dortmund v Hoffenheim" });
+    await dortmund.getByRole("link", { name: "Ask about this match" }).click();
+    await expect(page).toHaveURL(/\/login\?next=%2Fchat%3Ffixture%3D803$/);
+  });
+
+  test("asking about a match opens the chat pinned to that fixture", async ({ page, context }) => {
+    await context.addCookies([{ name: "bp_mock_plan", value: "free", domain: "localhost", path: "/" }]);
     const dortmund = page.getByRole("article", { name: "Dortmund v Hoffenheim" });
     await dortmund.getByRole("link", { name: "Ask about this match" }).click();
 

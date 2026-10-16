@@ -10,6 +10,7 @@ import {
   fixtureDetails,
   health,
   meFor,
+  notAuthenticated,
   modelUnavailable,
   notFound,
   quotaExceeded,
@@ -18,6 +19,7 @@ import {
   teams,
   trackRecord,
 } from "./data";
+import { clearMockSession, meChanges, meForMockPlan, mockPlanFrom, setMockCsrfCookie, setMockSession } from "./session";
 import { mockUsage } from "./state";
 import { recordedStreams, sseResponse } from "./streams";
 
@@ -56,8 +58,71 @@ function validationError(message: string) {
   return HttpResponse.json({ code: "validation_error", message }, { status: 400 });
 }
 
+const ALLAUTH = "*/_allauth/browser/v1/auth";
+const VALID_CODE = "BCDFGHJK";
+
+type PendingFlow = { kind: "login_by_code" | "verify_email" } | null;
+let pendingFlow: PendingFlow = null;
+
+const pendingResponse = (flow: "login_by_code" | "verify_email") =>
+  HttpResponse.json({ status: 401, data: { flows: [{ id: flow, is_pending: true }] }, meta: { is_authenticated: false } }, { status: 401 });
+
+const codeMatches = (code: unknown) => typeof code === "string" && code.replace(/[^a-z]/gi, "").toUpperCase() === VALID_CODE;
+
+const wrongCode = () =>
+  HttpResponse.json({ status: 400, errors: [{ message: "Incorrect code.", code: "incorrect_code", param: "code" }] }, { status: 400 });
+
+function signedIn() {
+  setMockSession("free");
+  setMockCsrfCookie();
+  pendingFlow = null;
+  return HttpResponse.json({ status: 200, data: { user: { id: 101 } }, meta: { is_authenticated: true } });
+}
+
+function emailRequestResponse(email: unknown, kind: "login_by_code" | "verify_email") {
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return HttpResponse.json({ status: 400, errors: [{ message: "Enter a valid email address.", code: "invalid", param: "email" }] }, { status: 400 });
+  }
+  if (email === "limited@example.com") {
+    return HttpResponse.json({ status: 429, errors: [{ message: "Too many requests.", code: "rate_limited" }] }, { status: 429 });
+  }
+  // allauth answers the same way whether or not the address has an account, so the mock does too.
+  pendingFlow = { kind };
+  return pendingResponse(kind);
+}
+
 export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) {
   return [
+    http.get(`${ALLAUTH}/session`, ({ cookies }) => {
+      setMockCsrfCookie();
+      return mockPlanFrom(cookies)
+        ? HttpResponse.json({ status: 200, data: { user: { id: 101 } }, meta: { is_authenticated: true } })
+        : HttpResponse.json({ status: 401, data: { flows: [] }, meta: { is_authenticated: false } }, { status: 401 });
+    }),
+
+    http.delete(`${ALLAUTH}/session`, () => {
+      clearMockSession();
+      return HttpResponse.json({ status: 401, data: { flows: [] }, meta: { is_authenticated: false } }, { status: 401 });
+    }),
+
+    http.post(`${ALLAUTH}/code/request`, async ({ request }) =>
+      emailRequestResponse(((await request.json()) as { email?: unknown }).email, "login_by_code"),
+    ),
+
+    http.post(`${ALLAUTH}/code/confirm`, async ({ request }) => {
+      if (pendingFlow?.kind !== "login_by_code") return HttpResponse.json({ status: 401, data: { flows: [] } }, { status: 401 });
+      return codeMatches(((await request.json()) as { code?: unknown }).code) ? signedIn() : wrongCode();
+    }),
+
+    http.post(`${ALLAUTH}/signup`, async ({ request }) =>
+      emailRequestResponse(((await request.json()) as { email?: unknown }).email, "verify_email"),
+    ),
+
+    http.post(`${ALLAUTH}/email/verify`, async ({ request }) => {
+      if (pendingFlow?.kind !== "verify_email") return HttpResponse.json({ status: 401, data: { flows: [] } }, { status: 401 });
+      return codeMatches(((await request.json()) as { key?: unknown }).key) ? signedIn() : wrongCode();
+    }),
+
     http.get(`${API}/health`, () => HttpResponse.json(health)),
 
     http.get(`${API}/teams`, () => HttpResponse.json(teams)),
@@ -75,11 +140,18 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
       return detail ? HttpResponse.json(detail) : HttpResponse.json(notFound, { status: 404 });
     }),
 
-    http.get(`${API}/me`, () => HttpResponse.json({ ...meFor("free"), usage: mockUsage.current() })),
+    http.get(`${API}/me`, ({ cookies }) => {
+      const plan = mockPlanFrom(cookies);
+      return plan ? HttpResponse.json({ ...meForMockPlan(plan), ...meChanges }) : HttpResponse.json(notAuthenticated, { status: 401 });
+    }),
 
-    http.patch(`${API}/me`, async ({ request }) => {
-      const changes = (await request.json()) as { email_opt_in?: boolean; timezone?: string | null };
-      return HttpResponse.json({ ...meFor("free"), usage: mockUsage.current(), ...changes });
+    http.patch(`${API}/me`, async ({ request, cookies }) => {
+      const plan = mockPlanFrom(cookies);
+      if (!plan) return HttpResponse.json(notAuthenticated, { status: 401 });
+      const body = (await request.json()) as { email_opt_in?: boolean; timezone?: string | null };
+      if (body.email_opt_in !== undefined) meChanges.email_opt_in = body.email_opt_in;
+      if (body.timezone !== undefined) meChanges.timezone = body.timezone;
+      return HttpResponse.json({ ...meForMockPlan(plan), ...meChanges });
     }),
 
     http.get(`${API}/conversations`, () => HttpResponse.json(conversationPage)),

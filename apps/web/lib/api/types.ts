@@ -10,6 +10,7 @@ export type AppliedAdjustment = Schemas["AppliedAdjustment"];
 export type PredictRequest = Schemas["PredictRequest"];
 export type PredictResponse = Schemas["PredictResponse"];
 export type Me = Schemas["Me"];
+export type MeUpdate = Schemas["PatchedMeUpdate"];
 export type Usage = Schemas["Usage"];
 export type ConversationSummary = Schemas["ConversationSummary"];
 export type ConversationPage = Schemas["ConversationPage"];
