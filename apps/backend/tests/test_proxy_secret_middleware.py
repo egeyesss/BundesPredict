@@ -99,3 +99,20 @@ def test_middleware_works_in_async_mode() -> None:
         return blocked.status_code, allowed.status_code
 
     assert asyncio.run(call()) == (403, 200)
+
+
+@pytest.mark.parametrize("secret", [None, "wrong"])
+def test_a_direct_post_to_the_chat_stream_is_forbidden_without_the_secret(
+    client: Client, secret: str | None
+) -> None:
+    headers = {} if secret is None else {PROXY_SECRET_HEADER: secret}
+
+    response = client.post(
+        "/api/v1/predict/stream",
+        {"query": "Bayern v Dortmund"},
+        content_type="application/json",
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "forbidden"
