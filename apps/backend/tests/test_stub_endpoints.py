@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
 from typing import Any
 
 import pytest
@@ -13,13 +12,8 @@ NOT_IMPLEMENTED = {
     "message": "This endpoint is not implemented yet.",
 }
 
-CONVERSATION_ID = uuid.UUID(int=1)
-
 # (method, path, json body, needs a session)
 STUBS: list[tuple[str, str, dict[str, Any] | None, bool]] = [
-    ("get", "/api/v1/conversations", None, True),
-    ("get", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
-    ("delete", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
     ("get", "/api/v1/track-record", None, False),
     ("get", "/api/v1/admin/metrics", None, True),
     ("post", "/api/v1/demo/start", None, False),
@@ -73,7 +67,3 @@ def test_unsubscribe_requires_a_token(api_client: APIClient) -> None:
 
     assert response.status_code == 400
     assert response.json()["message"].startswith("token:")
-
-
-def test_conversation_ids_must_be_uuids(signed_in_client: APIClient) -> None:
-    assert signed_in_client.get("/api/v1/conversations/42").status_code == 404
