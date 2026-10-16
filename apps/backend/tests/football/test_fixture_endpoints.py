@@ -18,9 +18,15 @@ CLUBS = {
 }
 
 
-def _seed_run() -> ModelRun:
+def _seed_run(version: str = "serve") -> ModelRun:
     run = ModelRun.objects.create(
-        model_type="dixon_coles", xi=0.002, rho=-0.1, home_adv=0.3, log_likelihood=-1.0, n_matches=9
+        model_type="dixon_coles",
+        xi=0.002,
+        rho=-0.1,
+        home_adv=0.3,
+        log_likelihood=-1.0,
+        n_matches=9,
+        version=version,
     )
     for name, (_, _, attack, defense) in CLUBS.items():
         TeamParam.objects.create(
@@ -190,3 +196,27 @@ def test_fixture_detail_answers_503_when_the_run_has_no_ratings_for_a_team(
 
     assert response.status_code == 503
     assert response.json()["code"] == "model_unavailable"
+
+
+def test_fixtures_are_served_from_the_serving_run_not_a_newer_walk_forward_run(
+    api_client: APIClient, teams: dict[str, Team]
+) -> None:
+    serving = _seed_run("serve")
+    _seed_run("walk-forward")
+    fixture = _fixture(teams, "Bayern Munich", "Hamburger SV", days=2, matchday=5)
+
+    listed = api_client.get("/api/v1/fixtures").json()
+    detail = api_client.get(f"/api/v1/fixtures/{fixture.id}").json()
+
+    assert [c["model_run_id"] for c in listed] == [serving.id]
+    assert detail["model_run_id"] == serving.id
+
+
+def test_fixtures_are_unavailable_when_only_a_walk_forward_run_exists(
+    api_client: APIClient, teams: dict[str, Team]
+) -> None:
+    _seed_run("walk-forward")
+    fixture = _fixture(teams, "Bayern Munich", "Hamburger SV", days=2, matchday=5)
+
+    assert api_client.get("/api/v1/fixtures").status_code == 503
+    assert api_client.get(f"/api/v1/fixtures/{fixture.id}").status_code == 503
