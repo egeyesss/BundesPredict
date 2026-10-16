@@ -530,7 +530,7 @@
             },
             "patch": {
                 "operationId": "me_partial_update",
-                "description": "`email_opt_in` and `timezone` are the only writable fields.",
+                "description": "`email_opt_in` and `timezone` are the only writable profile fields; `timezone_source` says where a reported zone came from.",
                 "tags": [
                     "accounts"
                 ],
@@ -1594,6 +1594,14 @@
                     "timezone": {
                         "type": "string",
                         "nullable": true
+                    },
+                    "timezone_source": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/TimezoneSourceEnum"
+                            }
+                        ],
+                        "description": "`manual` pins the zone so later browser reports are ignored; defaults to `browser`.\n\n* `browser` - browser\n* `manual` - manual"
                     }
                 }
             },
@@ -1918,6 +1926,14 @@
                     "name",
                     "short_name"
                 ]
+            },
+            "TimezoneSourceEnum": {
+                "enum": [
+                    "browser",
+                    "manual"
+                ],
+                "type": "string",
+                "description": "* `browser` - browser\n* `manual` - manual"
             },
             "ToolCallStage": {
                 "type": "object",

@@ -11,6 +11,8 @@ dependencies = [
     "django-environ>=0.12",
     "psycopg[binary,pool]>=3.2",
     "uvicorn[standard]>=0.30",
+    "django-allauth[socialaccount]>=65.19.7",
+    "django-anymail[resend]>=15.2",
 ]
 
 [tool.uv]

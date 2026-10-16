@@ -18,8 +18,6 @@ CONVERSATION_ID = uuid.UUID(int=1)
 # (method, path, json body, needs a session)
 STUBS: list[tuple[str, str, dict[str, Any] | None, bool]] = [
     ("post", "/api/v1/predict/stream", {"query": "Bayern v Dortmund"}, True),
-    ("get", "/api/v1/me", None, True),
-    ("patch", "/api/v1/me", {"email_opt_in": True, "timezone": "America/Toronto"}, True),
     ("get", "/api/v1/conversations", None, True),
     ("get", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
     ("delete", f"/api/v1/conversations/{CONVERSATION_ID}", None, True),
@@ -101,13 +99,6 @@ def test_predict_stream_rejects_a_malformed_conversation_id(signed_in_client: AP
     response = signed_in_client.post("/api/v1/predict/stream", body, format="json")
 
     assert response.status_code == 400
-
-
-def test_me_patch_rejects_an_unknown_time_zone(signed_in_client: APIClient) -> None:
-    response = signed_in_client.patch("/api/v1/me", {"timezone": "Mars/Olympus"}, format="json")
-
-    assert response.status_code == 400
-    assert response.json()["code"] == "validation_error"
 
 
 def test_unsubscribe_requires_a_token(api_client: APIClient) -> None:

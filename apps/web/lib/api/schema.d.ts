@@ -183,7 +183,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description `email_opt_in` and `timezone` are the only writable fields. */
+        /** @description `email_opt_in` and `timezone` are the only writable profile fields; `timezone_source` says where a reported zone came from. */
         patch: operations["me_partial_update"];
         trace?: never;
     };
@@ -549,6 +549,13 @@ export interface components {
         PatchedMeUpdate: {
             email_opt_in?: boolean;
             timezone?: string | null;
+            /**
+             * @description `manual` pins the zone so later browser reports are ignored; defaults to `browser`.
+             *
+             *     * `browser` - browser
+             *     * `manual` - manual
+             */
+            timezone_source?: components["schemas"]["TimezoneSourceEnum"];
         };
         /**
          * @description * `live` - live
@@ -660,6 +667,12 @@ export interface components {
             /** @description Site-relative path such as "/crests/BVB.svg". */
             crest: string | null;
         };
+        /**
+         * @description * `browser` - browser
+         *     * `manual` - manual
+         * @enum {string}
+         */
+        TimezoneSourceEnum: "browser" | "manual";
         ToolCallStage: {
             /**
              * @description discriminator enum property added by openapi-typescript
