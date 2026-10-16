@@ -26,3 +26,6 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => false,
   }),
 });
+
+// jsdom has no canvas; returning null sends AgentOrb and Wordmark to their CSS fallbacks without log noise.
+HTMLCanvasElement.prototype.getContext = () => null;
