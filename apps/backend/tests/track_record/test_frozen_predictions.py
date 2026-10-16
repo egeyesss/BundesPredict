@@ -90,7 +90,9 @@ def add_params(run: ModelRun, teams: dict[str, Team]) -> None:
 @pytest.fixture
 def league(db: None) -> FittedLeague:
     teams = {name: Team.objects.create(name=name) for name in STRENGTHS}
-    run = create_run()
+    # Pinned to the test clock: the real clock made this run newer than `new_run(NOW + 1 day)`
+    # once that moment passed.
+    run = create_run(NOW - timedelta(days=1))
     add_params(run, teams)
     return FittedLeague(run=run, teams=teams)
 
