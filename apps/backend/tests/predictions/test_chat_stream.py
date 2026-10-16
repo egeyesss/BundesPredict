@@ -360,7 +360,8 @@ def test_the_fourth_chat_of_a_free_user_on_one_utc_day_is_a_402(
     assert body["usage"]["used"] == limit
     assert body["usage"]["limit"] == limit
     assert body["usage"]["resets_at"]
-    assert body["upgrade_url"]
+    # Checkout starts from the account page, the same place the web upgrade prompt links to.
+    assert body["upgrade_url"] == "/account"
     assert Conversation.objects.count() == limit
 
 

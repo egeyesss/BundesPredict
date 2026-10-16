@@ -29,7 +29,7 @@ from .serializers import (
 from .stream import stream_prediction
 from .throttles import PredictThrottle
 
-UPGRADE_URL = "/#pricing"
+UPGRADE_URL = "/account"
 
 STREAM_DESCRIPTION = """\
 Runs the agent and streams its progress as server-sent events.
