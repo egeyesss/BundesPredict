@@ -7,6 +7,7 @@ from rest_framework import serializers
 
 PLANS = ("free", "pro", "demo")
 ROLES = ("user", "admin")
+TIMEZONE_SOURCES = ("browser", "manual")
 
 
 class UsageSerializer(serializers.Serializer[dict[str, Any]]):
@@ -39,6 +40,13 @@ class MeSerializer(serializers.Serializer[dict[str, Any]]):
 class MeUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     email_opt_in = serializers.BooleanField(required=False)
     timezone = serializers.CharField(required=False, allow_null=True)
+    timezone_source = serializers.ChoiceField(
+        choices=TIMEZONE_SOURCES,
+        required=False,
+        help_text=(
+            "`manual` pins the zone so later browser reports are ignored; defaults to `browser`."
+        ),
+    )
 
     def validate_timezone(self, value: str | None) -> str | None:
         if value is not None and value not in zoneinfo.available_timezones():
