@@ -38,6 +38,13 @@ test.describe("matchday", () => {
   });
 
   test("has no axe violations", async ({ page }) => {
+    // Mid fade-in, axe reads the cards' text as a blend with the background and reports contrast.
+    await page.waitForFunction(() =>
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+        .every((animation) => animation.playState !== "running"),
+    );
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });
