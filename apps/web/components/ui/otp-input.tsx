@@ -21,6 +21,8 @@ type OtpInputProps = {
   /** Draws a dash after this many slots, for codes shown as `ABCD-EFGH`. */
   separatorAfter?: number;
   autoFocus?: boolean;
+  /** Read-only without changing the look, e.g. while a new code is being requested. */
+  disabled?: boolean;
   className?: string;
 };
 
@@ -41,6 +43,7 @@ export function OtpInput({
   status = "idle",
   separatorAfter,
   autoFocus = false,
+  disabled = false,
   className,
 }: OtpInputProps) {
   const reducedMotion = useReducedMotion() ?? false;
@@ -48,7 +51,7 @@ export function OtpInput({
   const cells = useRef<(HTMLDivElement | null)[]>([]);
   const [focused, setFocused] = useState<number | null>(null);
   const [caretX, setCaretX] = useState(0);
-  const locked = status === "verifying" || status === "success";
+  const locked = disabled || status === "verifying" || status === "success";
 
   useLayoutEffect(() => {
     if (autoFocus) inputs.current[0]?.focus();

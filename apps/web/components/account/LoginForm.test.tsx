@@ -128,8 +128,17 @@ describe("LoginForm code step", () => {
     const user = userEvent.setup();
     renderForm();
     await reachCodeStep(user);
+    let releaseSignup!: () => void;
+    const signupHeld = new Promise<void>((resolve) => (releaseSignup = resolve));
+    // Returning nothing hands the request on to the default signup handler once released.
+    server.use(http.post("*/auth/signup", async () => void (await signupHeld)));
     await user.click(screen.getByRole("button", { name: "Create one instead" }));
     expect(await screen.findByRole("button", { name: "Sign in instead" })).toBeInTheDocument();
+    const firstSlot = screen.getByRole("textbox", { name: "Character 1 of 8" });
+    // A code typed before the new flow exists would be checked against the old one.
+    expect(firstSlot).toHaveAttribute("readonly");
+    releaseSignup();
+    await waitFor(() => expect(firstSlot).not.toHaveAttribute("readonly"));
     await typeCode(user, "BCDFGHJK");
     expect(await screen.findByText("Signed in")).toBeInTheDocument();
   });

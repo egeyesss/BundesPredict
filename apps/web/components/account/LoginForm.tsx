@@ -215,6 +215,7 @@ export function LoginForm({ next, socialError, emailKey }: LoginFormProps) {
             onChange={handleCodeChange}
             onComplete={handleComplete}
             status={otpStatus}
+            disabled={sending}
             autoFocus
           />
         </div>
