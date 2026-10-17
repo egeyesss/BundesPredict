@@ -139,7 +139,8 @@ describe("LoginForm code step", () => {
     expect(firstSlot).toHaveAttribute("readonly");
     releaseSignup();
     await waitFor(() => expect(firstSlot).not.toHaveAttribute("readonly"));
-    await typeCode(user, "BCDFGHJK");
+    // One paste keeps this about which flow gets the code; typing is covered in the auth e2e spec.
+    await user.paste("BCDFGHJK");
     expect(await screen.findByText("Signed in")).toBeInTheDocument();
   });
 

@@ -86,6 +86,18 @@ test.describe("email code sign-in", () => {
     await expect(page).toHaveURL(/\/matchday$/);
   });
 
+  test("switches a sign-in attempt to a sign-up for the same address", async ({ page }) => {
+    await page.goto("/login");
+    await email(page).fill("new.person@example.com");
+    await page.getByRole("button", { name: "Email me a sign-in code" }).click();
+    await expect(page.getByRole("heading", { name: "Enter the 8-letter code" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Create one instead" }).click();
+    await expect(page.getByText("Code sent to new.person@example.com")).toBeVisible();
+    await typeCode(page, VALID_CODE);
+    await expect(page).toHaveURL(/\/matchday$/);
+  });
+
   test("shows an error and clears the slots after a wrong code", async ({ page }) => {
     await page.goto("/login");
     await email(page).fill("sam.rivera@example.com");
