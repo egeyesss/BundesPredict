@@ -170,8 +170,8 @@ describe("IslandNav on a phone", () => {
     for (const page of ["Matchday", "Chat", "Track record", "Account"]) {
       expect(menu.getByRole("link", { name: new RegExp(`^${page}`) })).toBeInTheDocument();
     }
-    expect(menu.getByRole("link", { name: "Upgrade to Pro" })).toBeInTheDocument();
-    expect(menu.getByRole("link", { name: "Sign out" })).toBeInTheDocument();
+    expect(menu.getByRole("button", { name: "Upgrade to Pro" })).toBeInTheDocument();
+    expect(menu.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
   });
 
   it("closes on Escape and returns focus to the menu button", async () => {

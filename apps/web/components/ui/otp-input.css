@@ -1,0 +1,135 @@
+/* Port of Rare UI's OtpInput (https://www.rareui.com): digits roll into slots on a spring, the caret
+   slides between empty slots, errors shake with a red ring and success draws a green ring per slot. */
+.otp {
+  --otp-size: 44px;
+  --otp-radius: 14px;
+  --otp-gap: 8px;
+  --otp-char: 30px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 440px) {
+  .otp {
+    --otp-size: 36px;
+    --otp-radius: 11px;
+    --otp-gap: 5px;
+    --otp-char: 26px;
+  }
+}
+
+.otp-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--otp-gap);
+}
+
+.otp-sep {
+  width: 8px;
+  height: 2px;
+  margin-inline: calc(var(--otp-gap) / 2);
+  border-radius: 2px;
+  background: var(--bp-border);
+}
+
+.otp-cell {
+  position: relative;
+  width: var(--otp-size);
+  height: calc(var(--otp-size) * 1.18);
+}
+
+.otp-slot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--otp-radius);
+  background: #262626;
+  color: transparent;
+  caret-color: transparent;
+  text-align: center;
+  font-size: 16px;
+  outline: none;
+  cursor: text;
+  transition: box-shadow 200ms ease;
+}
+
+.otp-slot::selection {
+  background: transparent;
+}
+
+.otp-slot:focus-visible {
+  box-shadow: 0 0 0 2px rgb(134 133 147 / 0.5);
+}
+
+.otp[data-status="error"] .otp-slot {
+  box-shadow: 0 0 0 2px rgb(255 77 90 / 0.75);
+}
+
+.otp-char-box {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: var(--otp-radius);
+}
+
+.otp-char {
+  grid-area: 1 / 1;
+  font-family: var(--font-display);
+  font-size: var(--otp-char);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bp-text);
+}
+
+.otp-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.otp-ring rect {
+  fill: none;
+  stroke: var(--odds-win);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.otp-caret {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 28px;
+  margin-top: -14px;
+  border-radius: 2px;
+  background: var(--bp-text);
+  pointer-events: none;
+  animation: otp-blink 1.1s linear infinite;
+}
+
+@keyframes otp-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp-caret {
+    animation: none;
+  }
+}

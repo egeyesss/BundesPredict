@@ -15,6 +15,10 @@ import {
   type ReactNode,
 } from "react";
 
+import { toast } from "sonner";
+
+import { useBillingRedirect } from "@/components/account/useBillingRedirect";
+import { useSignOut } from "@/components/account/useSignOut";
 import { SurfaceActive } from "@/components/signature/SurfaceActive";
 import { Button } from "@/components/ui/button";
 import { COMPACT_SCROLL_THRESHOLD, MOBILE_BREAKPOINT, isCurrentSection, islandMode, sectionLabel, type IslandMode } from "@/lib/island";
@@ -30,6 +34,8 @@ type IslandNavProps = {
   /** Rendered in every layer; the animated wordmark replaces the placeholder here. */
   wordmark: ReactNode;
   user: NavUser | null;
+  /** True until the session answers, so a signed-in visitor never sees the signed-out buttons flash. */
+  authPending?: boolean;
   links?: readonly NavLink[];
   /** Renders inline in a fixed mode instead of fixed to the viewport, for the styleguide. */
   preview?: { mode: IslandMode; label: string };
@@ -60,8 +66,10 @@ function isKeyboardFocus(element: Element): boolean {
   }
 }
 
-export function IslandNav({ wordmark, user, links = NAV_LINKS, preview }: IslandNavProps) {
+export function IslandNav({ wordmark, user, authPending = false, links = NAV_LINKS, preview }: IslandNavProps) {
   const pathname = usePathname();
+  const billing = useBillingRedirect({ onError: (message) => toast.error(message) });
+  const { signOut } = useSignOut({ onError: (message) => toast.error(message) });
   const { agentCaption } = useIslandActivity();
 
   const width = useSyncExternalStore(subscribeViewport, readWidth, serverWidth);
@@ -314,13 +322,16 @@ export function IslandNav({ wordmark, user, links = NAV_LINKS, preview }: Island
         <div className="menu-actions">
           {user ? (
             <>
-              <Button asChild variant={user.plan === "pro" ? "secondary" : "default"} size="lg">
-                <Link href="/account#billing" onClick={() => closeMenu(false)}>
-                  {user.plan === "pro" ? "Manage billing" : "Upgrade to Pro"}
-                </Link>
+              <Button
+                variant={user.plan === "free" ? "default" : "secondary"}
+                size="lg"
+                disabled={billing.pending !== null}
+                onClick={() => void billing.start(user.plan === "free" ? "checkout" : "portal")}
+              >
+                {user.plan === "free" ? "Upgrade to Pro" : "Manage billing"}
               </Button>
-              <Button asChild variant="secondary" size="lg">
-                <a href="/logout">Sign out</a>
+              <Button variant="secondary" size="lg" onClick={() => void signOut()}>
+                Sign out
               </Button>
             </>
           ) : (
@@ -352,6 +363,7 @@ export function IslandNav({ wordmark, user, links = NAV_LINKS, preview }: Island
           aria-label={preview ? preview.label : "Main"}
           data-mode={mode}
           data-ready={ready}
+          data-auth={authPending ? "pending" : undefined}
           style={size ? { width: size.width, height: size.height } : undefined}
           onMouseEnter={() => {
             clearTimeout(collapseTimer.current);

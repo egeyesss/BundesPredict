@@ -45,6 +45,7 @@ describe("sectionLabel", () => {
     ["/chat/abc", "Chat"],
     ["/track-record", "Track record"],
     ["/account", "Account"],
+    ["/login", "Sign in"],
     ["/styleguide", "Styleguide"],
     ["/somewhere-else", "BundesPredict"],
   ])("%s reads as %s", (pathname, label) => {

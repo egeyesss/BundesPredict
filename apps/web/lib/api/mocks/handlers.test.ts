@@ -1,14 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createApiClient } from "../client";
 import { startPredictStream } from "../predict-stream";
 import { server } from "./node";
 import { scenarioForQuery } from "./handlers";
+import { clearMockSession, setMockSession } from "./session";
 import { setupApiMocks } from "./vitest";
 import { meFor } from "./data";
 import { http, HttpResponse } from "msw/http";
 
 setupApiMocks();
+
+beforeEach(() => setMockSession("free"));
 
 const BASE_URL = "http://api.test";
 const client = createApiClient({ baseUrl: BASE_URL });
@@ -53,6 +56,24 @@ describe("read endpoints", () => {
       body: { email_opt_in: true, timezone: "America/Toronto" },
     });
     expect(patched.data).toMatchObject({ email_opt_in: true, timezone: "America/Toronto" });
+  });
+
+  it("answers /me with 401 until a mock session cookie exists", async () => {
+    clearMockSession();
+    const { error, response } = await client.GET("/api/v1/me");
+    expect(response.status).toBe(401);
+    expect(error?.code).toBe("not_authenticated");
+  });
+
+  it.each([
+    ["pro", { plan: "pro", cancel: false, status: "active" }],
+    ["cancelling", { plan: "pro", cancel: true, status: "active" }],
+    ["pastdue", { plan: "pro", cancel: false, status: "past_due" }],
+  ] as const)("serves the %s mock account", async (name, expected) => {
+    setMockSession(name);
+    const { data } = await client.GET("/api/v1/me");
+    expect(data?.plan).toBe(expected.plan);
+    expect(data?.subscription).toMatchObject({ status: expected.status, cancel_at_period_end: expected.cancel });
   });
 
   it("lets a test sign in as another plan", async () => {

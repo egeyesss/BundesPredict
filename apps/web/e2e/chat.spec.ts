@@ -4,7 +4,8 @@ import { expect, test, type Page } from "@playwright/test";
 test.use({ timezoneId: "America/Toronto", locale: "en-US" });
 
 // The mock conversations are dated 2026-10-15; fixing the clock keeps their Today and This week groups stable.
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, context }) => {
+  await context.addCookies([{ name: "bp_mock_plan", value: "free", domain: "localhost", path: "/" }]);
   await page.clock.setFixedTime(new Date("2026-10-16T15:00:00Z"));
 });
 
@@ -29,7 +30,7 @@ test.describe("a full chat", () => {
 
   test("walks the orb through its states and moves the bars from baseline to adjusted", async ({ page }) => {
     await openDortmund(page);
-    await expect(page.getByText("2 of 3 free chats left today")).toBeVisible();
+    await expect(page.getByRole("main").getByText("2 of 3 free chats left today")).toBeVisible();
     await expect(pinned(page).getByText("Model", { exact: true })).toBeVisible();
 
     await page.evaluate(() => {
@@ -55,7 +56,7 @@ test.describe("a full chat", () => {
     expect(states.slice(0, 4)).toEqual(["thinking", "tool", "thinking", "tool"]);
     expect(states).toContain("done");
 
-    await expect(page.getByText("1 of 3 free chats left today")).toBeVisible();
+    await expect(page.getByRole("main").getByText("1 of 3 free chats left today")).toBeVisible();
     await expect(pinned(page).getByText("With your news")).toBeVisible();
   });
 
@@ -122,7 +123,7 @@ test.describe("quota and failures", () => {
     await openDortmund(page);
     await ask(page, "unavailable");
     await expect(page.getByText("The model isn't available right now. This chat wasn't counted.")).toBeVisible();
-    await expect(page.getByText("2 of 3 free chats left today")).toBeVisible();
+    await expect(page.getByRole("main").getByText("2 of 3 free chats left today")).toBeVisible();
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 

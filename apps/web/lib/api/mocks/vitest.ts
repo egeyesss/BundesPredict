@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll } from "vitest";
 
 import { server } from "./node";
+import { clearMockSession, resetMeChanges } from "./session";
 import { mockUsage } from "./state";
 
 /**
@@ -13,6 +14,8 @@ export function setupApiMocks(): void {
   afterEach(() => {
     server.resetHandlers();
     mockUsage.reset();
+    clearMockSession();
+    resetMeChanges();
   });
   afterAll(() => server.close());
 }

@@ -340,3 +340,7 @@
     animation: none;
   }
 }
+
+.island[data-auth="pending"] :is(.isl-actions, .isl-cta, .menu-actions) {
+  visibility: hidden;
+}

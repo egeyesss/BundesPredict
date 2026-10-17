@@ -3,18 +3,16 @@ import type { ReactNode } from "react";
 import { ShellWordmark } from "@/components/signature/ShellWordmark";
 
 import { IslandActivityProvider } from "./IslandActivity";
-import { IslandNav } from "./IslandNav";
-import type { NavUser } from "./nav";
+import { SessionIslandNav } from "./SessionIslandNav";
 import { SiteFooter } from "./SiteFooter";
 
 type AppShellProps = {
   children: ReactNode;
-  user?: NavUser | null;
   /** Shown in the nav and footer; defaults to the animated wordmark. */
   wordmark?: ReactNode;
 };
 
-export function AppShell({ children, user = null, wordmark = <ShellWordmark /> }: AppShellProps) {
+export function AppShell({ children, wordmark = <ShellWordmark /> }: AppShellProps) {
   return (
     <IslandActivityProvider>
       <a
@@ -24,7 +22,7 @@ export function AppShell({ children, user = null, wordmark = <ShellWordmark /> }
         Skip to content
       </a>
       <div className="flex min-h-dvh flex-col">
-        <IslandNav wordmark={wordmark} user={user} />
+        <SessionIslandNav wordmark={wordmark} />
         <main id="main" className="flex flex-1 flex-col pt-[76px]">
           {children}
         </main>
