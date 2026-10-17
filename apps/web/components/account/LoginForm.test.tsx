@@ -25,6 +25,12 @@ async function reachCodeStep(user: ReturnType<typeof userEvent.setup>, buttonNam
   await screen.findByRole("heading", { name: "Enter the 8-letter code" });
 }
 
+async function typeCode(user: ReturnType<typeof userEvent.setup>, code: string) {
+  // The first slot takes focus only after the code request resolves; typing earlier is lost.
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "Character 1 of 8" })).toHaveFocus());
+  await user.keyboard(code);
+}
+
 describe("LoginForm email step", () => {
   it("posts the Google form to allauth with the callback path and login process", () => {
     renderForm({ next: "/account" });
@@ -86,7 +92,7 @@ describe("LoginForm code step", () => {
     const user = userEvent.setup();
     renderForm({ next: "/account" });
     await reachCodeStep(user);
-    await user.keyboard("BCDFGHJK");
+    await typeCode(user, "BCDFGHJK");
     expect(await screen.findByText("Signed in")).toBeInTheDocument();
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/account"), { timeout: 3000 });
   });
@@ -95,7 +101,7 @@ describe("LoginForm code step", () => {
     const user = userEvent.setup();
     renderForm();
     await reachCodeStep(user);
-    await user.keyboard("ZZZZZZZZ");
+    await typeCode(user, "ZZZZZZZZ");
     expect(await screen.findByText(/That code didn't work/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole("textbox")[0]).toHaveValue(""));
     expect(navigate).not.toHaveBeenCalled();
@@ -106,7 +112,7 @@ describe("LoginForm code step", () => {
     renderForm();
     await reachCodeStep(user);
     server.use(http.post("*/auth/code/confirm", () => HttpResponse.json({ status: 401, data: { flows: [] } }, { status: 401 })));
-    await user.keyboard("BCDFGHJK");
+    await typeCode(user, "BCDFGHJK");
     expect(await screen.findByText(/expired or was tried too many times/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Resend code" })).toBeEnabled();
   });
@@ -124,7 +130,7 @@ describe("LoginForm code step", () => {
     await reachCodeStep(user);
     await user.click(screen.getByRole("button", { name: "Create one instead" }));
     expect(await screen.findByRole("button", { name: "Sign in instead" })).toBeInTheDocument();
-    await user.keyboard("BCDFGHJK");
+    await typeCode(user, "BCDFGHJK");
     expect(await screen.findByText("Signed in")).toBeInTheDocument();
   });
 
