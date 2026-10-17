@@ -291,7 +291,7 @@ export function LoginForm({ next, socialError, emailKey }: LoginFormProps) {
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 font-mono text-xs text-bp-text-muted before:h-px before:bg-bp-border after:h-px after:bg-bp-border">
         or
       </div>
-      <form className="grid gap-5" onSubmit={handleEmailSubmit} noValidate>
+      <form className="grid gap-2" onSubmit={handleEmailSubmit} noValidate>
       <div className="grid gap-1.5 text-left">
         <label htmlFor="login-email" className="text-[13px] text-bp-text-muted">
           Email

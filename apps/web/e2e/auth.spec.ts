@@ -9,6 +9,16 @@ async function signInAs(context: BrowserContext, plan: "free" | "pro" | "cancell
   await context.addCookies([{ name: "bp_mock_plan", value: plan, domain: "localhost", path: "/" }]);
 }
 
+const isPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 800;
+
+/** The desktop dropdown on wide screens, the burger menu on phones. */
+async function openAccountMenu(page: Page) {
+  if (isPhone(page)) await page.getByRole("button", { name: "Open menu" }).click();
+  else await page.getByRole("button", { name: "Account menu" }).first().click();
+}
+
+const menuItemRole = (page: Page) => (isPhone(page) ? "button" : "menuitem");
+
 const email = (page: Page) => page.getByLabel("Email", { exact: true });
 const codeSlots = (page: Page) => page.getByRole("group", { name: "Sign-in code" });
 
@@ -45,7 +55,7 @@ test.describe("email code sign-in", () => {
 
     await expect(page.getByText("Signed in")).toBeVisible();
     await expect(page).toHaveURL(/\/matchday$/);
-    await expect(page.getByRole("button", { name: "Account menu" }).first()).toBeVisible();
+    await expect(page.locator("[data-plan='free']").first()).toBeAttached();
   });
 
   test("honours the next path after signing in", async ({ page }) => {
@@ -134,9 +144,8 @@ test.describe("sign out", () => {
   test("from the account menu", async ({ page, context }) => {
     await signInAs(context, "free");
     await page.goto("/matchday");
-    await page.getByRole("button", { name: "Account menu" }).first().click();
-    await expect(page.getByRole("menuitem", { name: /Upgrade to Pro/ })).toBeVisible();
-    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await openAccountMenu(page);
+    await page.getByRole(menuItemRole(page), { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
   });
 });
@@ -145,22 +154,23 @@ test.describe("account menu", () => {
   test("shows the plan pill, today's chats and the right billing action", async ({ page, context }) => {
     await signInAs(context, "free");
     await page.goto("/matchday");
-    const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.locator("[data-plan='free']").first()).toBeVisible();
-    await page.getByRole("button", { name: "Account menu" }).first().click();
-    await expect(page.getByRole("menu")).toContainText("2 of 3 free chats left today");
+    await expect(page.locator("nav [data-plan='free']").first()).toBeAttached();
+    await openAccountMenu(page);
+    await expect(page.getByRole(isPhone(page) ? "navigation" : "menu").getByText("2 of 3 free chats left today")).toBeVisible();
+    await expect(page.getByRole(menuItemRole(page), { name: /Upgrade to Pro/ })).toBeVisible();
   });
 
   test("offers Manage billing to a Pro user", async ({ page, context }) => {
     await signInAs(context, "pro");
     await page.goto("/matchday");
-    await page.getByRole("button", { name: "Account menu" }).first().click();
-    await expect(page.getByRole("menuitem", { name: /Manage billing/ })).toBeVisible();
+    await openAccountMenu(page);
+    await expect(page.getByRole(menuItemRole(page), { name: /Manage billing/ })).toBeVisible();
   });
 
   test("shows Sign in when signed out", async ({ page }) => {
     await page.goto("/matchday");
-    await expect(page.getByRole("link", { name: "Sign in" }).first()).toBeVisible();
+    if (isPhone(page)) await page.getByRole("button", { name: "Open menu" }).click();
+    await expect(page.getByRole("link", { name: "Sign in" }).filter({ visible: true }).first()).toBeVisible();
   });
 });
 
