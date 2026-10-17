@@ -14,6 +14,11 @@ async function settled(page: Page) {
   await expect(page.locator(".island-wrap:not([data-preview]) nav.island")).toHaveAttribute("data-ready", "true");
 }
 
+async function typeCode(page: Page, code: string) {
+  await expect(page.getByRole("textbox", { name: "Character 1 of 8" })).toBeFocused();
+  await page.keyboard.type(code);
+}
+
 const shot = (page: Page, name: string) => expect(page).toHaveScreenshot(name, { fullPage: true });
 
 test.describe("login", () => {
@@ -40,7 +45,7 @@ test.describe("login", () => {
     await page.getByLabel("Email", { exact: true }).fill("sam.rivera@example.com");
     await page.getByRole("button", { name: "Email me a sign-in code" }).click();
     await expect(page.getByRole("heading", { name: "Enter the 8-letter code" })).toBeVisible();
-    await page.keyboard.type("BCDF");
+    await typeCode(page, "BCDF");
     await settled(page);
     await shot(page, "login-code.png");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -51,7 +56,7 @@ test.describe("login", () => {
     await page.getByLabel("Email", { exact: true }).fill("sam.rivera@example.com");
     await page.getByRole("button", { name: "Email me a sign-in code" }).click();
     await expect(page.getByRole("heading", { name: "Enter the 8-letter code" })).toBeVisible();
-    await page.keyboard.type("ZZZZZZZZ");
+    await typeCode(page, "ZZZZZZZZ");
     await expect(page.getByText("That code didn't work")).toBeVisible();
     await settled(page);
     await shot(page, "login-code-error.png");

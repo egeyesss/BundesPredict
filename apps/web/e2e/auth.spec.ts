@@ -9,6 +9,12 @@ async function signInAs(context: BrowserContext, plan: "free" | "pro" | "cancell
   await context.addCookies([{ name: "bp_mock_plan", value: plan, domain: "localhost", path: "/" }]);
 }
 
+/** Waits for the first slot to hold focus, so keystrokes never race the code step mounting. */
+async function typeCode(page: Page, code: string) {
+  await expect(page.getByRole("textbox", { name: "Character 1 of 8" })).toBeFocused();
+  await page.keyboard.type(code);
+}
+
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 800;
 
 /** The desktop dropdown on wide screens, the burger menu on phones. */
@@ -51,7 +57,7 @@ test.describe("email code sign-in", () => {
 
     await expect(page.getByRole("heading", { name: "Enter the 8-letter code" })).toBeVisible();
     await expect(page.getByText("sam.rivera@example.com")).toBeVisible();
-    await page.keyboard.type(VALID_CODE);
+    await typeCode(page, VALID_CODE);
 
     await expect(page.getByText("Signed in")).toBeVisible();
     await expect(page).toHaveURL(/\/matchday$/);
@@ -63,7 +69,7 @@ test.describe("email code sign-in", () => {
     await email(page).fill("sam.rivera@example.com");
     await page.getByRole("button", { name: "Email me a sign-in code" }).click();
     await expect(page.getByRole("heading", { name: "Enter the 8-letter code" })).toBeVisible();
-    await page.keyboard.type(VALID_CODE);
+    await typeCode(page, VALID_CODE);
     await expect(page).toHaveURL(/\/account$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Sam Rivera");
   });
@@ -76,7 +82,7 @@ test.describe("email code sign-in", () => {
     await page.getByRole("button", { name: "Email me a code" }).click();
 
     await expect(page.getByRole("heading", { name: "Enter the 8-letter code" })).toBeVisible();
-    await page.keyboard.type(VALID_CODE);
+    await typeCode(page, VALID_CODE);
     await expect(page).toHaveURL(/\/matchday$/);
   });
 
@@ -84,7 +90,7 @@ test.describe("email code sign-in", () => {
     await page.goto("/login");
     await email(page).fill("sam.rivera@example.com");
     await page.getByRole("button", { name: "Email me a sign-in code" }).click();
-    await page.keyboard.type(WRONG_CODE);
+    await typeCode(page, WRONG_CODE);
 
     await expect(page.getByText("That code didn't work")).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
