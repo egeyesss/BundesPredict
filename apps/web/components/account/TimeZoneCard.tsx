@@ -60,7 +60,7 @@ export function TimeZoneCard({ me, onSaved }: { me: Me; onSaved: (me: Me) => voi
         </select>
       </div>
       <p className="text-xs text-bp-text-muted">Kickoff times and your daily reset follow this zone.</p>
-      {detected && me.timezone !== detected && (
+      {detected && me.timezone !== null && me.timezone !== detected && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-bp-text-muted">
           <span>Your browser says {detected.replaceAll("_", " ")}.</span>
           <Button variant="secondary" size="sm" disabled={pending} onClick={() => void resetToBrowserZone()}>
