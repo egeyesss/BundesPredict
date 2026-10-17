@@ -12,6 +12,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils.decorators import sync_and_async_middleware
 
 PROXY_SECRET_HEADER = "x-proxy-secret"
+ORIGINAL_HOST_HEADER = "x-original-host"
 
 GATED_PREFIXES = ("/api/", "/_allauth/")
 EXEMPT_PATHS = ("/api/v1/health", "/api/v1/health/")
@@ -56,6 +57,36 @@ def proxy_secret_middleware(get_response: Callable[..., Any]) -> Callable[..., A
     def sync_middleware(request: HttpRequest) -> HttpResponse:
         if _is_gated(request.path_info) and not _has_valid_secret(request):
             return _forbidden()
+        response: HttpResponse = get_response(request)
+        return response
+
+    return sync_middleware
+
+
+def _adopt_original_host(request: HttpRequest) -> None:
+    original = request.headers.get(ORIGINAL_HOST_HEADER)
+    if original and _has_valid_secret(request):
+        request.META["HTTP_HOST"] = original
+
+
+@sync_and_async_middleware
+def original_host_middleware(get_response: Callable[..., Any]) -> Callable[..., Any]:
+    """Makes the host the browser used the request host, so allauth and CSRF see the public origin.
+
+    Vercel replaces `X-Forwarded-Host` on its way to an external rewrite target, so the web proxy
+    sends the host under its own header name. Only trusted with a valid proxy secret.
+    """
+    if iscoroutinefunction(get_response):
+
+        async def async_middleware(request: HttpRequest) -> HttpResponse:
+            _adopt_original_host(request)
+            response: HttpResponse = await get_response(request)
+            return response
+
+        return async_middleware
+
+    def sync_middleware(request: HttpRequest) -> HttpResponse:
+        _adopt_original_host(request)
         response: HttpResponse = get_response(request)
         return response
 

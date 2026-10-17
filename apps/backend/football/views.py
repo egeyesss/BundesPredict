@@ -12,7 +12,13 @@ from rest_framework.views import APIView
 from config.api import ErrorSerializer, ModelUnavailable
 
 from .models import Fixture, Team
-from .repositories import FixtureScope, latest_model_run, ratings_for, upcoming_fixtures
+from .repositories import (
+    SERVING_VERSION,
+    FixtureScope,
+    latest_model_run,
+    ratings_for,
+    upcoming_fixtures,
+)
 from .serializers import (
     FixtureCardSerializer,
     FixtureDetailSerializer,
@@ -61,7 +67,7 @@ class FixtureListView(APIView):
         query.is_valid(raise_exception=True)
         scope: FixtureScope = query.validated_data["scope"]
 
-        run = latest_model_run()
+        run = latest_model_run(version=SERVING_VERSION)
         if run is None:
             raise ModelUnavailable
         ratings = ratings_for(run)
@@ -87,7 +93,7 @@ class FixtureDetailView(APIView):
     )
     def get(self, request: Request, id: int) -> Response:
         fixture = get_object_or_404(Fixture.objects.select_related("home", "away"), pk=id)
-        run = latest_model_run()
+        run = latest_model_run(version=SERVING_VERSION)
         if run is None:
             raise ModelUnavailable
         card = fixture_card(fixture, run, ratings_for(run), with_markets=True)

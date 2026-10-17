@@ -23,6 +23,7 @@ from .models import Fixture, Match, ModelRun, Player, Team, TeamAlias, TeamParam
 FixtureScope = Literal["next_matchday", "week"]
 
 WEEK = timedelta(days=7)
+SERVING_VERSION = "serve"
 
 
 def latest_model_run(

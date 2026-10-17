@@ -17,10 +17,9 @@ from bundespredict.data.players import DbPlayer, pick_player
 from bundespredict.data.results import ResultRow
 from football import repositories
 from football.models import Team
+from football.repositories import SERVING_VERSION
 
 from .models import Prediction
-
-SERVING_VERSION = "serve"
 
 
 class DjangoAgentPorts:
