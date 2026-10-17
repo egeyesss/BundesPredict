@@ -13,7 +13,7 @@ export function AccountSkeleton() {
         <Skeleton className="h-[290px] rounded-[14px]" />
         <Skeleton className="h-[190px] rounded-[14px]" />
       </div>
-      <div className="grid gap-4 min-[760px]:grid-cols-2">
+      <div className="grid gap-4 min-[760px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <Skeleton className="h-[170px] rounded-[14px]" />
         <Skeleton className="h-[170px] rounded-[14px]" />
       </div>

@@ -42,7 +42,7 @@ export function AccountView({ initialMe }: { initialMe: Me }) {
         <PlanCard me={me} timeZone={timeZone} />
         <UsageCard me={me} timeZone={timeZone} />
       </div>
-      <div className="grid items-start gap-4 min-[760px]:grid-cols-2">
+      <div className="grid items-start gap-4 min-[760px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <EmailCard me={me} onSaved={saved} />
         <TimeZoneCard me={me} onSaved={saved} />
       </div>
