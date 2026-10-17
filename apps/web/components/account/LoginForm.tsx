@@ -68,6 +68,10 @@ type LoginFormProps = {
   emailKey: string | null;
 };
 
+function focusFirstSlot() {
+  document.querySelector<HTMLInputElement>("[data-otp-root] input")?.focus();
+}
+
 export function LoginForm({ next, socialError, emailKey }: LoginFormProps) {
   const reducedMotion = useReducedMotion(false);
   const [step, setStep] = useState<Step>("email");
@@ -117,6 +121,8 @@ export function LoginForm({ next, socialError, emailKey }: LoginFormProps) {
       setOtpStatus("idle");
       setCodeError("");
       setResendLeft(RESEND_SECONDS);
+      // Focus in the same step that unlocks the slots, so nothing typed can land before a refocus.
+      focusFirstSlot();
       return true;
     },
     [],
@@ -159,7 +165,6 @@ export function LoginForm({ next, socialError, emailKey }: LoginFormProps) {
     );
   };
 
-  const focusFirstSlot = () => document.querySelector<HTMLInputElement>("[data-otp-root] input")?.focus();
 
   const handleCodeChange = (value: string) => {
     setCode(value);
@@ -169,7 +174,6 @@ export function LoginForm({ next, socialError, emailKey }: LoginFormProps) {
   const resend = async () => {
     if (await sendCode(email.trim(), mode)) {
       setNotice(`New code sent to ${email.trim()}`);
-      focusFirstSlot();
     }
   };
 
@@ -178,7 +182,6 @@ export function LoginForm({ next, socialError, emailKey }: LoginFormProps) {
     setEmailError("");
     if (step === "code" && (await sendCode(email.trim(), nextMode))) {
       setNotice(`Code sent to ${email.trim()}`);
-      focusFirstSlot();
     }
   };
 
