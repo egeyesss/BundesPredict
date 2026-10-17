@@ -81,6 +81,16 @@ def test_a_new_email_signs_up_without_a_password_and_verifies_by_code(browser: C
     assert user.profile.role == "user"
 
 
+def test_signing_up_again_with_a_taken_email_mails_a_way_back_in(browser: Client) -> None:
+    _registered_user("taken", "taken@example.com")
+
+    signup = _post(browser, "signup", {"email": "taken@example.com"})
+
+    # Enumeration prevention answers like a fresh signup and emails the owner instead.
+    assert signup.status_code == 401
+    assert "/login" in str(mail.outbox[-1].body)
+
+
 def test_a_wrong_code_does_not_sign_anyone_in(browser: Client) -> None:
     _registered_user("linus", "linus@example.com")
     _post(browser, "code/request", {"email": "linus@example.com"})
