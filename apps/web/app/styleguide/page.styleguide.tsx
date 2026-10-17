@@ -73,8 +73,8 @@ export default function StyleguidePage() {
         note="Only in the matchday header, the coverage section and the footer, never next to the wordmark. Shown unmodified on a white plate."
       >
         <div className="flex flex-wrap items-center gap-4">
-          <LeagueMark placement="matchday-header" size={24} />
-          <LeagueMark placement="matchday-header" size={32} />
+          <LeagueMark placement="matchday-header" size={48} />
+          <LeagueMark placement="matchday-header" size={64} />
         </div>
       </Section>
 

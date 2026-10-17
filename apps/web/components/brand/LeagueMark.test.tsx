@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LeagueMark } from "./LeagueMark";
 
 describe("LeagueMark", () => {
-  it("renders the official wordmark with an accessible name", () => {
+  it("renders the official logo with an accessible name", () => {
     render(<LeagueMark placement="matchday-header" />);
     expect(screen.getByRole("img", { name: "Bundesliga" })).toHaveAttribute(
       "src",
@@ -12,11 +12,15 @@ describe("LeagueMark", () => {
     );
   });
 
-  it("defaults to 24px tall and accepts 32px", () => {
+  // The logo is square with the word under the emblem; below 48px that word stops being readable.
+  it("is square, 48px by default and 64px when asked", () => {
     const { rerender } = render(<LeagueMark placement="footer" />);
-    expect(screen.getByRole("img", { name: "Bundesliga" })).toHaveAttribute("height", "24");
-    rerender(<LeagueMark placement="footer" size={32} />);
-    expect(screen.getByRole("img", { name: "Bundesliga" })).toHaveAttribute("height", "32");
+    const img = () => screen.getByRole("img", { name: "Bundesliga" });
+    expect(img()).toHaveAttribute("height", "48");
+    expect(img()).toHaveAttribute("width", "48");
+    rerender(<LeagueMark placement="footer" size={64} />);
+    expect(img()).toHaveAttribute("height", "64");
+    expect(img()).toHaveAttribute("width", "64");
   });
 
   it("records where it is used", () => {
@@ -36,7 +40,7 @@ describe("LeagueMark", () => {
   it("only compiles for the allowed placements and sizes", () => {
     // @ts-expect-error the wordmark lockup must never carry the league logo
     render(<LeagueMark placement="nav" />);
-    // @ts-expect-error only 24 and 32px tall
-    render(<LeagueMark placement="footer" size={96} />);
+    // @ts-expect-error only 48 and 64px tall
+    render(<LeagueMark placement="footer" size={32} />);
   });
 });

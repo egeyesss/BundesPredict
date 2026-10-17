@@ -12,6 +12,8 @@ Packages they pull in from npm (Radix UI, `cn`, Recharts, Sonner, Lucide) keep t
 
 ## Brand assets
 
-Club crests in `public/crests/` and the Bundesliga wordmark are trademarks of their owners.
+Club crests in `public/crests/` and the Bundesliga logo are trademarks of their owners.
 Each crest's source URL is recorded in `public/crests/manifest.json` and rebuilt from `scripts/crests.json` with `npm run crests:build`.
-The wordmark in `public/crests/league/bundesliga.svg` is https://commons.wikimedia.org/wiki/File:Bundesliga_logo.svg (extracted from a DFL publication, marked public domain and trademarked on Commons) and is used unmodified.
+The logo in `public/crests/league/bundesliga.svg` is the DFL's 2017 Bundesliga logo, taken from https://en.wikipedia.org/wiki/File:Bundesliga_logo_(2017).svg (credited to bundesliga.de).
+Unlike the old text-only wordmark it is copyrighted artwork as well as a trademark, and Wikipedia hosts it as non-free content.
+It is used unmodified, only to name the competition the data covers, next to the footer's no-affiliation notice, and is removed if the DFL asks.
