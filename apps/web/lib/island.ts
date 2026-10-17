@@ -21,6 +21,7 @@ const SECTIONS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/chat", label: "Chat" },
   { href: "/track-record", label: "Track record" },
   { href: "/account", label: "Account" },
+  { href: "/login", label: "Sign in" },
   { href: "/styleguide", label: "Styleguide" },
 ];
 
