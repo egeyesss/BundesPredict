@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
     resolveAlias: { "msw/browser": "./node_modules/msw/lib/browser/index.js" },
   },
   pageExtensions: ["tsx", "ts", "jsx", "js", ...(styleguideEnabled ? ["styleguide.tsx"] : [])],
+  // proxy.ts hands /accounts/* to Django, whose URLs end in a slash; stripping it here made the
+  // Google callback bounce between this redirect and Django's APPEND_SLASH.
+  skipTrailingSlashRedirect: true,
 };
 
 export default withSentryConfig(nextConfig, sentryBuildOptions(process.env));

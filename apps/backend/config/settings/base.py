@@ -122,6 +122,10 @@ HEADLESS_FRONTEND_URLS = {
     "account_confirm_email": "/login?key={key}",
     "account_signup": "/login",
     "socialaccount_login_error": "/login?error=social",
+    # There are no passwords to reset; the "account already exists" mail links these, and an
+    # emailed sign-in code from /login is the way back in.
+    "account_reset_password": "/login",
+    "account_reset_password_from_key": "/login",
 }
 
 # Google verifies addresses, so a Google sign-in joins the account that already owns the email.
