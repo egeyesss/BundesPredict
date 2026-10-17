@@ -52,6 +52,13 @@ export function OtpInput({
   const [focused, setFocused] = useState<number | null>(null);
   const [caretX, setCaretX] = useState(0);
   const locked = disabled || status === "verifying" || status === "success";
+  // Keystrokes can arrive before the parent re-renders with the new value, so each handler
+  // builds on the last value this input committed instead of the possibly stale prop.
+  const latest = useRef(value);
+
+  useLayoutEffect(() => {
+    latest.current = value;
+  }, [value]);
 
   useLayoutEffect(() => {
     if (autoFocus) inputs.current[0]?.focus();
@@ -70,13 +77,15 @@ export function OtpInput({
 
   const commit = (next: string) => {
     const bounded = next.slice(0, length);
-    if (bounded === value) return;
+    if (bounded === latest.current) return;
+    latest.current = bounded;
     onChange(bounded);
     if (bounded.length === length) onComplete?.(bounded);
   };
 
   const handleInput = (index: number, raw: string) => {
     if (locked) return;
+    const value = latest.current;
     const characters = normalise(raw);
     if (!characters) return;
     const current = value[index] ?? "";
@@ -94,6 +103,7 @@ export function OtpInput({
 
   const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
     if (locked) return;
+    const value = latest.current;
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       focusAt(index - 1);
@@ -114,6 +124,7 @@ export function OtpInput({
   const handlePaste = (index: number, event: ClipboardEvent<HTMLInputElement>) => {
     event.preventDefault();
     if (locked) return;
+    const value = latest.current;
     const characters = normalise(event.clipboardData.getData("text"));
     if (!characters) return;
     const next = (value.slice(0, index) + characters).slice(0, length);

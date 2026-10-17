@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -19,6 +19,15 @@ const slots = () => screen.getAllByRole("textbox");
 const value = () => screen.getByTestId("value").textContent;
 
 describe("OtpInput", () => {
+  it("builds on its own last keystroke when the parent has not re-rendered yet", () => {
+    const onChange = vi.fn();
+    // The parent never passes the new value back, like a render still pending under load.
+    render(<OtpInput label="Code" length={4} value="" onChange={onChange} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Character 1 of 4" }), { target: { value: "A" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Character 2 of 4" }), { target: { value: "B" } });
+    expect(onChange).toHaveBeenLastCalledWith("AB");
+  });
+
   it("renders one labelled slot per character in a group", () => {
     render(<Harness />);
     expect(screen.getByRole("group", { name: "Sign-in code" })).toBeInTheDocument();
