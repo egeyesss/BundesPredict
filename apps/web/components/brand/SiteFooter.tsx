@@ -35,7 +35,7 @@ export function SiteFooter({ wordmark }: { wordmark: ReactNode }) {
           </nav>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <LeagueMark placement="footer" />
+          <LeagueMark placement="footer" size={64} />
           <p className="max-w-[90ch] flex-1 basis-80 text-[13px] leading-relaxed text-bp-text-muted">
             {LEAGUE_DISCLAIMER}
           </p>

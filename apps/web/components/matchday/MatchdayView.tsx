@@ -27,7 +27,7 @@ export function MatchdayView({ outcome, scope }: { outcome: FixturesOutcome; sco
   return (
     <div className="mx-auto grid w-full max-w-[1120px] gap-5 px-[max(16px,env(safe-area-inset-left))] pt-6 pb-12">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <LeagueMark placement="matchday-header" size={24} />
+        <LeagueMark placement="matchday-header" size={48} />
         <h1 className="font-display text-[clamp(24px,4vw,34px)] leading-none font-bold tracking-[0.02em] uppercase">
           {title}
           {detail && <span className="font-medium text-bp-text-muted"> · {detail}</span>}
