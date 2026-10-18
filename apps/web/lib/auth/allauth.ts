@@ -15,7 +15,7 @@ async function call(path: string, method: "GET" | "POST" | "DELETE", body?: unkn
   const headers: Record<string, string> = { Accept: "application/json" };
   if (method !== "GET") {
     headers["Content-Type"] = "application/json";
-    const token = readCookie(document.cookie, CSRF_COOKIE);
+    const token = readCookie(document.cookie, CSRF_COOKIE) ?? (await ensureCsrfCookie());
     if (token) headers[CSRF_HEADER] = token;
   }
   try {
