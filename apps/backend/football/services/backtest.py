@@ -134,11 +134,16 @@ def run_walk_forward(
     min_train_matches: int,
     store: WalkForwardStore | None,
     use_xg: bool = False,
+    use_squad_values: bool = True,
 ) -> BacktestResult:
-    """Run the walk-forward over every stored match; `store=None` leaves the database alone."""
+    """Run the walk-forward over every stored match; `store=None` leaves the database alone.
+
+    `use_squad_values=False` shrinks toward the league mean instead of the value-implied targets.
+    """
     values_by_season = {
         season: squad_values_for_season(season)
         for season in Match.objects.values_list("season", flat=True).distinct()
+        if use_squad_values
     }
 
     def load_history(cutoff: date) -> DatedMatches:
