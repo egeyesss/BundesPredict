@@ -1,0 +1,1250 @@
+{
+ "full": {
+  "stages": [
+   {
+    "type": "tool_call",
+    "name": "predict_match",
+    "input": {
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "predict_match",
+    "ok": true,
+    "summary": "Baseline: home 79%, draw 16%, away 6%"
+   },
+   {
+    "type": "tool_call",
+    "name": "lookup_player",
+    "input": {
+     "name": "Serhou Guirassy"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "lookup_player",
+    "ok": true,
+    "summary": "Serhou Guirassy (Borussia Dortmund, Centre-Forward), low importance"
+   },
+   {
+    "type": "tool_call",
+    "name": "predict_match_with_context",
+    "input": {
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig",
+     "adjustments": [
+      {
+       "factor": "player_out",
+       "team": "home",
+       "target": "home_attack",
+       "magnitude_xg": -0.35,
+       "confidence": "high",
+       "rationale": "first-choice striker Guirassy out"
+      },
+      {
+       "factor": "weather_wind",
+       "team": "away",
+       "target": "away_attack",
+       "magnitude_xg": -0.1,
+       "confidence": "low",
+       "rationale": "strong wind trims both attacks"
+      }
+     ]
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "predict_match_with_context",
+    "ok": true,
+    "summary": "Adjusted (2 adjustments): home 75%, draw 19%, away 6%"
+   }
+  ],
+  "result": {
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig",
+   "explanation": "Baseline had the home side around 55%. Removing Guirassy cut their expected goals and the wind trimmed the away attack, so the adjusted home win drops to about 47%.",
+   "baseline": {
+    "p_home": 0.7863,
+    "p_draw": 0.1582,
+    "p_away": 0.0556,
+    "p_over_2_5": 0.5787,
+    "p_under_2_5": 0.4213,
+    "p_btts": 0.3943,
+    "exp_home_goals": 2.46,
+    "exp_away_goals": 0.55,
+    "top_scores": [
+     {
+      "home": 2,
+      "away": 0,
+      "p": 0.1493
+     },
+     {
+      "home": 3,
+      "away": 0,
+      "p": 0.1224
+     },
+     {
+      "home": 1,
+      "away": 0,
+      "p": 0.1134
+     },
+     {
+      "home": 2,
+      "away": 1,
+      "p": 0.082
+     },
+     {
+      "home": 4,
+      "away": 0,
+      "p": 0.0753
+     }
+    ],
+    "score_grid": [
+     [
+      0.05737,
+      0.019099,
+      0.007435,
+      0.00136,
+      0.000187,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.113439,
+      0.074643,
+      0.018288,
+      0.003346,
+      0.000459,
+      5e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.149343,
+      0.081961,
+      0.022491,
+      0.004114,
+      0.000565,
+      6.2e-05,
+      6e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.122442,
+      0.067197,
+      0.018439,
+      0.003373,
+      0.000463,
+      5.1e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.075289,
+      0.04132,
+      0.011338,
+      0.002074,
+      0.000285,
+      3.1e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.037036,
+      0.020326,
+      0.005578,
+      0.00102,
+      0.00014,
+      1.5e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.015182,
+      0.008332,
+      0.002286,
+      0.000418,
+      5.7e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.005335,
+      0.002928,
+      0.000803,
+      0.000147,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00164,
+      0.0009,
+      0.000247,
+      4.5e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.000448,
+      0.000246,
+      6.8e-05,
+      1.2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00011,
+      6.1e-05,
+      1.7e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "adjusted": {
+    "p_home": 0.7549,
+    "p_draw": 0.1876,
+    "p_away": 0.0574,
+    "p_over_2_5": 0.4711,
+    "p_under_2_5": 0.5289,
+    "p_btts": 0.3266,
+    "exp_home_goals": 2.11,
+    "exp_away_goals": 0.45,
+    "top_scores": [
+     {
+      "home": 2,
+      "away": 0,
+      "p": 0.1723
+     },
+     {
+      "home": 1,
+      "away": 0,
+      "p": 0.1545
+     },
+     {
+      "home": 3,
+      "away": 0,
+      "p": 0.1212
+     },
+     {
+      "home": 0,
+      "away": 0,
+      "p": 0.0862
+     },
+     {
+      "home": 1,
+      "away": 1,
+      "p": 0.0821
+     }
+    ],
+    "score_grid": [
+     [
+      0.086226,
+      0.025954,
+      0.007798,
+      0.001167,
+      0.000131,
+      1.2e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.154546,
+      0.082108,
+      0.016451,
+      0.002461,
+      0.000276,
+      2.5e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.172295,
+      0.077328,
+      0.017353,
+      0.002596,
+      0.000291,
+      2.6e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.121158,
+      0.054377,
+      0.012203,
+      0.001826,
+      0.000205,
+      1.8e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.063899,
+      0.028678,
+      0.006436,
+      0.000963,
+      0.000108,
+      1e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.02696,
+      0.0121,
+      0.002715,
+      0.000406,
+      4.6e-05,
+      4e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.009479,
+      0.004254,
+      0.000955,
+      0.000143,
+      1.6e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.002857,
+      0.001282,
+      0.000288,
+      4.3e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.000753,
+      0.000338,
+      7.6e-05,
+      1.1e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.000177,
+      7.9e-05,
+      1.8e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      3.7e-05,
+      1.7e-05,
+      4e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "adjustments": [
+    {
+     "factor": "player_out",
+     "team": "home",
+     "target": "home_attack",
+     "requested_magnitude_xg": -0.35,
+     "effective_magnitude_xg": -0.35,
+     "confidence": "high",
+     "rationale": "first-choice striker Guirassy out"
+    },
+    {
+     "factor": "weather_wind",
+     "team": "away",
+     "target": "away_attack",
+     "requested_magnitude_xg": -0.1,
+     "effective_magnitude_xg": -0.1,
+     "confidence": "low",
+     "rationale": "strong wind trims both attacks"
+    }
+   ]
+  },
+  "audit": {
+   "match_date": null,
+   "query": "striker out, windy",
+   "p_home": 0.7549476392702099,
+   "p_draw": 0.1876238763130843,
+   "p_away": 0.05742848441670571,
+   "exp_home_goals": 2.1094800099858944,
+   "exp_away_goals": 0.448811636067843,
+   "base_p_home": 0.7862691459141347,
+   "base_p_draw": 0.1581779084633168,
+   "base_p_away": 0.05555294562254855,
+   "adjustments_json": [
+    {
+     "factor": "player_out",
+     "team": "home",
+     "target": "home_attack",
+     "requested_magnitude_xg": -0.35,
+     "effective_magnitude_xg": -0.35,
+     "confidence": "high",
+     "rationale": "first-choice striker Guirassy out"
+    },
+    {
+     "factor": "weather_wind",
+     "team": "away",
+     "target": "away_attack",
+     "requested_magnitude_xg": -0.1,
+     "effective_magnitude_xg": -0.1,
+     "confidence": "low",
+     "rationale": "strong wind trims both attacks"
+    }
+   ],
+   "explanation": "Baseline had the home side around 55%. Removing Guirassy cut their expected goals and the wind trimmed the away attack, so the adjusted home win drops to about 47%.",
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig"
+  }
+ },
+ "refusal": {
+  "stages": [
+   {
+    "type": "tool_call",
+    "name": "predict_match",
+    "input": {
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "predict_match",
+    "ok": true,
+    "summary": "Baseline: home 79%, draw 16%, away 6%"
+   }
+  ],
+  "result": {
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig",
+   "explanation": "You mentioned the home side has 'bad vibes', which isn't something I can quantify, so I've left the model untouched. Baseline: home ~55%, draw ~25%, away ~20%.",
+   "baseline": {
+    "p_home": 0.7863,
+    "p_draw": 0.1582,
+    "p_away": 0.0556,
+    "p_over_2_5": 0.5787,
+    "p_under_2_5": 0.4213,
+    "p_btts": 0.3943,
+    "exp_home_goals": 2.46,
+    "exp_away_goals": 0.55,
+    "top_scores": [
+     {
+      "home": 2,
+      "away": 0,
+      "p": 0.1493
+     },
+     {
+      "home": 3,
+      "away": 0,
+      "p": 0.1224
+     },
+     {
+      "home": 1,
+      "away": 0,
+      "p": 0.1134
+     },
+     {
+      "home": 2,
+      "away": 1,
+      "p": 0.082
+     },
+     {
+      "home": 4,
+      "away": 0,
+      "p": 0.0753
+     }
+    ],
+    "score_grid": [
+     [
+      0.05737,
+      0.019099,
+      0.007435,
+      0.00136,
+      0.000187,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.113439,
+      0.074643,
+      0.018288,
+      0.003346,
+      0.000459,
+      5e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.149343,
+      0.081961,
+      0.022491,
+      0.004114,
+      0.000565,
+      6.2e-05,
+      6e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.122442,
+      0.067197,
+      0.018439,
+      0.003373,
+      0.000463,
+      5.1e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.075289,
+      0.04132,
+      0.011338,
+      0.002074,
+      0.000285,
+      3.1e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.037036,
+      0.020326,
+      0.005578,
+      0.00102,
+      0.00014,
+      1.5e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.015182,
+      0.008332,
+      0.002286,
+      0.000418,
+      5.7e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.005335,
+      0.002928,
+      0.000803,
+      0.000147,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00164,
+      0.0009,
+      0.000247,
+      4.5e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.000448,
+      0.000246,
+      6.8e-05,
+      1.2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00011,
+      6.1e-05,
+      1.7e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "adjusted": null,
+   "adjustments": []
+  },
+  "audit": {
+   "match_date": null,
+   "query": "striker out, windy",
+   "p_home": 0.7862691459141347,
+   "p_draw": 0.1581779084633168,
+   "p_away": 0.05555294562254855,
+   "exp_home_goals": 2.459133667493734,
+   "exp_away_goals": 0.5488116358774815,
+   "base_p_home": 0.7862691459141347,
+   "base_p_draw": 0.1581779084633168,
+   "base_p_away": 0.05555294562254855,
+   "adjustments_json": [],
+   "explanation": "You mentioned the home side has 'bad vibes', which isn't something I can quantify, so I've left the model untouched. Baseline: home ~55%, draw ~25%, away ~20%.",
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig"
+  }
+ },
+ "clarification": {
+  "stages": [],
+  "result": {
+   "home": null,
+   "away": null,
+   "explanation": "Which fixture do you mean?",
+   "baseline": null,
+   "adjusted": null,
+   "adjustments": []
+  },
+  "audit": null
+ },
+ "grounding": {
+  "stages": [
+   {
+    "type": "tool_call",
+    "name": "get_team_form",
+    "input": {
+     "team": "Borussia Dortmund",
+     "n": 3
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "get_team_form",
+    "ok": true,
+    "summary": "Borussia Dortmund: 1-1-0 over 2 games"
+   },
+   {
+    "type": "tool_call",
+    "name": "get_recent_results",
+    "input": {
+     "n": 2
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "get_recent_results",
+    "ok": true,
+    "summary": "2 recent results"
+   },
+   {
+    "type": "tool_call",
+    "name": "get_upcoming_fixtures",
+    "input": {
+     "team": "Borussia Dortmund"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "get_upcoming_fixtures",
+    "ok": true,
+    "summary": "1 upcoming fixtures"
+   },
+   {
+    "type": "tool_call",
+    "name": "lookup_player",
+    "input": {
+     "name": "Guirassy"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "lookup_player",
+    "ok": true,
+    "summary": "Serhou Guirassy (Borussia Dortmund, Centre-Forward), low importance"
+   },
+   {
+    "type": "tool_call",
+    "name": "predict_match",
+    "input": {
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "predict_match",
+    "ok": true,
+    "summary": "Baseline: home 79%, draw 16%, away 6%"
+   }
+  ],
+  "result": {
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig",
+   "explanation": "Dortmund are in decent form and the model has them slight favourites.",
+   "baseline": {
+    "p_home": 0.7863,
+    "p_draw": 0.1582,
+    "p_away": 0.0556,
+    "p_over_2_5": 0.5787,
+    "p_under_2_5": 0.4213,
+    "p_btts": 0.3943,
+    "exp_home_goals": 2.46,
+    "exp_away_goals": 0.55,
+    "top_scores": [
+     {
+      "home": 2,
+      "away": 0,
+      "p": 0.1493
+     },
+     {
+      "home": 3,
+      "away": 0,
+      "p": 0.1224
+     },
+     {
+      "home": 1,
+      "away": 0,
+      "p": 0.1134
+     },
+     {
+      "home": 2,
+      "away": 1,
+      "p": 0.082
+     },
+     {
+      "home": 4,
+      "away": 0,
+      "p": 0.0753
+     }
+    ],
+    "score_grid": [
+     [
+      0.05737,
+      0.019099,
+      0.007435,
+      0.00136,
+      0.000187,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.113439,
+      0.074643,
+      0.018288,
+      0.003346,
+      0.000459,
+      5e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.149343,
+      0.081961,
+      0.022491,
+      0.004114,
+      0.000565,
+      6.2e-05,
+      6e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.122442,
+      0.067197,
+      0.018439,
+      0.003373,
+      0.000463,
+      5.1e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.075289,
+      0.04132,
+      0.011338,
+      0.002074,
+      0.000285,
+      3.1e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.037036,
+      0.020326,
+      0.005578,
+      0.00102,
+      0.00014,
+      1.5e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.015182,
+      0.008332,
+      0.002286,
+      0.000418,
+      5.7e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.005335,
+      0.002928,
+      0.000803,
+      0.000147,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00164,
+      0.0009,
+      0.000247,
+      4.5e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.000448,
+      0.000246,
+      6.8e-05,
+      1.2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00011,
+      6.1e-05,
+      1.7e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "adjusted": null,
+   "adjustments": []
+  },
+  "audit": {
+   "match_date": null,
+   "query": "striker out, windy",
+   "p_home": 0.7862691459141347,
+   "p_draw": 0.1581779084633168,
+   "p_away": 0.05555294562254855,
+   "exp_home_goals": 2.459133667493734,
+   "exp_away_goals": 0.5488116358774815,
+   "base_p_home": 0.7862691459141347,
+   "base_p_draw": 0.1581779084633168,
+   "base_p_away": 0.05555294562254855,
+   "adjustments_json": [],
+   "explanation": "Dortmund are in decent form and the model has them slight favourites.",
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig"
+  }
+ },
+ "bad_team": {
+  "stages": [
+   {
+    "type": "tool_call",
+    "name": "predict_match",
+    "input": {
+     "home": "Atlantis FC",
+     "away": "RB Leipzig"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "predict_match",
+    "ok": false,
+    "summary": "Failed: unknown team: Atlantis FC"
+   },
+   {
+    "type": "tool_call",
+    "name": "get_team_form",
+    "input": {
+     "team": "Atlantis FC"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "get_team_form",
+    "ok": false,
+    "summary": "Failed: unknown team: 'Atlantis FC'"
+   },
+   {
+    "type": "tool_call",
+    "name": "predict_match",
+    "input": {
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig"
+    }
+   },
+   {
+    "type": "tool_result",
+    "name": "predict_match",
+    "ok": true,
+    "summary": "Baseline: home 79%, draw 16%, away 6%"
+   }
+  ],
+  "result": {
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig",
+   "explanation": "I could not find Atlantis, so here is Dortmund v Leipzig instead.",
+   "baseline": {
+    "p_home": 0.7863,
+    "p_draw": 0.1582,
+    "p_away": 0.0556,
+    "p_over_2_5": 0.5787,
+    "p_under_2_5": 0.4213,
+    "p_btts": 0.3943,
+    "exp_home_goals": 2.46,
+    "exp_away_goals": 0.55,
+    "top_scores": [
+     {
+      "home": 2,
+      "away": 0,
+      "p": 0.1493
+     },
+     {
+      "home": 3,
+      "away": 0,
+      "p": 0.1224
+     },
+     {
+      "home": 1,
+      "away": 0,
+      "p": 0.1134
+     },
+     {
+      "home": 2,
+      "away": 1,
+      "p": 0.082
+     },
+     {
+      "home": 4,
+      "away": 0,
+      "p": 0.0753
+     }
+    ],
+    "score_grid": [
+     [
+      0.05737,
+      0.019099,
+      0.007435,
+      0.00136,
+      0.000187,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.113439,
+      0.074643,
+      0.018288,
+      0.003346,
+      0.000459,
+      5e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.149343,
+      0.081961,
+      0.022491,
+      0.004114,
+      0.000565,
+      6.2e-05,
+      6e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.122442,
+      0.067197,
+      0.018439,
+      0.003373,
+      0.000463,
+      5.1e-05,
+      5e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.075289,
+      0.04132,
+      0.011338,
+      0.002074,
+      0.000285,
+      3.1e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.037036,
+      0.020326,
+      0.005578,
+      0.00102,
+      0.00014,
+      1.5e-05,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.015182,
+      0.008332,
+      0.002286,
+      0.000418,
+      5.7e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.005335,
+      0.002928,
+      0.000803,
+      0.000147,
+      2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00164,
+      0.0009,
+      0.000247,
+      4.5e-05,
+      6e-06,
+      1e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.000448,
+      0.000246,
+      6.8e-05,
+      1.2e-05,
+      2e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.00011,
+      6.1e-05,
+      1.7e-05,
+      3e-06,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "adjusted": null,
+   "adjustments": []
+  },
+  "audit": {
+   "match_date": null,
+   "query": "striker out, windy",
+   "p_home": 0.7862691459141347,
+   "p_draw": 0.1581779084633168,
+   "p_away": 0.05555294562254855,
+   "exp_home_goals": 2.459133667493734,
+   "exp_away_goals": 0.5488116358774815,
+   "base_p_home": 0.7862691459141347,
+   "base_p_draw": 0.1581779084633168,
+   "base_p_away": 0.05555294562254855,
+   "adjustments_json": [],
+   "explanation": "I could not find Atlantis, so here is Dortmund v Leipzig instead.",
+   "home": "Borussia Dortmund",
+   "away": "RB Leipzig"
+  }
+ }
+}

@@ -1,4 +1,4 @@
-"""The DRF `PredictResponse` must serialise a run exactly like the FastAPI one does today."""
+"""The `PredictResponse` serializer on full, refusal and clarification runs."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import json
 from typing import Any
 
 import numpy as np
-import pytest
 from rest_framework.renderers import JSONRenderer
 from tests.agent.fakes import (
     FakeResponse,
@@ -16,7 +15,6 @@ from tests.agent.fakes import (
     transcript_refusal,
 )
 
-from app.schemas import build_response
 from bundespredict.agent.loop import AgentResult, run_agent
 from bundespredict.agent.service import PredictionService
 from bundespredict.model.dixon_coles import TeamRatings
@@ -64,21 +62,7 @@ def _wire(payload: Any) -> Any:
     return json.loads(JSONRenderer().render(payload))
 
 
-@pytest.mark.parametrize("name", TRANSCRIPTS)
-def test_drf_serializer_matches_fastapi_response(name: str) -> None:
-    result = _run(list(TRANSCRIPTS[name]))
-    prediction_id = None if result.record is None else PREDICTION_ID
-
-    fastapi_json = json.loads(
-        build_response(result, result.record, prediction_id).model_dump_json()
-    )
-    drf_json = _wire(serialize_predict_response(result, prediction_id))
-
-    assert drf_json == fastapi_json
-
-
-def test_full_transcript_covers_adjusted_markets_and_adjustments() -> None:
-    """Guards the parity test against passing on two equally empty payloads."""
+def test_full_transcript_serializes_adjusted_markets_and_adjustments() -> None:
     result = _run(list(TRANSCRIPTS["full"]))
 
     payload = _wire(serialize_predict_response(result, PREDICTION_ID))
@@ -103,3 +87,13 @@ def test_clarification_has_null_markets() -> None:
         "adjustments": [],
         "prediction_id": None,
     }
+
+
+def test_refusal_keeps_the_baseline_and_reports_no_adjustment() -> None:
+    result = _run(list(TRANSCRIPTS["refusal"]))
+
+    payload = _wire(serialize_predict_response(result, PREDICTION_ID))
+
+    assert payload["baseline"] is not None
+    assert payload["adjusted"] is None
+    assert payload["adjustments"] == []

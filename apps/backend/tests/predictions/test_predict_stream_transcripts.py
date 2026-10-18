@@ -1,8 +1,8 @@
-"""Every recorded transcript gives the same stages and result through FastAPI and Django.
+"""Each scripted transcript streams its recorded stages and result and stores its audit row.
 
-Both apps read one Postgres (the Django test database), run the same scripted LLM transcript and
-persist their audit row, so a difference in the streamed frames or the stored row is a real
-behaviour change between the two stacks.
+`recorded/stream_transcripts.json` holds the stage frames, the final `result` frame and the
+persisted `Prediction` fields for each transcript below. Re-record it deliberately when the agent's
+behaviour is meant to change.
 """
 
 from __future__ import annotations
@@ -10,17 +10,14 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import pytest
 from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db import connection
-from fastapi.testclient import TestClient
 from rest_framework.test import APIClient
-from sqlalchemy import Engine
-from sqlalchemy.orm import Session
 from tests.agent.fakes import (
     FakeResponse,
     FakeTextBlock,
@@ -30,12 +27,6 @@ from tests.agent.fakes import (
     transcript_refusal,
 )
 
-from app.config import get_settings
-from app.deps import get_llm_client, get_session
-from app.main import app as fastapi_app
-from app.security import limiter
-from bundespredict.data.db import make_engine, make_session_factory
-from bundespredict.data.models import Prediction as SqlPrediction
 from football.models import Fixture, Match, ModelRun, Player, Team, TeamParam
 from predictions.models import Prediction
 from predictions.throttles import throttle_cache
@@ -142,42 +133,7 @@ def seeded() -> None:
 
 
 @pytest.fixture
-def sqlalchemy_engine() -> Iterator[Engine]:
-    db = connection.settings_dict
-    url = (
-        f"postgresql+psycopg://{db['USER']}:{db['PASSWORD']}@{db['HOST']}:{db['PORT']}/{db['NAME']}"
-    )
-    engine = make_engine(url)
-    yield engine
-    engine.dispose()
-
-
-@pytest.fixture
-def fastapi_client(
-    sqlalchemy_engine: Engine, monkeypatch: pytest.MonkeyPatch
-) -> Iterator[Callable[[list[FakeResponse]], TestClient]]:
-    monkeypatch.delenv("PROXY_SECRET", raising=False)
-    get_settings.cache_clear()
-    limiter.reset()
-    factory = make_session_factory(sqlalchemy_engine)
-
-    def session_override() -> Iterator[Session]:
-        with factory() as session:
-            yield session
-
-    fastapi_app.dependency_overrides[get_session] = session_override
-
-    def build(responses: list[FakeResponse]) -> TestClient:
-        fastapi_app.dependency_overrides[get_llm_client] = lambda: ScriptedClient(responses)
-        return TestClient(fastapi_app)
-
-    yield build
-    fastapi_app.dependency_overrides.clear()
-    get_settings.cache_clear()
-
-
-@pytest.fixture
-def django_stream(monkeypatch: pytest.MonkeyPatch) -> Callable[[list[FakeResponse]], str]:
+def stream_transcript(monkeypatch: pytest.MonkeyPatch) -> Callable[[list[FakeResponse]], str]:
     monkeypatch.setattr("accounts.plans.limit_for", lambda *args, **kwargs: 1_000)
     api_client = APIClient()
     api_client.credentials(HTTP_X_PROXY_SECRET=settings.PROXY_SECRET)
@@ -213,66 +169,67 @@ def parse_sse(body: str) -> list[tuple[str, dict[str, Any]]]:
     return frames
 
 
-def comparable_stages(frames: list[tuple[str, dict[str, Any]]]) -> list[dict[str, Any]]:
-    """Stage frames minus the one field the two stacks deliberately differ on.
-
-    FastAPI sends the raw tool `payload`; Django sends a short human `summary` instead.
-    """
-    stages = []
-    for event, data in frames:
-        if event == "stage":
-            stages.append({k: v for k, v in data.items() if k not in ("payload", "summary")})
-    return stages
-
-
-def audit_row_fields(row: Any) -> dict[str, Any]:
+def audit_row_fields(row: Prediction) -> dict[str, Any]:
+    """The stored row with ids replaced by what they point at, so it compares across databases."""
     names = (
-        "model_run_id home_id away_id match_date query p_home p_draw p_away exp_home_goals "
-        "exp_away_goals base_p_home base_p_draw base_p_away adjustments_json explanation"
+        "match_date query p_home p_draw p_away exp_home_goals exp_away_goals base_p_home "
+        "base_p_draw base_p_away adjustments_json explanation"
     ).split()
-    return {name: getattr(row, name) for name in names}
+    fields = {name: getattr(row, name) for name in names}
+    fields["match_date"] = None if row.match_date is None else row.match_date.isoformat()
+    return {**fields, "home": row.home.name, "away": row.away.name}
+
+
+def assert_close(actual: Any, expected: Any) -> None:
+    """Equality with a float tolerance, so a recording from one platform holds on another."""
+    if isinstance(expected, dict):
+        assert isinstance(actual, dict) and actual.keys() == expected.keys()
+        for key, value in expected.items():
+            assert_close(actual[key], value)
+    elif isinstance(expected, list):
+        assert isinstance(actual, list) and len(actual) == len(expected)
+        for actual_item, expected_item in zip(actual, expected, strict=True):
+            assert_close(actual_item, expected_item)
+    elif isinstance(expected, float):
+        assert actual == pytest.approx(expected, abs=1e-9)
+    else:
+        assert actual == expected
+
+
+RECORDED = json.loads((Path(__file__).parent / "recorded" / "stream_transcripts.json").read_text())
 
 
 @pytest.mark.usefixtures("seeded")
 @pytest.mark.parametrize("name", TRANSCRIPTS)
-def test_django_stream_matches_fastapi_stream(
-    name: str,
-    fastapi_client: Callable[[list[FakeResponse]], TestClient],
-    django_stream: Callable[[list[FakeResponse]], str],
-    sqlalchemy_engine: Engine,
+def test_stream_matches_the_recording(
+    name: str, stream_transcript: Callable[[list[FakeResponse]], str]
 ) -> None:
-    transcript = TRANSCRIPTS[name]()
+    recorded = RECORDED[name]
 
-    fastapi_response = fastapi_client(TRANSCRIPTS[name]()).post(
-        "/predict/stream", json={"query": QUERY}
-    )
-    fastapi_frames = parse_sse(fastapi_response.text)
-    django_frames = parse_sse(django_stream(transcript))
+    frames = parse_sse(stream_transcript(TRANSCRIPTS[name]()))
 
-    assert comparable_stages(django_frames) == comparable_stages(fastapi_frames)
-    assert [e for e, _ in django_frames][-1] == "result"
-    django_result, fastapi_result = django_frames[-1][1], fastapi_frames[-1][1]
-    assert {**django_result, "prediction_id": None} == {**fastapi_result, "prediction_id": None}
-
-    if django_result["prediction_id"] is None:
-        assert fastapi_result["prediction_id"] is None
+    assert_close([data for event, data in frames if event == "stage"], recorded["stages"])
+    assert frames[-1][0] == "result"
+    result = {**frames[-1][1]}
+    prediction_id = result.pop("prediction_id")
+    assert_close(result, recorded["result"])
+    if recorded["audit"] is None:
+        assert prediction_id is None
         return
-    django_row = Prediction.objects.get(pk=django_result["prediction_id"])
-    with make_session_factory(sqlalchemy_engine)() as session:
-        fastapi_row = session.get(SqlPrediction, fastapi_result["prediction_id"])
-    assert fastapi_row is not None
-    assert audit_row_fields(django_row) == audit_row_fields(fastapi_row)
+    row = Prediction.objects.select_related("home", "away").get(pk=prediction_id)
+    assert row.model_run_id == ModelRun.objects.get(version="serve").id
+    assert_close(audit_row_fields(row), recorded["audit"])
 
 
 @pytest.mark.usefixtures("seeded")
 def test_the_covered_transcripts_exercise_every_kind_of_stage(
-    django_stream: Callable[[list[FakeResponse]], str],
+    stream_transcript: Callable[[list[FakeResponse]], str],
 ) -> None:
-    """Guards the parity test against passing on two equally empty streams."""
+    """Guards the recording against going stale into streams that cover less than it claims."""
     seen: set[str] = set()
     oks: set[bool] = set()
     for name in TRANSCRIPTS:
-        for event, data in parse_sse(django_stream(TRANSCRIPTS[name]())):
+        for event, data in parse_sse(stream_transcript(TRANSCRIPTS[name]())):
             if event == "stage":
                 seen.add(data["name"])
                 if data["type"] == "tool_result":
