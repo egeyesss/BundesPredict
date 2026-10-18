@@ -4,15 +4,7 @@
 # that scrape runs locally and the refit reads whatever squad values the database has.
 # Serving reads the newest run on the next request.
 # Monday 03:00 UTC: after the matchday is fully ingested upstream.
-#
-# Two jobs do the same work on different code paths, and the event decides which one runs:
-#   refit-legacy  the SQLAlchemy scripts in scripts/. Runs on the schedule and on a manual
-#                 run against production, because production has not been adopted by the
-#                 Django migrations yet.
-#   refit-django  the manage.py commands. Runs on a manual run against the adoption branch.
-# To move production onto the Django path, delete refit-legacy and widen the `if` of
-# refit-django to `github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'`
-# once production has been adopted.
+# A scheduled run always targets production, a manual run targets the chosen database.
 name: refit
 
 on:
@@ -29,34 +21,18 @@ on:
         default: adoption
 
 jobs:
-  refit-legacy:
-    if: github.event_name == 'schedule' || inputs.database == 'production'
+  refit:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v10.3.0
-        with:
-          python-version: "3.12"
-          enable-cache: true
-      - run: uv sync --frozen --no-dev --package bundespredict --extra model
-      - name: refit on the latest results
-        run: uv run --no-sync python scripts/refit.py
-      - name: refresh the fixture schedule
-        run: uv run --no-sync python scripts/download_fixtures.py
-
-  refit-django:
-    if: github.event_name == 'workflow_dispatch' && inputs.database == 'adoption'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      DATABASE_URL: ${{ secrets.ADOPTION_DATABASE_URL }}
+      DATABASE_CHOICE: ${{ github.event_name == 'schedule' && 'production' || inputs.database }}
+      ADOPTION_DATABASE_URL: ${{ secrets.ADOPTION_DATABASE_URL }}
+      PRODUCTION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DJANGO_SETTINGS_MODULE: config.settings.prod
       # The commands never sign or serve anything; the prod settings just require values.
       DJANGO_SECRET_KEY: not-used-by-management-commands
       DJANGO_ALLOWED_HOSTS: localhost
+      PROXY_SECRET: not-used-by-management-commands
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v10.3.0
@@ -64,9 +40,24 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - run: uv sync --frozen --no-dev --package bundespredict-backend
-      - name: check the database is fully migrated
+      - name: Pick the database
+        # Each database has its own secret and an empty one fails the run, so a missing
+        # adoption secret can never end up writing to production.
+        run: |
+          case "$DATABASE_CHOICE" in
+            adoption) url="$ADOPTION_DATABASE_URL" ;;
+            production) url="$PRODUCTION_DATABASE_URL" ;;
+            *) echo "::error::unknown database '$DATABASE_CHOICE'"; exit 1 ;;
+          esac
+          if [ -z "$url" ]; then
+            echo "::error::the secret for the $DATABASE_CHOICE database is empty"
+            exit 1
+          fi
+          echo "DATABASE_URL=$url" >> "$GITHUB_ENV"
+          echo "Running against the $DATABASE_CHOICE database" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check the database is fully migrated
         run: uv run --no-sync apps/backend/manage.py migrate --check
-      - name: refit on the latest results
+      - name: Refit on the latest results
         run: uv run --no-sync apps/backend/manage.py refit
-      - name: refresh the fixture schedule
+      - name: Refresh the fixture schedule
         run: uv run --no-sync apps/backend/manage.py download_fixtures

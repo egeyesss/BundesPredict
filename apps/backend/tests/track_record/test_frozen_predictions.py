@@ -47,9 +47,9 @@ class FittedLeague:
     run: ModelRun
     teams: dict[str, Team]
 
-    def new_run(self, trained_at: datetime) -> ModelRun:
+    def new_run(self, trained_at: datetime, *, version: str = "serve") -> ModelRun:
         """A later run with the same team parameters."""
-        run = create_run(trained_at)
+        run = create_run(trained_at, version=version)
         add_params(run, self.teams)
         return run
 
@@ -67,9 +67,10 @@ class FittedLeague:
         )
 
 
-def create_run(trained_at: datetime | None = None) -> ModelRun:
+def create_run(trained_at: datetime | None = None, *, version: str = "serve") -> ModelRun:
     fields: dict[str, object] = {
         "model_type": "dixon_coles",
+        "version": version,
         "xi": 0.0018,
         "rho": RHO,
         "home_adv": HOME_ADV,
@@ -251,6 +252,16 @@ class TestSnapshotUpcoming:
         report = snapshot_upcoming(now=NOW + timedelta(days=1, hours=1))
 
         assert [s.model_run_id for s in report.created] == [newer.id]
+
+    def test_ignores_a_newer_walk_forward_run(
+        self, league: FittedLeague, make_fixture: MakeFixture
+    ) -> None:
+        league.new_run(NOW + timedelta(days=1), version="walk-forward")
+        make_fixture("Alpha", "Bravo", NOW + timedelta(days=2))
+
+        report = snapshot_upcoming(now=NOW + timedelta(days=1, hours=1))
+
+        assert [s.model_run_id for s in report.created] == [league.run.id]
 
     def test_reports_a_team_the_run_has_no_ratings_for_and_freezes_the_rest(
         self, league: FittedLeague, make_fixture: MakeFixture
