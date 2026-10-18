@@ -5,8 +5,8 @@ import environ
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 env = environ.Env()
-# Only the backend's own .env is read. The repo-root .env belongs to the FastAPI app and
-# may point at a production database.
+# Only the backend's own .env is read. The repo-root .env feeds docker compose and may point at
+# a production database.
 env.read_env(BASE_DIR / ".env")
 
 DJANGO_APPS = [

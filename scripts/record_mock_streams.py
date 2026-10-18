@@ -2,7 +2,7 @@
 
 The web mocks replay real engine output: the 18 current clubs get fixed, plausible ratings, the
 agent loop runs scripted tool-call transcripts (the same shape as tests/agent/fakes.py) against
-the real engine and the real FastAPI response builder, and every SSE frame is written as JSON.
+the real engine and the Django response serializer, and every SSE frame is written as JSON.
 Nothing here calls the network or an LLM, so the output is deterministic.
 
     uv run python scripts/record_mock_streams.py
@@ -11,16 +11,20 @@ Nothing here calls the network or an LLM, so the output is deterministic.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from collections.abc import Iterator
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import django
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(ROOT), str(ROOT / "apps" / "api")]
+sys.path[:0] = [str(ROOT), str(ROOT / "apps" / "backend")]
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.test")
+django.setup()
 
 from tests.agent.fakes import (  # noqa: E402
     FakeResponse,
@@ -29,15 +33,15 @@ from tests.agent.fakes import (  # noqa: E402
     ScriptedClient,
 )
 
-from app.schemas import build_response  # noqa: E402
 from bundespredict.agent.adjustments import Adjustment  # noqa: E402
 from bundespredict.agent.loop import AgentEvent, run_agent_events  # noqa: E402
 from bundespredict.agent.service import PredictionService  # noqa: E402
-from bundespredict.agent.tools import markets_to_dict  # noqa: E402
 from bundespredict.data.fixtures import UpcomingFixture  # noqa: E402
 from bundespredict.data.form import FormMatch, TeamForm  # noqa: E402
 from bundespredict.data.weather import WeatherReport  # noqa: E402
 from bundespredict.model.dixon_coles import TeamRatings  # noqa: E402
+from football.serializers import markets_payload  # noqa: E402
+from predictions.serializers import serialize_predict_response  # noqa: E402
 
 OUT = ROOT / "apps" / "web" / "lib" / "api" / "mocks" / "recorded"
 
@@ -113,9 +117,7 @@ def team_json(name: str) -> dict[str, Any]:
 
 
 def markets_json(home: str, away: str) -> dict[str, Any]:
-    markets = RATINGS.predict(home, away)
-    grid = [[round(p, 6) for p in row] for row in markets.score_grid]
-    return {**markets_to_dict(markets), "score_grid": grid}
+    return markets_payload(RATINGS.predict(home, away))
 
 
 def fixture_cards() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -329,8 +331,12 @@ def record_stream(
                     }
                 )
             else:
-                response = build_response(event.result, event.result.record, prediction_id)
-                frames.append({"event": "result", "data": response.model_dump(mode="json")})
+                frames.append(
+                    {
+                        "event": "result",
+                        "data": serialize_predict_response(event.result, prediction_id),
+                    }
+                )
     return frames
 
 

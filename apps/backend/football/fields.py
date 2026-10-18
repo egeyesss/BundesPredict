@@ -9,7 +9,8 @@ from django.db import models
 from django.db.models import Func
 from django.db.models.expressions import RawSQL
 
-# `now()` exactly as Alembic wrote it; Django's own `Now` renders `STATEMENT_TIMESTAMP()`.
+# `now()` as the adopted tables define their defaults; Django's own `Now` renders
+# `STATEMENT_TIMESTAMP()`.
 DB_NOW = Func(function="now", output_field=models.DateTimeField())
 
 
@@ -46,5 +47,5 @@ class PlainJSONField(models.JSONField):
         return f"({sql})::text", params
 
 
-# Alembic's `server_default="0"` is the literal '0', which Postgres keeps as '0'::double precision.
+# The adopted float defaults are the literal '0', which Postgres keeps as '0'::double precision.
 FLOAT_ZERO = RawSQL("'0'", (), output_field=models.FloatField())

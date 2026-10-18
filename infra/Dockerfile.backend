@@ -11,7 +11,6 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 COPY pyproject.toml uv.lock ./
 COPY packages/model/pyproject.toml packages/model/pyproject.toml
-COPY apps/api/pyproject.toml apps/api/pyproject.toml
 COPY apps/backend/pyproject.toml apps/backend/pyproject.toml
 RUN uv sync --frozen --no-dev --no-install-workspace --package bundespredict-backend
 
