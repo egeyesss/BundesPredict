@@ -1,11 +1,11 @@
 # Freeze the base model's prediction for every fixture kicking off in the next 48 hours.
-# Manual runs only for now. To turn on the daily run, uncomment the two schedule lines;
-# a scheduled run always targets production, a manual run targets the chosen database.
+# Daily at 06:00 UTC, so every fixture gets frozen at least a day before kickoff.
+# A scheduled run always targets production, a manual run targets the chosen database.
 name: snapshot
 
 on:
-  # schedule:
-  #   - cron: "0 6 * * *"
+  schedule:
+    - cron: "0 6 * * *"
   workflow_dispatch:
     inputs:
       database:
@@ -27,6 +27,7 @@ jobs:
       DJANGO_SETTINGS_MODULE: config.settings.prod
       DJANGO_SECRET_KEY: not-serving-requests
       DJANGO_ALLOWED_HOSTS: localhost
+      PROXY_SECRET: not-serving-requests
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v10.3.0
@@ -49,7 +50,9 @@ jobs:
           fi
           echo "DATABASE_URL=$url" >> "$GITHUB_ENV"
           echo "Running against the $DATABASE_CHOICE database" >> "$GITHUB_STEP_SUMMARY"
-      - name: Apply migrations
-        run: uv run --no-sync apps/backend/manage.py migrate --noinput
+      - name: Check the database is fully migrated
+        # Migrations ship with the backend deploy; a daily job applying them could run a
+        # newer schema under older serving code.
+        run: uv run --no-sync apps/backend/manage.py migrate --check
       - name: Freeze upcoming predictions
         run: uv run --no-sync apps/backend/manage.py snapshot_predictions

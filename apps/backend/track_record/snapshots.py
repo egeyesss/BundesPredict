@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from bundespredict.model.dixon_coles import TeamRatings
 from football.models import Fixture, ModelRun
-from football.repositories import latest_model_run, ratings_for
+from football.repositories import SERVING_VERSION, latest_model_run, ratings_for
 
 from .models import FixturePrediction
 
@@ -61,10 +61,10 @@ def freeze_fixture(
 def snapshot_upcoming(*, now: datetime | None = None) -> SnapshotReport:
     """Freeze every fixture kicking off within 48 hours of `now` that has no snapshot yet.
 
-    Fixtures with a team the newest model run has no ratings for are reported instead of frozen.
+    Fixtures with a team the newest serving run has no ratings for are reported instead of frozen.
     """
     now = now if now is not None else timezone.now()
-    run = latest_model_run()
+    run = latest_model_run(version=SERVING_VERSION)
     if run is None:
         raise NoModelRunError("no model run has been fitted yet")
     ratings = ratings_for(run)
