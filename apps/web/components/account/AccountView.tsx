@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { browserTimeZone } from "@/lib/account/timezone";
 import type { Me } from "@/lib/api/types";
 
+import { displayName } from "@/components/brand/nav";
+
 import { Eyebrow } from "./AccountUi";
 import { EmailCard } from "./EmailCard";
 import { PlanCard } from "./PlanCard";
@@ -31,7 +33,7 @@ export function AccountView({ initialMe }: { initialMe: Me }) {
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div className="grid gap-1.5">
           <Eyebrow>Account</Eyebrow>
-          <h1 className="font-display text-[clamp(36px,5vw,52px)] leading-none font-bold">{me.name ?? (me.is_demo ? "Demo visitor" : me.email)}</h1>
+          <h1 className="font-display text-[clamp(36px,5vw,52px)] leading-none font-bold">{displayName({ name: me.name, email: me.email, plan: me.plan })}</h1>
           <p className="text-bp-text-muted">{me.is_demo ? "Temporary demo account" : me.email}</p>
         </div>
         <Button variant="ghost" size="lg" className="border-bp-border" disabled={pending} onClick={() => void signOut()}>

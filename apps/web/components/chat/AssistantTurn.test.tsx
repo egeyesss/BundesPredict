@@ -58,6 +58,44 @@ describe("a finished answer", () => {
   });
 });
 
+describe("an explanation written in markdown", () => {
+  const withText = (text: string): Turn => ({ ...turnAfter(send, ...events(recordedStreams.happy), { type: "written" }), text });
+
+  it("shows bold text and paragraphs, not the asterisks", () => {
+    const { container } = renderTurn(withText("**Stuttgart drop to 63%.** Attack loses 0.35 xG.\n\nThe draw gains ground."));
+
+    expect(screen.getByText("Stuttgart drop to 63%.").tagName).toBe("STRONG");
+    expect(container).not.toHaveTextContent("**");
+    expect(screen.getByText("The draw gains ground.").tagName).toBe("P");
+  });
+
+  it("keeps asterisks off the screen while a bold run is still typing", () => {
+    vi.useFakeTimers();
+    const writing = { ...turnAfter(send, ...events(recordedStreams.happy)), text: "**Stuttgart drop to 63%.** Attack loses 0.35 xG." };
+    const { container } = renderTurn(writing);
+
+    act(() => vi.advanceTimersByTime(250));
+
+    const typed = container.querySelector(".caret");
+    expect(typed?.textContent).toContain("Stuttgart");
+    expect(typed?.textContent).not.toContain("*");
+    vi.useRealTimers();
+  });
+});
+
+describe("an answer that asks for details instead of predicting", () => {
+  it("shows the text and no result card when the API sends no odds", () => {
+    const clarification: AgentEvent = {
+      event: "result",
+      data: { home: null, away: null, explanation: "Which match do you mean?", baseline: null, adjusted: null, adjustments: [], prediction_id: null },
+    };
+    renderTurn(turnAfter(send, { type: "agent", event: clarification }, { type: "written" }));
+
+    expect(screen.getByText("Which match do you mean?")).toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+});
+
 describe("typing the explanation", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
@@ -79,7 +117,7 @@ describe("typing the explanation", () => {
   it("gives screen readers the whole explanation once instead of every character", () => {
     renderTurn(turnAfter(send, ...events(recordedStreams.happy)));
     const full = screen.getByText(/The base model has Dortmund at 61%.*The rest of the squad is unchanged\./);
-    expect(full).toHaveClass("sr-only");
+    expect(full.closest(".sr-only")).not.toBeNull();
   });
 });
 

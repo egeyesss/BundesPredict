@@ -1,4 +1,5 @@
-.caret {
+.caret p:last-of-type::after {
+  content: "";
   display: inline-block;
   width: 0.5ch;
   height: 1em;
@@ -15,7 +16,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .caret {
+  .caret p:last-of-type::after {
     animation: none;
   }
 }

@@ -11,6 +11,7 @@ import type { Team } from "@/lib/api/types";
 import type { AssistantTurn as Turn } from "@/lib/chat/transcript";
 
 import "./chat.css";
+import { Explanation, closeOpenEmphasis } from "./Explanation";
 import { ResultCard } from "./ResultCard";
 import { useTypewriter } from "./use-typewriter";
 
@@ -51,19 +52,19 @@ export function AssistantTurn({ turn, teams, onWritten, onRetry }: AssistantTurn
 
         <StageTicker stages={turn.agent.stages} collapsed={turn.phase !== "working"} />
 
-        {showExplanation && (
-          <p className="m-0 max-w-[65ch] text-bp-text/90">
-            {typing ? (
-              <>
-                <span className="sr-only">{turn.text}</span>
-                <span aria-hidden="true">{visible}</span>
-                <span aria-hidden="true" className="caret" />
-              </>
-            ) : (
-              turn.text
-            )}
-          </p>
-        )}
+        {showExplanation &&
+          (typing ? (
+            <div>
+              <div className="sr-only">
+                <Explanation text={turn.text} />
+              </div>
+              <div aria-hidden="true" className="caret">
+                <Explanation text={closeOpenEmphasis(visible)} />
+              </div>
+            </div>
+          ) : (
+            <Explanation text={turn.text} />
+          ))}
 
         {failed && turn.retryText !== null && (
           <div>
