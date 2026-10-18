@@ -37,7 +37,7 @@ adjustments applied.
 
 ```
 ┌──────────────┐  SSE   ┌─────────────────────────────────┐
-│ Next.js chat │◄──────►│ FastAPI                         │
+│ Next.js chat │◄──────►│ Django (DRF)                    │
 │  prob bars   │        │  ┌───────────────────────────┐  │
 │  heatmap     │        │  │ Agent (tool-calling loop) │  │
 │  adjustments │        │  └────────────┬──────────────┘  │
@@ -58,7 +58,7 @@ adjustments applied.
                         │ team_params, predictions (audit) │
                         └───────────────▲─────────────────┘
                                         │
-                          scripts/refit.py (offline job:
+                          manage.py refit (offline job:
                           ingest → fit → persist params)
 ```
 
@@ -66,7 +66,7 @@ The boundaries are the point. `packages/model/src/bundespredict/model/` is pure:
 DB, no LLM; given parameters and adjustments it returns a distribution, which is
 what makes it unit-testable (parameter recovery, invariants, monotonicity,
 clamping). Serving never fits: the API loads the latest persisted run, and
-training happens offline in `scripts/refit.py`.
+training happens offline in the `refit` management command.
 
 One score matrix `P(home=i, away=j)` drives everything — 1X2, over/under 2.5,
 both-teams-to-score, correct scores are all slices of the same distribution, so
@@ -111,16 +111,16 @@ what it is: an auditable, bounded what-if with an explanation, not an edge.
 
 ```
 packages/model/   the pure model/agent/eval/data library (import name: bundespredict)
-apps/api/         FastAPI service, deployed with infra/Dockerfile.api
 apps/backend/     Django + DRF project (config/, one folder per app, tests/)
 apps/web/         Next.js frontend
 infra/            Dockerfiles and docker-compose.yml
-scripts/          offline jobs (refit, ingest, scrapers, backtest)
-tests/            tests for the library and the FastAPI app
+scripts/          check_backend_gate.sh and the recorder for the web's mock streams
+tests/            tests for the library (model, agent, eval, data parsers)
 ```
 
-The Python code is a uv workspace (`packages/model`, `apps/api`, `apps/backend`)
+The Python code is a uv workspace (`packages/model`, `apps/backend`)
 with a single `uv.lock` at the root; ruff, mypy and pytest are configured there too.
+The library never imports Django; the backend imports it.
 
 ## Running it
 
@@ -132,7 +132,6 @@ POSTGRES_PASSWORD=bundespredict
 POSTGRES_DB=bundespredict
 DATABASE_URL=postgresql://bundespredict:bundespredict@localhost:5433/bundespredict
 ANTHROPIC_API_KEY=sk-ant-...        # the agent; endpoints 503 without it
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 # AGENT_MODEL=claude-sonnet-4-6     # optional; defaults to Haiku for cheap dev
 ```
 
@@ -142,7 +141,7 @@ Then the whole stack:
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-- Web: http://localhost:3000 · FastAPI: http://localhost:8000/health · Django: http://localhost:8001/api/v1/health
+- Web: http://localhost:3000 · Django: http://localhost:8001/api/v1/health
 - Postgres publishes host port **5433** (`POSTGRES_HOST_PORT` to change)
 
 Or without Docker (Postgres still via compose):
@@ -150,37 +149,31 @@ Or without Docker (Postgres still via compose):
 ```bash
 docker compose -f infra/docker-compose.yml up -d db
 uv sync                                            # installs the whole workspace into .venv
-uv run uvicorn app.main:app --app-dir apps/api --reload   # FastAPI on :8000
+uv run apps/backend/manage.py migrate              # create the schema
 uv run apps/backend/manage.py runserver 8001       # Django on :8001
 cd apps/web && npm install && npm run dev          # web on :3000
 ```
 
+The web dev server needs `API_BASE_URL=http://localhost:8001` and `PROXY_SECRET=dev-only-proxy-secret` in `apps/web/.env.local`.
+
 ### Data + a fitted model
 
 ```bash
-uv run python scripts/download_seasons.py --start 2019 --end 2025   # CSVs -> data/raw/
-uv run alembic upgrade head              # create the schema
-uv run python -m bundespredict.data.ingest # upsert CSVs into Postgres (idempotent)
-uv run python scripts/scrape_transfermarkt.py # squads + market values (polite, cached)
-uv run python scripts/refit.py --skip-download # fit + persist serving parameters
-uv run python scripts/download_fixtures.py # upcoming schedule (OpenLigaDB)
+uv run apps/backend/manage.py download_seasons --start 2019 --end 2025   # CSVs -> data/raw/
+uv run apps/backend/manage.py ingest_results                             # upsert CSVs into Postgres (idempotent)
+uv run apps/backend/manage.py scrape_transfermarkt                       # squads + market values (polite, cached)
+uv run apps/backend/manage.py refit --skip-download                      # fit + persist serving parameters
+uv run apps/backend/manage.py download_fixtures                          # upcoming schedule (OpenLigaDB)
 ```
 
-`refit.py` is also the recurring job: run it after a matchday and it re-pulls
-the current season, re-ingests, refits on the full history and persists a new
-versioned run, which serving picks up on the next request. `download_fixtures.py`
-keeps the upcoming schedule mirrored (it's how "predict Dortmund's next game"
-resolves the opponent); run it alongside.
+Each command prints a one-line summary, and a second run over the same data changes no rows.
+`refit` is also the recurring job.
+Run it after a matchday and it re-pulls the current season, re-ingests, refits on the full history and persists a new versioned run, which serving picks up on the next request.
+`refit --as-of 2025-06-01` trains only on matches played before that date.
+`download_fixtures` keeps the upcoming schedule mirrored (it's how "predict Dortmund's next game" resolves the opponent), so run it alongside.
+`.github/workflows/refit.yml` runs both on the schedule.
 
-The same jobs also exist as Django management commands in
-`apps/backend/football/management/commands/`: `ingest_results`, `download_fixtures`,
-`scrape_transfermarkt`, `scrape_understat`, `refit` and `run_backtest`. They write through
-the Django models, print a one-line summary, and a second run over the same data changes
-no rows. `refit --as-of 2025-06-01` trains only on matches played before that date.
-`refit.yml` runs the scripts on the schedule and the commands on a manual run against the
-adoption database.
-
-`scrape_transfermarkt.py` fills two things from Transfermarkt (identifying
+`scrape_transfermarkt` fills two things from Transfermarkt (identifying
 User-Agent, ~1 request per 3s, raw pages cached in `data/tm_cache/` so a
 blocked scrape just keeps serving the last snapshot): the `players` table that
 backs the agent's `lookup_player` tool — any contracted player, with a
@@ -192,7 +185,7 @@ with a bot challenge, which the scraper reports as `ScrapeBlocked` instead of
 caching an empty page. Historical league pages are fetched once and never again.
 
 Per-match expected goals (for the pre-match xG experiment) come from Understat via
-`scripts/scrape_understat.py`. Understat sits behind Cloudflare and only serves its
+`uv run apps/backend/manage.py scrape_understat`. Understat sits behind Cloudflare and only serves its
 data to a real browser, so the scraper drives a local Chromium through Playwright
 (`uv pip install playwright && uv run playwright install chromium`) and caches each season's
 JSON to `data/understat_cache/`; a second pass backfills `matches.home_xg/away_xg`.
@@ -201,9 +194,10 @@ feature was measured and left out (see the honest-results section), so nothing o
 the request path depends on it.
 
 The backtest + calibration report is regenerated with
-`uv run --package bundespredict --extra report python scripts/run_backtest.py`; it now
-also runs the pre-match xG variant so the report carries the goals-only vs xG
+`uv run --with matplotlib apps/backend/manage.py run_backtest --report-dir reports`; it also
+runs the pre-match xG variant so the report carries the goals-only vs xG
 comparison.
+`eval_promoted_prior` scores the squad-value shrinkage prior against league-mean shrinkage on promoted teams' first matches back up.
 
 ## Checks
 
@@ -220,13 +214,11 @@ CI never touches the live API.
 
 ## Deployment
 
-- **Web** → Vercel (project root `apps/web`; `NEXT_PUBLIC_API_BASE_URL` points
-  at the API).
-- **API** → Railway, built from `infra/Dockerfile.api` (`railway.json` wires the
-  Dockerfile + `/health` check). Env: `DATABASE_URL`, `ANTHROPIC_API_KEY`,
-  `AGENT_MODEL`, `WEB_ORIGIN` (the web URL, for CORS).
-- **Postgres** → Neon. Seeded once with `alembic upgrade head` → ingest →
-  `refit.py` → `download_fixtures.py`.
+- **Web** → Vercel (project root `apps/web`; `API_BASE_URL` points at the backend).
+- **Backend** → Railway service `backend`, built from `infra/Dockerfile.backend` and configured in `.railway/railway.ts`.
+  It runs `manage.py migrate` before each deploy and health-checks `/api/v1/health`.
+  It needs `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `PROXY_SECRET` and `DATABASE_URL` to boot; the agent also needs `ANTHROPIC_API_KEY`, and `AGENT_MODEL` picks the production model.
+- **Postgres** → Neon. Django migrations own the schema; seed a fresh database with `migrate` → `download_seasons` → `ingest_results` → `refit` → `download_fixtures`.
 - **Retraining** → a GitHub Actions workflow (`.github/workflows/refit.yml`)
   refits on the latest results and refreshes the fixture schedule every Monday,
   writing a new versioned parameter run that serving picks up on the next
