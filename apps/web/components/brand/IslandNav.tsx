@@ -394,7 +394,7 @@ function MenuAccountCard({ user }: { user: NavUser }) {
       <span className="grid size-10 place-items-center rounded-full bg-bp-surface-2 text-[15px] font-semibold">
         {name.charAt(0).toUpperCase()}
       </span>
-      <span>
+      <span className="min-w-0">
         <span className="menu-who-name">{name}</span>
         <span className="menu-who-email">{user.email}</span>
       </span>

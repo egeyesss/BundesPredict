@@ -37,7 +37,7 @@ export function Composer({ value, onChange, onSend, busy, placeholder, rateLimit
     if (!element) return;
     element.style.height = "auto";
     element.style.height = `${Math.min(MAX_HEIGHT_PX, element.scrollHeight)}px`;
-  }, [value]);
+  }, [value, placeholder]);
 
   function submit() {
     if (canSend) onSend();
@@ -80,7 +80,7 @@ export function Composer({ value, onChange, onSend, busy, placeholder, rateLimit
               onChange(suggestion.prefix);
               textarea.current?.focus();
             }}
-            className="rounded-full border border-bp-border bg-bp-surface-2 px-2.5 py-1.5 text-xs text-bp-text-muted hover:border-bp-text-muted/50 hover:text-bp-text"
+            className="touch-target rounded-full border border-bp-border bg-bp-surface-2 px-2.5 py-1.5 text-xs text-bp-text-muted hover:border-bp-text-muted/50 hover:text-bp-text"
           >
             {suggestion.label}
           </button>

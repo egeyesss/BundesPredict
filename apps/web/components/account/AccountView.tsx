@@ -31,10 +31,10 @@ export function AccountView({ initialMe }: { initialMe: Me }) {
   return (
     <div className="mx-auto grid w-full max-w-[860px] gap-4 px-4 pt-8 pb-16">
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="grid gap-1.5">
+        <div className="grid min-w-0 gap-1.5">
           <Eyebrow>Account</Eyebrow>
-          <h1 className="font-display text-[clamp(36px,5vw,52px)] leading-none font-bold">{displayName({ name: me.name, email: me.email, plan: me.plan })}</h1>
-          <p className="text-bp-text-muted">{me.is_demo ? "Temporary demo account" : me.email}</p>
+          <h1 className="font-display [overflow-wrap:anywhere] text-[clamp(36px,5vw,52px)] leading-none font-bold">{displayName({ name: me.name, email: me.email, plan: me.plan })}</h1>
+          <p className="text-bp-text-muted [overflow-wrap:anywhere]">{me.is_demo ? "Temporary demo account" : me.email}</p>
         </div>
         <Button variant="ghost" size="lg" className="border-bp-border" disabled={pending} onClick={() => void signOut()}>
           Sign out

@@ -8,9 +8,9 @@ import { mockUsage } from "./state";
 export { MOCK_PLAN_COOKIE };
 export const MOCK_CSRF_TOKEN = "mock-csrf-token";
 
-export type MockPlan = "free" | "pro" | "cancelling" | "pastdue" | "demo";
+export type MockPlan = "free" | "pro" | "cancelling" | "pastdue" | "demo" | "nameless";
 
-const MOCK_PLANS: readonly MockPlan[] = ["free", "pro", "cancelling", "pastdue", "demo"];
+const MOCK_PLANS: readonly MockPlan[] = ["free", "pro", "cancelling", "pastdue", "demo", "nameless"];
 
 /**
  * Which mock account a request belongs to; no cookie means signed out. The request's own cookies
@@ -50,6 +50,8 @@ export function meForMockPlan(plan: MockPlan): Me {
       return { ...pro, subscription: { status: "past_due", current_period_end: PRO_RENEWS_AT, cancel_at_period_end: false } };
     case "demo":
       return meFor("demo");
+    case "nameless":
+      return { ...meFor("free"), name: null, email: "a.very.long.email.address.for.layout.testing@subdomain.example-company.com" };
   }
 }
 

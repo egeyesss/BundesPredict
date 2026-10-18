@@ -40,13 +40,13 @@ export function FixtureCard({ fixture, enterDelayMs, className }: FixtureCardPro
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5">
         <span className="flex min-w-0 items-center gap-2">
           <ClubCrest team={home} size={32} />
-          <span className="truncate font-display text-[22px] leading-none font-bold tracking-[0.02em]">{home.short_name}</span>
+          <span className="truncate font-display text-[22px] leading-none font-bold tracking-[0.02em] max-[400px]:text-[20px]">{home.short_name}</span>
         </span>
         <span aria-hidden="true" className="font-mono text-xs font-medium text-bp-text-muted">
           v
         </span>
         <span className="flex min-w-0 items-center justify-end gap-2">
-          <span className="truncate font-display text-[22px] leading-none font-bold tracking-[0.02em]">{away.short_name}</span>
+          <span className="truncate font-display text-[22px] leading-none font-bold tracking-[0.02em] max-[400px]:text-[20px]">{away.short_name}</span>
           <ClubCrest team={away} size={32} />
         </span>
       </div>
@@ -65,7 +65,7 @@ export function FixtureCard({ fixture, enterDelayMs, className }: FixtureCardPro
         </span>
         <Link
           href={`/chat?fixture=${fixture.id}`}
-          className="rounded-sm text-[13px] font-medium text-bp-text hover:text-bp-red-text"
+          className="touch-target rounded-sm text-[13px] font-medium text-bp-text hover:text-bp-red-text"
         >
           Ask about this match →
         </Link>

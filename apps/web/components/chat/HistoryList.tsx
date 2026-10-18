@@ -22,7 +22,7 @@ export function HistoryList() {
       <Link
         href="/chat"
         onClick={history.startNewChat}
-        className="inline-flex items-center gap-2 rounded-md border border-bp-border bg-bp-surface-2 px-3 py-2.5 text-sm font-medium hover:border-bp-text-muted/50"
+        className="inline-flex max-[800px]:min-h-11 items-center gap-2 rounded-md border border-bp-border bg-bp-surface-2 px-3 py-2.5 text-sm font-medium hover:border-bp-text-muted/50"
       >
         <MessageSquarePlus className="size-4" aria-hidden="true" /> New chat
       </Link>

@@ -31,7 +31,7 @@ export function MoreMarkets({ home, away, baseline, adjusted }: MoreMarketsProps
 
   return (
     <details open className="group border-t border-bp-border pt-3">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded text-sm font-medium [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer max-[800px]:-my-2 max-[800px]:min-h-11 list-none items-center justify-between gap-2 rounded text-sm font-medium [&::-webkit-details-marker]:hidden">
         <span>More markets and scorelines</span>
         <span aria-hidden="true" className="font-mono text-xs text-bp-text-muted transition-transform group-open:rotate-180">
           ▾
@@ -54,7 +54,7 @@ export function MoreMarkets({ home, away, baseline, adjusted }: MoreMarketsProps
                   aria-pressed={view === value}
                   onClick={() => setView(value)}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-[13px] whitespace-nowrap text-bp-text-muted",
+                    "touch-target rounded-full px-3 py-1.5 text-[13px] whitespace-nowrap text-bp-text-muted",
                     view === value && "bg-bp-text font-semibold text-bp-bg",
                   )}
                 >

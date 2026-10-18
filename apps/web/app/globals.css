@@ -43,11 +43,34 @@
   }
 }
 
+/* Grows the tap area of a small control to 44px without changing how it looks. */
+@utility touch-target {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 .link-quiet {
   color: var(--bp-text-muted);
   text-decoration: underline;
   text-underline-offset: 3px;
   border-radius: 3px;
+}
+
+@media (max-width: 800px) {
+  .link-quiet {
+    display: inline-block;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
 }
 
 .link-quiet:hover:not(:disabled) {

@@ -20,16 +20,16 @@ export function SiteFooter({ wordmark }: { wordmark: ReactNode }) {
     <footer className="border-t border-bp-border px-[max(16px,env(safe-area-inset-left))]">
       <div className="mx-auto grid max-w-[1160px] gap-5 pt-10 pb-[calc(40px+env(safe-area-inset-bottom,0px))]">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" aria-label="BundesPredict home" className="rounded-md">
+          <Link href="/" aria-label="BundesPredict home" className="touch-target rounded-md">
             {wordmark}
           </Link>
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-[18px] gap-y-2 text-sm text-bp-text-muted">
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-[18px] text-sm text-bp-text-muted">
             {FOOTER_LINKS.map(({ href, label }) => (
-              <Link key={href} href={href} className="hover:text-bp-text">
+              <Link key={href} href={href} className="hover:text-bp-text max-[800px]:min-w-11 max-[800px]:py-3 max-[800px]:text-center">
                 {label}
               </Link>
             ))}
-            <a href={REPO_URL} className="hover:text-bp-text">
+            <a href={REPO_URL} className="hover:text-bp-text max-[800px]:py-3">
               GitHub
             </a>
           </nav>
@@ -42,7 +42,7 @@ export function SiteFooter({ wordmark }: { wordmark: ReactNode }) {
         </div>
         <p className="text-[13px] text-bp-text-muted">
           FAQ and code input by{" "}
-          <a href="https://www.rareui.com" className="underline underline-offset-4 hover:text-bp-text">
+          <a href="https://www.rareui.com" className="touch-target underline underline-offset-4 hover:text-bp-text">
             Rare UI
           </a>
         </p>
