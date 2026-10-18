@@ -60,7 +60,13 @@ def sync_fixtures(rows: list[FixtureRow]) -> ScheduleSummary:
             for f in Fixture.objects.filter(season__in=seasons)
         }
 
-        stale_ids = [f.id for key, f in existing.items() if key not in desired]
+        # A frozen prediction keeps its fixture after the match is played, so it can be resolved.
+        stale_ids = list(
+            Fixture.objects.filter(
+                id__in=[f.id for key, f in existing.items() if key not in desired],
+                frozen_prediction__isnull=True,
+            ).values_list("id", flat=True)
+        )
         to_update: list[Fixture] = []
         to_create: list[Fixture] = []
         unchanged = 0

@@ -9,7 +9,8 @@ from typing import Any
 import pytest
 from django.core.management.base import CommandError
 
-from football.models import Fixture, Team
+from football.models import Fixture, ModelRun, Team
+from track_record.models import FixturePrediction
 
 pytestmark = pytest.mark.django_db
 
@@ -76,6 +77,41 @@ def test_a_rescheduled_kickoff_updates_in_place_and_played_matches_drop_out(
     assert Fixture.objects.get(home__name="Bayern Munich").kickoff_utc.hour == 19
     assert Fixture.objects.get(home__name="Bayern Munich").id == ids_before["Bayern Munich"]
     assert not Fixture.objects.filter(home__name="Borussia Dortmund").exists()
+
+
+def test_a_played_match_with_a_frozen_prediction_is_kept(
+    openligadb: list[dict[str, Any]], run_command: Callable[..., str]
+) -> None:
+    run_command("download_fixtures", season=2026)
+    dortmund_match = Fixture.objects.get(home__name="Borussia Dortmund")
+    run = ModelRun.objects.create(
+        model_type="dixon_coles",
+        xi=0.0018,
+        rho=-0.1,
+        home_adv=0.25,
+        log_likelihood=-1.0,
+        n_matches=100,
+    )
+    FixturePrediction.objects.create(
+        fixture=dortmund_match,
+        model_run=run,
+        p_home=0.5,
+        p_draw=0.25,
+        p_away=0.25,
+        exp_home_goals=1.6,
+        exp_away_goals=1.1,
+        score_grid=[[1.0]],
+        created_at=datetime(2026, 8, 27, tzinfo=UTC),
+    )
+
+    for entry in openligadb:
+        if entry["team1"]["teamName"] == "Borussia Dortmund":
+            entry["matchIsFinished"] = True
+    summary = run_command("download_fixtures", season=2026)
+
+    # The track record resolves frozen predictions after the match, so the fixture stays.
+    assert summary.endswith("(0 created, 0 updated, 0 removed, 2 unchanged)")
+    assert FixturePrediction.objects.get().fixture_id == dortmund_match.id
 
 
 def test_an_empty_payload_leaves_the_schedule_alone(
