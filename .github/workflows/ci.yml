@@ -15,8 +15,8 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - name: Install
-        # One lockfile for the whole workspace: the model library, the FastAPI app
-        # and the Django backend, plus the dev tools.
+        # One lockfile for the whole workspace: the model library and the Django backend,
+        # plus the dev tools.
         run: uv sync --frozen
       - name: Lint (ruff)
         run: uv run --no-sync ruff check .

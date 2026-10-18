@@ -87,7 +87,7 @@ class DjangoAgentPorts:
 
 
 def _team_named(name: str) -> Team:
-    """The team with this canonical name; `ValueError` otherwise, like the SQLAlchemy path."""
+    """The team with this canonical name; `ValueError` otherwise."""
     team = Team.objects.filter(name=name).first()
     if team is None:
         raise ValueError(f"unknown team: {name!r}")

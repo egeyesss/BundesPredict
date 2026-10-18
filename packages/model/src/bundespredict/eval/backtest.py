@@ -3,8 +3,8 @@
 This is the heart of the evaluation and the one place leakage discipline is
 enforced end to end. For each gameweek we take a cutoff at the round's first
 kickoff, fit
-Dixon-Coles on *only* the matches played strictly before it (the loader's
-``as_of_date`` filter guarantees this), shrink low-history teams, persist the run,
+Dixon-Coles on *only* the matches played strictly before it (the history loader's cutoff
+guarantees this), shrink low-history teams, persist the run,
 and predict that round's fixtures. Nothing from on or after the cutoff can touch
 the fit, so every recorded prediction is one the model could genuinely have made
 before the ball was kicked.
@@ -15,29 +15,23 @@ Bet365 opening/closing odds (for the value-bet sim and CLV). Metrics, calibratio
 and betting all run downstream on these records — this module only produces them.
 
 :func:`walk_forward` is the loop itself and takes the database as two callables (load the
-history before a cutoff, persist a run), so the SQLAlchemy session and the Django ORM can
-both drive it. :func:`run_backtest` is the SQLAlchemy binding. ``model/`` and the metric
-functions stay pure.
+history before a cutoff, persist a run), so any store can drive it; the Django backend does.
+``model/`` and the metric functions stay pure.
 """
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
-from typing import Any, Protocol
+from typing import Protocol
 
 import numpy as np
 from numpy.typing import NDArray
-from sqlalchemy import select
-from sqlalchemy.orm import Session, aliased
 
 from bundespredict.data.dated_matches import DatedMatches
 from bundespredict.data.fitting import fit_shrunk_ratings
-from bundespredict.data.loader import load_dated_matches
-from bundespredict.data.models import Match, Team
-from bundespredict.data.params_store import save_ratings
 from bundespredict.eval.market import devig
 from bundespredict.eval.metrics import encode_outcomes
 from bundespredict.model.dixon_coles import TeamRatings
@@ -88,59 +82,6 @@ class BacktestResult:
 
     def __len__(self) -> int:
         return len(self.outcomes)
-
-
-def load_backtest_fixtures(
-    session: Session, seasons: Sequence[str] | None
-) -> list[BacktestFixture]:
-    """Pull every fixture (with names + odds) in date order for the backtest."""
-    home_t = aliased(Team)
-    away_t = aliased(Team)
-    stmt = (
-        select(
-            Match.season,
-            Match.date,
-            home_t.name,
-            away_t.name,
-            Match.ftr,
-            Match.b365_home,
-            Match.b365_draw,
-            Match.b365_away,
-            Match.b365c_home,
-            Match.b365c_draw,
-            Match.b365c_away,
-            Match.avg_home,
-            Match.avg_draw,
-            Match.avg_away,
-            Match.avgc_home,
-            Match.avgc_draw,
-            Match.avgc_away,
-        )
-        .join(home_t, home_t.id == Match.home_id)
-        .join(away_t, away_t.id == Match.away_id)
-        .order_by(Match.date, Match.id)
-    )
-    if seasons is not None:
-        stmt = stmt.where(Match.season.in_(seasons))
-
-    fixtures: list[BacktestFixture] = []
-    # Odds columns are nullable; _odds_ok filters the gaps before they are used.
-    rows: list[Any] = list(session.execute(stmt))
-    for row in rows:
-        fixtures.append(
-            BacktestFixture(
-                season=row[0],
-                match_date=row[1],
-                home=row[2],
-                away=row[3],
-                ftr=row[4],
-                b365_open=(row[5], row[6], row[7]),
-                b365_close=(row[8], row[9], row[10]),
-                avg_open=(row[11], row[12], row[13]),
-                avg_close=(row[14], row[15], row[16]),
-            )
-        )
-    return fixtures
 
 
 def _assign_gameweeks(fixtures: list[BacktestFixture]) -> list[int]:
@@ -307,62 +248,4 @@ def walk_forward(
         run_ids=tuple(rec_run),
         n_skipped_unseen=n_unseen,
         n_skipped_no_odds=n_no_odds,
-    )
-
-
-def run_backtest(
-    session: Session,
-    *,
-    seasons: Sequence[str] | None = None,
-    predict_from_season: str | None = None,
-    xi: float = DEFAULT_XI,
-    shrinkage_k: float = DEFAULT_SHRINKAGE_K,
-    min_train_matches: int = 200,
-    persist: bool = True,
-    squad_values: dict[str, dict[str, int]] | None = None,
-    use_xg: bool = False,
-) -> BacktestResult:
-    """Run the walk-forward backtest and return the out-of-sample records.
-
-    The model is refit once per gameweek on all prior results. Predictions are
-    recorded only from ``predict_from_season`` onward (default: the second season
-    present), so every recorded fit has at least a season of history behind it;
-    earlier gameweeks still run as warmup. Fixtures whose teams have no pre-cutoff
-    history, or that lack odds, are skipped and counted.
-
-    ``squad_values`` (``{season: {canonical team: value_eur}}``, from the
-    Transfermarkt league pages) switches shrinkage to value-implied targets:
-    low-evidence teams get pulled toward what their squad value predicts rather
-    than the league mean. Season pages carry era-correct values, so using the
-    round's own season is leakage-safe in the same coarse sense as the odds:
-    the value was public before the season's matches were played.
-    """
-    fixtures = load_backtest_fixtures(session, seasons)
-
-    def load_history(cutoff: date) -> DatedMatches:
-        return load_dated_matches(session, as_of_date=cutoff)
-
-    def save_run(
-        ratings: TeamRatings, *, xi: float, n_matches: int, as_of_date: date, notes: str
-    ) -> int:
-        return save_ratings(
-            session,
-            ratings,
-            xi=xi,
-            n_matches=n_matches,
-            as_of_date=as_of_date,
-            version="walk-forward",
-            notes=notes,
-        )
-
-    return walk_forward(
-        fixtures,
-        load_history,
-        save_run if persist else None,
-        predict_from_season=predict_from_season,
-        xi=xi,
-        shrinkage_k=shrinkage_k,
-        min_train_matches=min_train_matches,
-        squad_values=squad_values,
-        use_xg=use_xg,
     )

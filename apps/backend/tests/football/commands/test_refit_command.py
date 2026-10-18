@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -18,6 +19,10 @@ pytestmark = pytest.mark.django_db
 
 SEASON_BOUNDARY = date(2024, 6, 1)  # after 2324, before the first 2425 match (2024-08-24)
 TOLERANCE = 1e-9
+RECORDED_FIT = json.loads((Path(__file__).parent / "recorded" / "refit_fit.json").read_text())
+# The optimizer can differ in the last digits between BLAS builds, so the recording is matched
+# far looser than the same-machine comparisons in this file.
+RECORDED_TOLERANCE = 1e-6
 
 
 def params_by_team(run: ModelRun) -> dict[str, tuple[float, float]]:
@@ -191,3 +196,22 @@ def test_refit_without_matches_is_reported(
 ) -> None:
     with pytest.raises(CommandError, match="no matches"):
         run_command("refit", skip_download=True, as_of=today)
+
+
+def test_the_fit_on_the_synthetic_seasons_matches_the_recording(
+    loaded_results: Path, run_command: Callable[..., str], today: date
+) -> None:
+    run_command("refit", skip_download=True, as_of=today)
+
+    run = ModelRun.objects.get()
+    assert (run.model_type, run.n_matches, run.version) == (
+        RECORDED_FIT["model_type"],
+        RECORDED_FIT["n_matches"],
+        RECORDED_FIT["version"],
+    )
+    for field in ("xi", "rho", "home_adv", "xg_coef", "log_likelihood"):
+        assert getattr(run, field) == pytest.approx(RECORDED_FIT[field], abs=RECORDED_TOLERANCE)
+    stored = params_by_team(run)
+    assert stored.keys() == RECORDED_FIT["teams"].keys()
+    for team, (attack, defense) in RECORDED_FIT["teams"].items():
+        assert stored[team] == pytest.approx((attack, defense), abs=RECORDED_TOLERANCE)

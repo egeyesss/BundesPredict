@@ -22,7 +22,6 @@ from tests.agent.fakes import (
     transcript_full,
 )
 
-from app.security import PREDICT_RATE_LIMIT as FASTAPI_RATE_LIMIT
 from bundespredict.agent.loop import LLMClient
 from football.models import Match, ModelRun, Team, TeamParam
 from predictions.models import Prediction
@@ -395,10 +394,6 @@ def test_a_throttled_request_gets_the_contract_error_and_never_reaches_the_agent
     assert response.status_code == 429
     assert response.json()["code"] == "rate_limited"
     assert int(response["Retry-After"]) > 0
-
-
-def test_the_limit_matches_the_one_fastapi_enforces() -> None:
-    assert PREDICT_RATE_LIMIT == FASTAPI_RATE_LIMIT
 
 
 @pytest.mark.usefixtures("serving_run")

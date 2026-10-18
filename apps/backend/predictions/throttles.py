@@ -8,7 +8,7 @@ from django.core.cache.backends.db import DatabaseCache
 from rest_framework.request import Request
 from rest_framework.throttling import SimpleRateThrottle
 
-# Same budget as FastAPI's slowapi limit: every request runs the agent, which costs tokens.
+# Every request runs the agent, which costs tokens.
 PREDICT_RATE_LIMIT = "10/hour"
 
 THROTTLE_CACHE_TABLE = "predict_throttle_cache"

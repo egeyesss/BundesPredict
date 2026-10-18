@@ -1,4 +1,4 @@
-"""Models for the tables Alembic created, adopted in place.
+"""Models for the football tables, adopted in place from the schema they started with.
 
 Table, column, index and constraint names match the live schema exactly (`migrate
 --fake-initial` trusts that), which is why indexes and unique constraints are declared by name

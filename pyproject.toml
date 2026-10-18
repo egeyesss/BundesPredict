@@ -5,7 +5,6 @@ version = "0.0.0"
 requires-python = ">=3.12"
 dependencies = [
     "bundespredict[model,agent]",
-    "bundespredict-api",
     "bundespredict-backend",
 ]
 
@@ -26,17 +25,16 @@ dev = [
 package = false
 
 [tool.uv.workspace]
-members = ["packages/model", "apps/api", "apps/backend"]
+members = ["packages/model", "apps/backend"]
 
 [tool.uv.sources]
 bundespredict = { workspace = true }
-bundespredict-api = { workspace = true }
 bundespredict-backend = { workspace = true }
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-src = ["packages/model/src", "apps/api", "apps/backend", "tests"]
+src = ["packages/model/src", "apps/backend", "tests"]
 # Exploratory notebooks follow notebook idioms (per-cell imports, %magics) that
 # clash with the strict lint rules; they aren't part of the app surface.
 extend-exclude = ["notebooks"]
@@ -48,7 +46,7 @@ select = ["E", "F", "I", "UP", "B", "C4"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["packages/model/src", "apps/api", "apps/backend", "tests"]
+files = ["packages/model/src", "apps/backend", "tests"]
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 mypy_path = "apps/backend"
 
@@ -65,5 +63,5 @@ django_settings_module = "config.settings.test"
 [tool.pytest.ini_options]
 testpaths = ["tests", "apps/backend/tests"]
 addopts = "-q --import-mode=importlib"
-pythonpath = [".", "apps/api", "apps/backend"]
+pythonpath = [".", "apps/backend"]
 DJANGO_SETTINGS_MODULE = "config.settings.test"

@@ -1,0 +1,224 @@
+[
+ {
+  "tool": "get_team_form",
+  "input": {
+   "team": "Borussia Dortmund"
+  },
+  "payload": {
+   "team": "Borussia Dortmund",
+   "played": 3,
+   "record": "1-1-1",
+   "points": 4,
+   "goals_for": 3,
+   "goals_against": 4,
+   "recent": [
+    {
+     "date": "2026-09-18",
+     "opponent": "RB Leipzig",
+     "venue": "H",
+     "score": "0-3",
+     "result": "L"
+    },
+    {
+     "date": "2026-09-17",
+     "opponent": "RB Leipzig",
+     "venue": "A",
+     "score": "1-1",
+     "result": "D"
+    },
+    {
+     "date": "2026-09-16",
+     "opponent": "RB Leipzig",
+     "venue": "H",
+     "score": "2-0",
+     "result": "W"
+    }
+   ]
+  },
+  "is_error": false
+ },
+ {
+  "tool": "get_team_form",
+  "input": {
+   "team": "Borussia Dortmund",
+   "n": 1
+  },
+  "payload": {
+   "team": "Borussia Dortmund",
+   "played": 1,
+   "record": "0-0-1",
+   "points": 0,
+   "goals_for": 0,
+   "goals_against": 3,
+   "recent": [
+    {
+     "date": "2026-09-18",
+     "opponent": "RB Leipzig",
+     "venue": "H",
+     "score": "0-3",
+     "result": "L"
+    }
+   ]
+  },
+  "is_error": false
+ },
+ {
+  "tool": "get_team_form",
+  "input": {
+   "team": "Atlantis FC"
+  },
+  "payload": {
+   "error": "unknown team: 'Atlantis FC'"
+  },
+  "is_error": true
+ },
+ {
+  "tool": "get_recent_results",
+  "input": {},
+  "payload": {
+   "results": [
+    {
+     "date": "2026-09-18",
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig",
+     "score": "0-3"
+    },
+    {
+     "date": "2026-09-17",
+     "home": "RB Leipzig",
+     "away": "Borussia Dortmund",
+     "score": "1-1"
+    },
+    {
+     "date": "2026-09-16",
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig",
+     "score": "2-0"
+    }
+   ]
+  },
+  "is_error": false
+ },
+ {
+  "tool": "get_recent_results",
+  "input": {
+   "n": 2
+  },
+  "payload": {
+   "results": [
+    {
+     "date": "2026-09-18",
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig",
+     "score": "0-3"
+    },
+    {
+     "date": "2026-09-17",
+     "home": "RB Leipzig",
+     "away": "Borussia Dortmund",
+     "score": "1-1"
+    }
+   ]
+  },
+  "is_error": false
+ },
+ {
+  "tool": "get_upcoming_fixtures",
+  "input": {},
+  "payload": {
+   "fixtures": [
+    {
+     "kickoff_utc": "2026-10-19T13:00:00Z",
+     "matchday": 1,
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig"
+    },
+    {
+     "kickoff_utc": "2026-10-26T13:00:00Z",
+     "matchday": 2,
+     "home": "RB Leipzig",
+     "away": "Borussia Dortmund"
+    }
+   ]
+  },
+  "is_error": false
+ },
+ {
+  "tool": "get_upcoming_fixtures",
+  "input": {
+   "team": "RB Leipzig"
+  },
+  "payload": {
+   "fixtures": [
+    {
+     "kickoff_utc": "2026-10-19T13:00:00Z",
+     "matchday": 1,
+     "home": "Borussia Dortmund",
+     "away": "RB Leipzig"
+    },
+    {
+     "kickoff_utc": "2026-10-26T13:00:00Z",
+     "matchday": 2,
+     "home": "RB Leipzig",
+     "away": "Borussia Dortmund"
+    }
+   ]
+  },
+  "is_error": false
+ },
+ {
+  "tool": "get_upcoming_fixtures",
+  "input": {
+   "team": "Atlantis FC"
+  },
+  "payload": {
+   "error": "unknown team: 'Atlantis FC'"
+  },
+  "is_error": true
+ },
+ {
+  "tool": "lookup_player",
+  "input": {
+   "name": "Serhou Guirassy"
+  },
+  "payload": {
+   "found": true,
+   "name": "Serhou Guirassy",
+   "team": "Borussia Dortmund",
+   "role": "Forward",
+   "is_penalty_taker": true,
+   "importance": "medium",
+   "market_value_eur": 60000000,
+   "scraped_at": "2026-10-01"
+  },
+  "is_error": false
+ },
+ {
+  "tool": "lookup_player",
+  "input": {
+   "name": "guirassy"
+  },
+  "payload": {
+   "found": true,
+   "name": "Serhou Guirassy",
+   "team": "Borussia Dortmund",
+   "role": "Forward",
+   "is_penalty_taker": true,
+   "importance": "medium",
+   "market_value_eur": 60000000,
+   "scraped_at": "2026-10-01"
+  },
+  "is_error": false
+ },
+ {
+  "tool": "lookup_player",
+  "input": {
+   "name": "Nobody Atall"
+  },
+  "payload": {
+   "found": false,
+   "name": "Nobody Atall"
+  },
+  "is_error": false
+ }
+]

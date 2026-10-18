@@ -2,9 +2,7 @@
 
 The agent never opens a database session. It asks these protocols for the facts it grounds claims
 in (form, results, fixtures, players), for the serving ratings, and for somewhere to write the
-audit row. The FastAPI app satisfies them through SQLAlchemy
-(:class:`bundespredict.data.agent_ports.SqlAlchemyPorts`); the Django backend satisfies them
-through its ORM.
+audit row. The Django backend satisfies them through its ORM.
 
 All methods are synchronous. A caller on an event loop runs the whole agent step in a worker
 thread rather than awaiting individual ports.

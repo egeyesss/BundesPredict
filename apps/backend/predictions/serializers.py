@@ -1,8 +1,8 @@
 """Request, response and stream-event shapes for the agent endpoint.
 
-`PredictResponseSerializer` mirrors the FastAPI `PredictResponse` field for field so the existing
-result components keep working. The `*Frame` serializers describe the decoded SSE frames and exist
-only so the OpenAPI schema carries every event payload; nothing renders through them.
+`PredictResponseSerializer` is the agent's answer as the result components read it. The `*Frame`
+serializers describe the decoded SSE frames and exist only so the OpenAPI schema carries every
+event payload; nothing renders through them.
 """
 
 from __future__ import annotations

@@ -1,19 +1,18 @@
-"""Tests for the player lookup: seeded JSON fallback and the DB-backed path."""
+"""Tests for the player lookup: seeded JSON fallback and the data-port path."""
 
 from __future__ import annotations
 
 from datetime import datetime
 
 import numpy as np
-from sqlalchemy.orm import Session
 
 from bundespredict.agent.players import PlayerInfo, lookup_player
 from bundespredict.agent.service import PredictionService
 from bundespredict.agent.tools import player_to_dict
-from bundespredict.data.agent_ports import SqlAlchemyPorts
-from bundespredict.data.players import ingest_squads
-from bundespredict.data.transfermarkt import LeagueClub, SquadPlayer
+from bundespredict.data.players import PlayerRow
 from bundespredict.model.dixon_coles import TeamRatings
+
+from .fakes import StaticPorts
 
 
 def test_lookup_by_full_name() -> None:
@@ -55,7 +54,7 @@ def test_all_seeded_players_validate() -> None:
 SCRAPED = datetime(2026, 7, 5, 8, 0)
 
 
-def _service(session: Session) -> PredictionService:
+def _service(player_rows: list[PlayerRow]) -> PredictionService:
     ratings = TeamRatings(
         teams=("Bayern Munich",),
         attack=np.array([0.0]),
@@ -64,38 +63,19 @@ def _service(session: Session) -> PredictionService:
         rho=-0.1,
         log_likelihood=0.0,
     )
-    return PredictionService(ratings, ports=SqlAlchemyPorts(session))
+    return PredictionService(ratings, ports=StaticPorts(player_rows=player_rows))
 
 
-def _ingest_bayern(session: Session) -> None:
-    squad = [
-        SquadPlayer(
-            tm_id=1, name="Harry Kane", position="Centre-Forward", market_value_eur=90_000_000
-        ),
-    ] + [
-        SquadPlayer(
-            tm_id=10 + i,
-            name=f"Depth Player {i}",
-            position="Centre-Back",
-            market_value_eur=2_000_000,
-        )
-        for i in range(19)
+def _bayern_rows() -> list[PlayerRow]:
+    star: PlayerRow = ("Harry Kane", "Bayern Munich", "Centre-Forward", 90_000_000, SCRAPED)
+    depth: list[PlayerRow] = [
+        (f"Depth Player {i}", "Bayern Munich", "Centre-Back", 2_000_000, SCRAPED) for i in range(19)
     ]
-    clubs = [
-        LeagueClub(
-            tm_id=27,
-            slug="fc-bayern-munchen",
-            name="Bayern Munich",
-            season="2526",
-            squad_value_eur=900_000_000,
-        )
-    ]
-    ingest_squads(session, clubs, {27: squad}, scraped_at=SCRAPED)
+    return [star, *depth]
 
 
-def test_service_lookup_answers_from_db_with_penalty_overlay(session: Session) -> None:
-    _ingest_bayern(session)
-    player = _service(session).lookup_player("Kane")
+def test_service_lookup_answers_from_the_ports_with_penalty_overlay() -> None:
+    player = _service(_bayern_rows()).lookup_player("Kane")
     assert player is not None
     assert player.team == "Bayern Munich"  # canonical DB name, not the seed's spelling
     assert player.role == "Centre-Forward"
@@ -106,16 +86,15 @@ def test_service_lookup_answers_from_db_with_penalty_overlay(session: Session) -
     assert player.is_penalty_taker is True
 
 
-def test_service_lookup_db_player_not_in_seed(session: Session) -> None:
-    _ingest_bayern(session)
-    player = _service(session).lookup_player("Depth Player 3")
+def test_service_lookup_stored_player_not_in_seed() -> None:
+    player = _service(_bayern_rows()).lookup_player("Depth Player 3")
     assert player is not None
     assert player.importance == "low"
     assert player.is_penalty_taker is False
 
 
-def test_service_falls_back_to_seed_when_table_empty(session: Session) -> None:
-    player = _service(session).lookup_player("Florian Wirtz")
+def test_service_falls_back_to_seed_when_table_empty() -> None:
+    player = _service([]).lookup_player("Florian Wirtz")
     assert player is not None
     assert player.scraped_at is None  # the seed carries no snapshot age
 

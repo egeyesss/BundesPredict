@@ -1,7 +1,7 @@
 """Fit-and-shrink step shared by the serving refit and the walk-forward backtest.
 
 Pure: arrays in, ratings out. Reading matches and persisting the result belong to the
-caller, so the same recipe runs against the SQLAlchemy session and the Django ORM.
+caller, so the same recipe runs against any store.
 """
 
 from __future__ import annotations

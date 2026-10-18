@@ -1,23 +1,22 @@
-"""The Django ports hand the agent exactly what the SQLAlchemy ports do, tool by tool."""
+"""The Django ports hand the agent the recorded grounding facts, tool by tool."""
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+import json
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
-from django.db import connection
-from sqlalchemy import Engine
 
+from bundespredict.agent.adjustments import Adjustment
 from bundespredict.agent.ports import AgentDataPorts
 from bundespredict.agent.service import PredictionService
 from bundespredict.agent.tools import dispatch
-from bundespredict.data.agent_ports import SqlAlchemyPorts
-from bundespredict.data.db import make_engine, make_session_factory
 from bundespredict.model.dixon_coles import TeamRatings
 from football.models import Fixture, Match, ModelRun, Player, Team, TeamParam
+from predictions.models import Prediction
 from predictions.ports import DjangoAgentPorts
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -26,18 +25,11 @@ HOME = "Borussia Dortmund"
 AWAY = "RB Leipzig"
 TODAY = date(2026, 10, 16)
 
-TOOL_CALLS: list[tuple[str, dict[str, Any]]] = [
-    ("get_team_form", {"team": HOME}),
-    ("get_team_form", {"team": HOME, "n": 1}),
-    ("get_team_form", {"team": "Atlantis FC"}),
-    ("get_recent_results", {}),
-    ("get_recent_results", {"n": 2}),
-    ("get_upcoming_fixtures", {}),
-    ("get_upcoming_fixtures", {"team": AWAY}),
-    ("get_upcoming_fixtures", {"team": "Atlantis FC"}),
-    ("lookup_player", {"name": "Serhou Guirassy"}),
-    ("lookup_player", {"name": "guirassy"}),
-    ("lookup_player", {"name": "Nobody Atall"}),
+RECORDED = json.loads((Path(__file__).parent / "recorded" / "agent_port_outcomes.json").read_text())
+# An undated service reads the schedule from the real today, so only the dated run can use the
+# recording for fixtures.
+CASES = [(recorded, TODAY) for recorded in RECORDED] + [
+    (recorded, None) for recorded in RECORDED if recorded["tool"] != "get_upcoming_fixtures"
 ]
 
 
@@ -87,17 +79,6 @@ def seeded() -> None:
         )
 
 
-@pytest.fixture
-def engine() -> Iterator[Engine]:
-    db = connection.settings_dict
-    url = (
-        f"postgresql+psycopg://{db['USER']}:{db['PASSWORD']}@{db['HOST']}:{db['PORT']}/{db['NAME']}"
-    )
-    engine = make_engine(url)
-    yield engine
-    engine.dispose()
-
-
 def _service(ports: AgentDataPorts, as_of: date | None) -> PredictionService:
     ratings = TeamRatings(
         teams=(HOME, AWAY),
@@ -111,30 +92,29 @@ def _service(ports: AgentDataPorts, as_of: date | None) -> PredictionService:
 
 
 @pytest.mark.usefixtures("seeded")
-@pytest.mark.parametrize("as_of", [TODAY, None], ids=["dated", "undated"])
-@pytest.mark.parametrize(("tool", "tool_input"), TOOL_CALLS)
-def test_tool_outcome_is_the_same_through_both_ports(
-    engine: Engine, tool: str, tool_input: dict[str, Any], as_of: date | None
-) -> None:
-    with make_session_factory(engine)() as session:
-        expected = dispatch(tool, tool_input, _service(SqlAlchemyPorts(session), as_of))
-    actual = dispatch(tool, tool_input, _service(DjangoAgentPorts(), as_of))
+@pytest.mark.parametrize(
+    ("recorded", "as_of"),
+    CASES,
+    ids=[f"{r['tool']}-{r['input']}-{'dated' if a else 'undated'}" for r, a in CASES],
+)
+def test_tool_outcome_matches_the_recording(recorded: dict[str, Any], as_of: date | None) -> None:
+    outcome = dispatch(recorded["tool"], recorded["input"], _service(DjangoAgentPorts(), as_of))
 
-    assert actual == expected
-
-
-@pytest.mark.usefixtures("seeded")
-def test_grounding_context_is_the_same_through_both_ports(engine: Engine) -> None:
-    with make_session_factory(engine)() as session:
-        expected = _service(SqlAlchemyPorts(session), TODAY).context
-
-    assert _service(DjangoAgentPorts(), TODAY).context == expected
-    assert expected.data_through is not None
+    assert outcome.payload == recorded["payload"]
+    assert outcome.is_error == recorded["is_error"]
 
 
 @pytest.mark.usefixtures("seeded")
-def test_the_seed_gives_the_comparisons_something_to_compare(engine: Engine) -> None:
-    """A parity test over two empty payloads would pass without proving anything."""
+def test_grounding_context_reports_the_latest_stored_result() -> None:
+    context = _service(DjangoAgentPorts(), TODAY).context
+
+    assert context.today == TODAY
+    assert context.data_through == date(2026, 9, 18)
+
+
+@pytest.mark.usefixtures("seeded")
+def test_the_seed_gives_the_recording_something_to_say() -> None:
+    """Guards the recording against being re-made from an empty seed."""
     service = _service(DjangoAgentPorts(), TODAY)
 
     form = dispatch("get_team_form", {"team": HOME}, service).payload
@@ -220,3 +200,40 @@ def test_saving_a_prediction_for_an_unstored_team_is_a_value_error() -> None:
             query="q",
             match_date=None,
         )
+
+
+def test_a_clamped_magnitude_is_stored_as_the_effective_one() -> None:
+    Team.objects.create(name=HOME)
+    Team.objects.create(name=AWAY)
+    run = ModelRun.objects.create(
+        model_type="dixon_coles",
+        version="serve",
+        xi=0.0,
+        rho=0.0,
+        home_adv=0.0,
+        log_likelihood=0.0,
+        n_matches=1,
+    )
+    service = _service(DjangoAgentPorts(), None)
+    absurd = Adjustment(
+        factor="player_out",
+        team="home",
+        target="home_attack",
+        magnitude_xg=-5.0,
+        confidence="high",
+        rationale="absurd",
+    )
+    service.predict_with_context(HOME, AWAY, [absurd])
+    assert service.last_prediction is not None
+
+    prediction_id = DjangoAgentPorts().save(
+        model_run_id=run.id,
+        record=service.last_prediction,
+        explanation=None,
+        query=None,
+        match_date=None,
+    )
+
+    logged = Prediction.objects.get(pk=prediction_id).adjustments_json[0]
+    assert logged["requested_magnitude_xg"] == -5.0
+    assert logged["effective_magnitude_xg"] == -0.6

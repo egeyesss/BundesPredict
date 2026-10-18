@@ -1,4 +1,4 @@
-# One-command local stack: Postgres + FastAPI + Django + Next.js.
+# One-command local stack: Postgres + Django + Next.js.
 # Run from the repo root:  docker compose -f infra/docker-compose.yml up --build
 # (or add `COMPOSE_FILE=infra/docker-compose.yml` to your .env)
 
@@ -21,28 +21,20 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile.api
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-bundespredict}:${POSTGRES_PASSWORD:-bundespredict}@db:5432/${POSTGRES_DB:-bundespredict}
-      # Empty default keeps the stack bootable without a key; the prediction
-      # endpoints then answer 503 until one is configured.
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-    ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-
   backend:
     build:
       context: ..
       dockerfile: infra/Dockerfile.backend
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
+      # The web container reaches Django as backend:8001, which dev settings do not allow by default.
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      PROXY_SECRET: ${PROXY_SECRET:-dev-only-proxy-secret}
       DATABASE_URL: postgresql://${POSTGRES_USER:-bundespredict}:${POSTGRES_PASSWORD:-bundespredict}@db:5432/${POSTGRES_DB:-bundespredict}
+      # Empty defaults keep the stack bootable without a key; the prediction endpoints then
+      # answer 503 until one is configured.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AGENT_MODEL: ${AGENT_MODEL:-}
     ports:
       - "8001:8001"
     depends_on:
@@ -54,11 +46,12 @@ services:
       context: ..
       dockerfile: infra/Dockerfile.web
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      API_BASE_URL: http://backend:8001
+      PROXY_SECRET: ${PROXY_SECRET:-dev-only-proxy-secret}
     ports:
       - "3000:3000"
     depends_on:
-      - api
+      - backend
 
 volumes:
   pgdata:

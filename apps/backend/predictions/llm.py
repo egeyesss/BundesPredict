@@ -28,5 +28,5 @@ def get_llm_client() -> LLMClient:
 
 
 def agent_model() -> str:
-    """Haiku unless `AGENT_MODEL` names the production model, as in the FastAPI app."""
+    """Haiku unless `AGENT_MODEL` names the production model."""
     return os.environ.get("AGENT_MODEL") or DEV_MODEL
