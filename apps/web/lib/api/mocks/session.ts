@@ -1,9 +1,11 @@
+import { MOCK_PLAN_COOKIE } from "@/lib/auth/session-cookie";
+
 import { readCookie } from "../client";
 import type { Me } from "../types";
 import { meFor } from "./data";
 import { mockUsage } from "./state";
 
-export const MOCK_PLAN_COOKIE = "bp_mock_plan";
+export { MOCK_PLAN_COOKIE };
 export const MOCK_CSRF_TOKEN = "mock-csrf-token";
 
 export type MockPlan = "free" | "pro" | "cancelling" | "pastdue" | "demo";
