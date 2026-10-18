@@ -31,6 +31,10 @@ services:
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
       PROXY_SECRET: ${PROXY_SECRET:-dev-only-proxy-secret}
       DATABASE_URL: postgresql://${POSTGRES_USER:-bundespredict}:${POSTGRES_PASSWORD:-bundespredict}@db:5432/${POSTGRES_DB:-bundespredict}
+      # Empty defaults keep the stack bootable without a key; the prediction endpoints then
+      # answer 503 until one is configured.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AGENT_MODEL: ${AGENT_MODEL:-}
     ports:
       - "8001:8001"
     depends_on:
