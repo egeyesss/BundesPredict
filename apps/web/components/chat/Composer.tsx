@@ -71,7 +71,7 @@ export function Composer({ value, onChange, onSend, busy, placeholder, rateLimit
         </Banner>
       )}
 
-      <div role="group" aria-label="Start from" className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label="Start from" className="flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden">
         {SUGGESTIONS.map((suggestion) => (
           <button
             key={suggestion.label}

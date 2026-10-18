@@ -23,7 +23,7 @@ export function AppShell({ children, wordmark = <ShellWordmark /> }: AppShellPro
       </a>
       <div className="flex min-h-dvh flex-col">
         <SessionIslandNav wordmark={wordmark} />
-        <main id="main" className="flex flex-1 flex-col pt-[76px]">
+        <main id="main" className="flex flex-1 flex-col pt-[calc(76px+env(safe-area-inset-top,0px))]">
           {children}
         </main>
         <SiteFooter wordmark={wordmark} />

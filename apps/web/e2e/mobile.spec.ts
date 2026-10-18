@@ -52,6 +52,17 @@ test.describe("phone layout at 375px", () => {
     expect((await composer.boundingBox())?.height).toBeLessThan(60);
   });
 
+  test("keeps the composer above the on-screen keyboard", async ({ page }) => {
+    await signInAs(page, "free");
+    await page.setViewportSize({ width: 375, height: 470 });
+    await page.goto("/chat?fixture=803");
+    const composer = page.getByRole("textbox", { name: "Message" });
+    await expect(composer).toBeVisible();
+
+    const box = await composer.boundingBox();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(470);
+  });
+
   test("a long email does not push the account page or the menu card off screen", async ({ page }) => {
     await signInAs(page, "nameless");
     await page.goto("/account");
