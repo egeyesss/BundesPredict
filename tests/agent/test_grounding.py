@@ -2,7 +2,7 @@
 
 These are the guards against the "I don't have access to a calendar" failure
 mode: the system prompt must carry today's date and data freshness, and the
-two league-level tools must answer from the database.
+two league-level tools must answer from the data ports.
 """
 
 from __future__ import annotations
@@ -10,15 +10,15 @@ from __future__ import annotations
 from datetime import date, datetime
 
 import numpy as np
-from sqlalchemy.orm import Session
 
 from bundespredict.agent.prompt import build_system_prompt
 from bundespredict.agent.service import GroundingContext, PredictionService
 from bundespredict.agent.tools import dispatch
-from bundespredict.data.agent_ports import SqlAlchemyPorts
-from bundespredict.data.fixtures import FixtureRow, ingest_fixtures
-from bundespredict.data.models import Match, Team
+from bundespredict.data.fixtures import UpcomingFixture
+from bundespredict.data.results import ResultRow
 from bundespredict.model.dixon_coles import TeamRatings
+
+from .fakes import StaticPorts
 
 HOME = "Borussia Dortmund"
 AWAY = "RB Leipzig"
@@ -35,43 +35,33 @@ def _ratings() -> TeamRatings:
     )
 
 
-def _seed(session: Session) -> None:
-    dortmund = Team(name=HOME)
-    leipzig = Team(name=AWAY)
-    session.add_all([dortmund, leipzig])
-    session.flush()
-    session.add(
-        Match(
-            season="2526",
-            date=date(2026, 5, 16),
-            home_id=dortmund.id,
-            away_id=leipzig.id,
-            home_goals=2,
-            away_goals=0,
-            ftr="H",
-        )
-    )
-    session.commit()
-    ingest_fixtures(
-        session,
-        [
-            FixtureRow(
-                season="2627",
-                matchday=1,
+def _service(as_of: date) -> PredictionService:
+    ports = StaticPorts(
+        results=(
+            ResultRow(
+                date=date(2026, 5, 16),
+                season="2526",
+                home=HOME,
+                away=AWAY,
+                home_goals=2,
+                away_goals=0,
+            ),
+        ),
+        fixtures=(
+            UpcomingFixture(
                 kickoff_utc=datetime(2026, 8, 29, 13, 30),
-                home="Borussia Dortmund",
+                matchday=1,
+                season="2627",
+                home=HOME,
                 away="Hamburger SV",
-            )
-        ],
+            ),
+        ),
     )
+    return PredictionService(_ratings(), ports=ports, as_of_date=as_of)
 
 
-def test_context_reports_today_and_data_freshness(session: Session) -> None:
-    _seed(session)
-    service = PredictionService(
-        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
-    )
-    assert service.context == GroundingContext(
+def test_context_reports_today_and_data_freshness() -> None:
+    assert _service(date(2026, 7, 4)).context == GroundingContext(
         today=date(2026, 7, 4), data_through=date(2026, 5, 16)
     )
 
@@ -88,12 +78,8 @@ def test_prompt_carries_dates_and_the_break_hint() -> None:
     assert "break" not in build_system_prompt((HOME, AWAY), mid_season)
 
 
-def test_dispatch_recent_results(session: Session) -> None:
-    _seed(session)
-    service = PredictionService(
-        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
-    )
-    out = dispatch("get_recent_results", {"n": 5}, service)
+def test_dispatch_recent_results() -> None:
+    out = dispatch("get_recent_results", {"n": 5}, _service(date(2026, 7, 4)))
     assert not out.is_error
     assert out.payload["results"][0] == {
         "date": "2026-05-16",
@@ -103,12 +89,8 @@ def test_dispatch_recent_results(session: Session) -> None:
     }
 
 
-def test_dispatch_upcoming_fixtures_resolves_the_next_game(session: Session) -> None:
-    _seed(session)
-    service = PredictionService(
-        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
-    )
-    out = dispatch("get_upcoming_fixtures", {"team": HOME}, service)
+def test_dispatch_upcoming_fixtures_resolves_the_next_game() -> None:
+    out = dispatch("get_upcoming_fixtures", {"team": HOME}, _service(date(2026, 7, 4)))
     assert not out.is_error
     fixture = out.payload["fixtures"][0]
     assert fixture["home"] == HOME
@@ -117,21 +99,13 @@ def test_dispatch_upcoming_fixtures_resolves_the_next_game(session: Session) -> 
     assert fixture["kickoff_utc"] == "2026-08-29T13:30:00Z"
 
 
-def test_dispatch_upcoming_fixtures_empty_when_no_schedule(session: Session) -> None:
-    _seed(session)
+def test_dispatch_upcoming_fixtures_empty_when_no_schedule() -> None:
     # A service dated after the only stored kickoff sees an empty schedule.
-    service = PredictionService(
-        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 9, 1)
-    )
-    out = dispatch("get_upcoming_fixtures", {}, service)
+    out = dispatch("get_upcoming_fixtures", {}, _service(date(2026, 9, 1)))
     assert not out.is_error
     assert out.payload["fixtures"] == []
 
 
-def test_dispatch_upcoming_fixtures_unknown_team_is_recoverable(session: Session) -> None:
-    _seed(session)
-    service = PredictionService(
-        _ratings(), ports=SqlAlchemyPorts(session), as_of_date=date(2026, 7, 4)
-    )
-    out = dispatch("get_upcoming_fixtures", {"team": "Atlantis FC"}, service)
+def test_dispatch_upcoming_fixtures_unknown_team_is_recoverable() -> None:
+    out = dispatch("get_upcoming_fixtures", {"team": "Atlantis FC"}, _service(date(2026, 7, 4)))
     assert out.is_error

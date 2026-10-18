@@ -9,8 +9,14 @@ mirror real tool-call sequences — the "cassettes" the loop is tested against.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from typing import Any
+
+from bundespredict.data.fixtures import UpcomingFixture
+from bundespredict.data.form import TeamForm
+from bundespredict.data.players import DbPlayer, PlayerRow, pick_player
+from bundespredict.data.results import ResultRow
 
 
 @dataclass
@@ -142,3 +148,42 @@ def transcript_refusal(home: str, away: str) -> list[FakeResponse]:
             stop_reason="end_turn",
         ),
     ]
+
+
+@dataclass
+class StaticPorts:
+    """Agent data ports over lists held in memory, with the same contracts as the Django ones."""
+
+    results: tuple[ResultRow, ...] = ()
+    fixtures: tuple[UpcomingFixture, ...] = ()
+    player_rows: list[PlayerRow] = field(default_factory=list)
+    forms: dict[str, TeamForm] = field(default_factory=dict)
+
+    def team_form(self, team: str, *, as_of_date: date | None, n: int) -> TeamForm:
+        if team not in self.forms:
+            raise ValueError(f"unknown team: {team!r}")
+        return self.forms[team]
+
+    def latest_result_date(self) -> date | None:
+        return max((r.date for r in self.results), default=None)
+
+    def recent_results(self, *, as_of_date: date | None, n: int) -> tuple[ResultRow, ...]:
+        eligible = [r for r in self.results if as_of_date is None or r.date < as_of_date]
+        return tuple(sorted(eligible, key=lambda r: r.date, reverse=True)[:n])
+
+    def find_player(self, query: str) -> DbPlayer | None:
+        return pick_player(self.player_rows, query)
+
+    def upcoming_fixtures(
+        self, *, team: str | None, on_or_after: date, n: int
+    ) -> tuple[UpcomingFixture, ...]:
+        known = {name for f in self.fixtures for name in (f.home, f.away)}
+        if team is not None and team not in known:
+            raise ValueError(f"unknown team: {team!r}")
+        upcoming = [
+            f
+            for f in self.fixtures
+            if f.kickoff_utc >= datetime.combine(on_or_after, datetime.min.time())
+            and (team is None or team in (f.home, f.away))
+        ]
+        return tuple(sorted(upcoming, key=lambda f: f.kickoff_utc)[:n])

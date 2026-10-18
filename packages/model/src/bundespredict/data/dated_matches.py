@@ -1,7 +1,7 @@
 """Match arrays for the pure engine, independent of where the rows came from.
 
-The SQLAlchemy loader and the Django training service both turn database rows into
-:class:`DatedMatches`; keeping the array building here means the two cannot drift.
+The Django training service turns database rows into :class:`DatedMatches`; the array
+building lives here so it needs no database.
 Team identifiers are the canonical team names, contiguously indexed over whatever teams
 appear in the slice.
 """
@@ -22,7 +22,7 @@ from bundespredict.model.xg_offset import current_team_xg_gaps, rolling_xg_offse
 
 @dataclass(frozen=True)
 class MatchRecord:
-    """One played match as the loaders hand it over, teams by canonical name."""
+    """One played match as the loader hands it over, teams by canonical name."""
 
     home: str
     away: str

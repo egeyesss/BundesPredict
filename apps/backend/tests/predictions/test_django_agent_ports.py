@@ -10,11 +10,13 @@ from typing import Any
 import numpy as np
 import pytest
 
+from bundespredict.agent.adjustments import Adjustment
 from bundespredict.agent.ports import AgentDataPorts
 from bundespredict.agent.service import PredictionService
 from bundespredict.agent.tools import dispatch
 from bundespredict.model.dixon_coles import TeamRatings
 from football.models import Fixture, Match, ModelRun, Player, Team, TeamParam
+from predictions.models import Prediction
 from predictions.ports import DjangoAgentPorts
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -198,3 +200,40 @@ def test_saving_a_prediction_for_an_unstored_team_is_a_value_error() -> None:
             query="q",
             match_date=None,
         )
+
+
+def test_a_clamped_magnitude_is_stored_as_the_effective_one() -> None:
+    Team.objects.create(name=HOME)
+    Team.objects.create(name=AWAY)
+    run = ModelRun.objects.create(
+        model_type="dixon_coles",
+        version="serve",
+        xi=0.0,
+        rho=0.0,
+        home_adv=0.0,
+        log_likelihood=0.0,
+        n_matches=1,
+    )
+    service = _service(DjangoAgentPorts(), None)
+    absurd = Adjustment(
+        factor="player_out",
+        team="home",
+        target="home_attack",
+        magnitude_xg=-5.0,
+        confidence="high",
+        rationale="absurd",
+    )
+    service.predict_with_context(HOME, AWAY, [absurd])
+    assert service.last_prediction is not None
+
+    prediction_id = DjangoAgentPorts().save(
+        model_run_id=run.id,
+        record=service.last_prediction,
+        explanation=None,
+        query=None,
+        match_date=None,
+    )
+
+    logged = Prediction.objects.get(pk=prediction_id).adjustments_json[0]
+    assert logged["requested_magnitude_xg"] == -5.0
+    assert logged["effective_magnitude_xg"] == -0.6

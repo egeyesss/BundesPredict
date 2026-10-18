@@ -1,4 +1,4 @@
-"""Array building shared by the SQLAlchemy loader and the Django training service."""
+"""Array building behind the Django training service."""
 
 from __future__ import annotations
 
