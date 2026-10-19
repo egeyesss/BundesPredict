@@ -20,7 +20,7 @@ export const ACCOUNT_LINK: NavLink = { href: "/account", label: "Account", hint:
 
 export const PLAN_LABEL: Record<NavPlan, string> = { free: "Free", pro: "Pro", demo: "Demo" };
 
-export function displayName(user: NavUser): string {
+export function displayName(user: Pick<NavUser, "name" | "email" | "plan">): string {
   return user.name ?? (user.plan === "demo" ? "Demo visitor" : user.email.split("@")[0]);
 }
 

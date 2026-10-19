@@ -22,6 +22,7 @@ import { LimitReached } from "./LimitReached";
 import { PinnedFixture } from "./PinnedFixture";
 import { QuotaMeter } from "./QuotaMeter";
 import { useCountdown } from "./use-countdown";
+import { useNarrowScreen } from "./use-narrow-screen";
 import { useStickToBottom } from "./use-stick-to-bottom";
 import { UserTurn } from "./UserTurn";
 
@@ -170,7 +171,9 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
   const usage = usageOverride ?? (me.resource.status === "ready" ? me.resource.data.usage : null);
   const plan = me.resource.status === "ready" ? me.resource.data.plan : "free";
   const signInRequired = needsSignIn || (me.resource.status === "error" && me.resource.failure.status === 401);
+  const narrow = useNarrowScreen();
   const matchName = fixture.resource.status === "ready" ? `${fixture.resource.data.home.short_name} v ${fixture.resource.data.away.short_name}` : null;
+  const placeholder = !matchName ? "Ask about a Bundesliga match" : narrow ? "Tell the agent what changed" : `Tell the agent what changed for ${matchName}`;
 
   return (
     <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
@@ -203,7 +206,7 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
             onChange={setDraft}
             onSend={() => void send(draft)}
             busy={busy}
-            placeholder={matchName ? `Tell the agent what changed for ${matchName}` : "Ask about a Bundesliga match"}
+            placeholder={placeholder}
             rateLimit={{ active: rateLimit.active, finished: rateLimit.finished, secondsLeft: rateLimit.secondsLeft }}
             meter={usage ? <QuotaMeter plan={plan} usage={usage} /> : <Skeleton className="h-3 w-44" />}
           />

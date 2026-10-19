@@ -90,7 +90,7 @@ function FixtureTitle({ fixture }: { fixture: Resource<FixtureDetail> }) {
   return (
     <p className="text-sm text-bp-text-muted">
       No fixture pinned.{" "}
-      <Link href="/matchday" className="font-medium text-bp-text underline underline-offset-4">
+      <Link href="/matchday" className="touch-target font-medium text-bp-text underline underline-offset-4">
         Pick a fixture
       </Link>
     </p>
@@ -117,7 +117,7 @@ function FixtureOdds({
       <div className="grid justify-items-start gap-1 max-[520px]:flex max-[520px]:items-baseline max-[520px]:justify-between">
         <span className={`font-mono text-[11px] tracking-wider whitespace-nowrap uppercase ${showingNews ? "text-bp-text" : "text-bp-text-muted"}`}>{label}</span>
         {news !== null && (
-          <button type="button" onClick={onToggle} className="rounded-sm text-[11px] whitespace-nowrap text-bp-text-muted underline underline-offset-2 hover:text-bp-text">
+          <button type="button" onClick={onToggle} className="touch-target rounded-sm text-[11px] whitespace-nowrap text-bp-text-muted underline underline-offset-2 hover:text-bp-text">
             {showingNews ? "Show original odds" : "Show odds with your news"}
           </button>
         )}

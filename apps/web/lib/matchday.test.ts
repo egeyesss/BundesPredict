@@ -22,6 +22,15 @@ describe("seasonLabel", () => {
   it("writes the season the way the league does", () => {
     expect(seasonLabel("2026-27")).toBe("2026/27");
   });
+
+  it("expands the four-digit form Django stores", () => {
+    expect(seasonLabel("2627")).toBe("2026/27");
+    expect(seasonLabel("9900")).toBe("1999/00");
+  });
+
+  it("labels every recorded fixture with the stored season format", () => {
+    expect(fixtureCards.map((fixture) => fixture.season)).toEqual(fixtureCards.map(() => "2627"));
+  });
 });
 
 describe("groupByMatchday", () => {

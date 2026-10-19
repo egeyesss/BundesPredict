@@ -37,7 +37,7 @@ export function Composer({ value, onChange, onSend, busy, placeholder, rateLimit
     if (!element) return;
     element.style.height = "auto";
     element.style.height = `${Math.min(MAX_HEIGHT_PX, element.scrollHeight)}px`;
-  }, [value]);
+  }, [value, placeholder]);
 
   function submit() {
     if (canSend) onSend();
@@ -71,7 +71,7 @@ export function Composer({ value, onChange, onSend, busy, placeholder, rateLimit
         </Banner>
       )}
 
-      <div role="group" aria-label="Start from" className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label="Start from" className="flex flex-wrap gap-1.5 [@media(max-height:560px)]:hidden">
         {SUGGESTIONS.map((suggestion) => (
           <button
             key={suggestion.label}
@@ -80,7 +80,7 @@ export function Composer({ value, onChange, onSend, busy, placeholder, rateLimit
               onChange(suggestion.prefix);
               textarea.current?.focus();
             }}
-            className="rounded-full border border-bp-border bg-bp-surface-2 px-2.5 py-1.5 text-xs text-bp-text-muted hover:border-bp-text-muted/50 hover:text-bp-text"
+            className="touch-target rounded-full border border-bp-border bg-bp-surface-2 px-2.5 py-1.5 text-xs text-bp-text-muted hover:border-bp-text-muted/50 hover:text-bp-text"
           >
             {suggestion.label}
           </button>

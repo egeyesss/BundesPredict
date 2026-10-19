@@ -53,7 +53,7 @@ export function ScoreHeatmap({ home, away, markets, other, label = "this view", 
         <button
           type="button"
           onClick={() => setShowTable((shown) => !shown)}
-          className="rounded-md border border-bp-border bg-bp-surface-2 px-2 py-1 font-mono text-[11px] font-medium text-bp-text-muted"
+          className="touch-target rounded-md border border-bp-border bg-bp-surface-2 px-2 py-1 font-mono text-[11px] font-medium text-bp-text-muted"
         >
           {showTable ? "Hide table" : "Table"}
         </button>

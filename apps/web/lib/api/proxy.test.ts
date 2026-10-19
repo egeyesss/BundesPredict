@@ -93,7 +93,64 @@ describe("proxy", () => {
     expect(response.headers.get("x-middleware-request-x-client-ip")).toBe("203.0.113.7");
   });
 
-  it("only matches the backend's path prefixes", () => {
-    expect(config.matcher).toEqual(["/api/:path*", "/_allauth/:path*", "/accounts/:path*"]);
+  it("matches the backend's path prefixes and the pages that need a session", () => {
+    expect(config.matcher).toEqual([
+      "/api/:path*",
+      "/_allauth/:path*",
+      "/accounts/:path*",
+      "/account/:path*",
+      "/chat/:path*",
+    ]);
+  });
+});
+
+describe("proxy session guard", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const visit = (path: string, cookie?: string) =>
+    proxy(new NextRequest(`https://bundespredict.egeyesilyurt.ca${path}`, { headers: cookie ? { cookie } : {} }));
+
+  it.each([
+    ["/account", "/login?next=%2Faccount"],
+    ["/account?checkout=success", "/login?next=%2Faccount%3Fcheckout%3Dsuccess"],
+    ["/chat", "/login?next=%2Fchat"],
+    ["/chat?fixture=803", "/login?next=%2Fchat%3Ffixture%3D803"],
+    ["/chat/5f0c7d7e-6a1b-4b8e-9d3c-0a1b2c3d4e5f", "/login?next=%2Fchat%2F5f0c7d7e-6a1b-4b8e-9d3c-0a1b2c3d4e5f"],
+  ])("sends %s to the login page with a 307 when there is no session cookie", (path, login) => {
+    const response = visit(path);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(`https://bundespredict.egeyesilyurt.ca${login}`);
+  });
+
+  it("treats a lone csrf cookie as signed out", () => {
+    expect(visit("/account", "csrftoken=abc").status).toBe(307);
+  });
+
+  it("lets a request with a session cookie through to the page", () => {
+    const response = visit("/account", "csrftoken=abc; sessionid=xyz");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("also accepts the mock session cookie while the API is mocked", () => {
+    vi.stubEnv("API_MOCKING", "enabled");
+
+    expect(visit("/account", "bp_mock_plan=free").headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("ignores the mock session cookie when the API is real", () => {
+    expect(visit("/account", "bp_mock_plan=free").status).toBe(307);
+  });
+
+  it("leaves the backend's /accounts/ OAuth paths to the rewrite", () => {
+    vi.stubEnv("API_BASE_URL", "https://api.example.com");
+
+    const response = visit("/accounts/google/login/callback/?code=y");
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "https://api.example.com/accounts/google/login/callback/?code=y",
+    );
   });
 });

@@ -46,7 +46,7 @@ export function EmailCard({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }
           disabled={pending}
           onClick={() => void toggle()}
           className={cn(
-            "relative h-[26px] w-11 flex-none rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-bp-red-text focus-visible:ring-offset-2 focus-visible:ring-offset-bp-surface-1 disabled:opacity-60",
+            "touch-target h-[26px] w-11 flex-none rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-bp-red-text focus-visible:ring-offset-2 focus-visible:ring-offset-bp-surface-1 disabled:opacity-60",
             enabled ? "bg-odds-win" : "bg-[#3F3F46]",
           )}
         >

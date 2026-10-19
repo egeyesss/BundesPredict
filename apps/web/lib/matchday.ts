@@ -12,9 +12,12 @@ export function formatKickoff(kickoffUtc: string, { timeZone, locale }: KickoffF
   }).format(new Date(kickoffUtc));
 }
 
-/** The API writes seasons as 2026-27; the league writes 2026/27. */
+/** The API sends the stored season, "2627"; the league writes 2026/27. */
 export function seasonLabel(season: string): string {
-  return season.replace("-", "/");
+  const compact = /^(\d{2})(\d{2})$/.exec(season);
+  if (!compact) return season.replace("-", "/");
+  const century = Number(compact[1]) >= 50 ? "19" : "20";
+  return `${century}${compact[1]}/${compact[2]}`;
 }
 
 export type MatchdayGroup = { matchday: number; fixtures: FixtureCard[] };

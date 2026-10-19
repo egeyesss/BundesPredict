@@ -19,7 +19,7 @@ export function ChatShell({ children }: { children: ReactNode }) {
 function Frame({ children }: { children: ReactNode }) {
   const { sheetOpen, setSheetOpen } = useChatHistory();
   return (
-    <div className="flex h-[calc(100dvh-76px)] min-h-[520px] min-w-0">
+    <div className="flex h-[calc(100dvh-76px-env(safe-area-inset-top,0px))] min-h-[520px] min-w-0 max-[860px]:min-h-0">
       <aside aria-label="Chat history" className="hidden w-[272px] shrink-0 overflow-y-auto border-r border-bp-border bg-bp-bg px-2.5 py-3.5 min-[860px]:block">
         <HistoryList />
       </aside>

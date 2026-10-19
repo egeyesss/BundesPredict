@@ -71,6 +71,20 @@ describe("CSRF and logout", () => {
     expect(header).toBeTruthy();
   });
 
+  it("fetches a CSRF cookie itself when a write is sent before the page's own request returned", async () => {
+    document.cookie = "csrftoken=; path=/; max-age=0";
+    let header: string | null = null;
+    server.use(
+      http.post("*/_allauth/browser/v1/auth/code/request", ({ request }) => {
+        header = request.headers.get("X-CSRFToken");
+        return HttpResponse.json({ status: 401, data: { flows: [{ id: "login_by_code", is_pending: true }] } }, { status: 401 });
+      }),
+    );
+
+    expect(await requestLoginCode("sam.rivera@example.com")).toEqual({ ok: true });
+    expect(header).toBeTruthy();
+  });
+
   it("signs out, treating allauth's 401 as success", async () => {
     expect(await signOut()).toEqual({ ok: true });
   });
