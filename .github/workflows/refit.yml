@@ -3,13 +3,14 @@
 # scraped here: Transfermarkt's WAF answers GitHub's runners with a bot challenge, so
 # that scrape runs locally and the refit reads whatever squad values the database has.
 # Serving reads the newest run on the next request.
-# Monday 03:00 UTC: after the matchday is fully ingested upstream.
+# Daily at 05:00 UTC, an hour before snapshot.yml: football-data.co.uk posts a weekend's
+# results anywhere from Sunday night to Tuesday, so a weekly run could fit without them.
 # A scheduled run always targets production, a manual run targets the chosen database.
 name: refit
 
 on:
   schedule:
-    - cron: "0 3 * * 1"
+    - cron: "0 5 * * *"
   workflow_dispatch:
     inputs:
       database:

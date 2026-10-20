@@ -179,10 +179,11 @@ blocked scrape just keeps serving the last snapshot): the `players` table that
 backs the agent's `lookup_player` tool — any contracted player, with a
 market-value-derived importance and the snapshot date — and per-season squad
 values, which the refit uses as shrinkage targets so a promoted club with an
-expensive squad isn't priced like an average newcomer. Run it locally before the
-Monday refit: Transfermarkt's WAF answers datacenter IPs (GitHub's runners included)
-with a bot challenge, which the scraper reports as `ScrapeBlocked` instead of
-caching an empty page. Historical league pages are fetched once and never again.
+expensive squad isn't priced like an average newcomer. Run it locally now and then
+(market values move slowly, mostly around transfer windows); the daily refit uses
+whatever values are stored. Transfermarkt's WAF answers datacenter IPs (GitHub's
+runners included) with a bot challenge, which the scraper reports as `ScrapeBlocked`
+instead of caching an empty page; `--skip-fetch` ingests from the cache alone. Historical league pages are fetched once and never again.
 
 Per-match expected goals (for the pre-match xG experiment) come from Understat via
 `uv run apps/backend/manage.py scrape_understat`. Understat sits behind Cloudflare and only serves its
