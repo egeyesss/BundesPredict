@@ -1,0 +1,6 @@
+{% extends "account/email/bundespredict_base.txt" %}
+{% block content %}Someone is creating a BundesPredict account with this address ({{ site_url }}). Your verification code is:
+
+{{ code }}
+
+The code expires in a few minutes. If this was not you, ignore this email.{% endblock content %}

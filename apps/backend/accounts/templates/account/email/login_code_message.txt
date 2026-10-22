@@ -1,0 +1,6 @@
+{% extends "account/email/bundespredict_base.txt" %}
+{% block content %}A sign-in was requested on BundesPredict ({{ site_url }}). Your sign-in code is:
+
+{{ code }}
+
+The code expires in a few minutes. If this was not you, ignore this email.{% endblock content %}

@@ -1,0 +1,4 @@
+{% extends "account/email/bundespredict_base.txt" %}
+{% block content %}Someone tried to sign in to BundesPredict with this address, but no account uses it.
+
+If that was you, create an account at {{ site_url }}/login. Otherwise ignore this email.{% endblock content %}

@@ -115,6 +115,11 @@ ACCOUNT_SIGNUP_FIELDS = ["email*"]
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = True
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_ADAPTER = "accounts.adapter.AccountAdapter"
+# Shown in every account email, so it must be the public web origin and not the request host.
+PUBLIC_SITE_URL = env.str(
+    "PUBLIC_SITE_URL", default=env.str("STRIPE_RETURN_BASE_URL", default="http://localhost:3000")
+)
 
 HEADLESS_ONLY = True
 HEADLESS_CLIENTS = ("browser",)
