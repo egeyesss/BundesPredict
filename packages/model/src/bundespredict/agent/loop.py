@@ -17,7 +17,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
-from .prompt import build_system_prompt
+from .prompt import PinnedFixture, build_system_prompt
 from .service import PredictionRecord, PredictionService
 from .tools import TOOL_SPECS, dispatch
 
@@ -126,6 +126,7 @@ def run_agent_events(
     model: str = DEV_MODEL,
     max_tokens: int = _MAX_TOKENS,
     max_turns: int = _MAX_TURNS,
+    pinned_fixture: PinnedFixture | None = None,
 ) -> Iterator[AgentEvent]:
     """Run the tool-calling loop, yielding an event per observable step.
 
@@ -140,8 +141,11 @@ def run_agent_events(
     instead of starting cold. Tool-call blocks from earlier runs are not
     replayed — the text turns carry the conclusions, which is what a follow-up
     needs.
+
+    ``pinned_fixture`` is the match the chat was opened from; it goes into the system
+    prompt so the agent answers about that match without asking which one.
     """
-    system = build_system_prompt(service.teams, service.context)
+    system = build_system_prompt(service.teams, service.context, pinned_fixture)
     messages: list[dict[str, Any]] = _normalize_turns(
         [*(history or []), {"role": "user", "content": query}]
     )
@@ -205,6 +209,7 @@ def run_agent(
     model: str = DEV_MODEL,
     max_tokens: int = _MAX_TOKENS,
     max_turns: int = _MAX_TURNS,
+    pinned_fixture: PinnedFixture | None = None,
 ) -> AgentResult:
     """Run the tool-calling loop for one user query.
 
@@ -222,6 +227,7 @@ def run_agent(
         model=model,
         max_tokens=max_tokens,
         max_turns=max_turns,
+        pinned_fixture=pinned_fixture,
     ):
         if event.type == "final":
             result = event.result
