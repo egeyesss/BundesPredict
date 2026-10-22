@@ -37,7 +37,8 @@ from dataclasses import dataclass
 from .team_aliases import canonical_team_name
 
 # Transfermarkt club name -> canonical name. Canonical names were chosen to
-# match Transfermarkt, so today this is the identity map — but it stays an
+# match Transfermarkt, so this is mostly the identity map (renames on their side
+# get an extra entry pointing at the old name), but it stays an
 # explicit allowlist so an unexpected spelling (a renamed club, a promotion we
 # haven't seen, a markup change that garbles names) raises UnmappedTeamError
 # at ingest instead of silently creating a duplicate team.
@@ -49,6 +50,7 @@ TRANSFERMARKT_ALIASES: dict[str, str] = {
     "Arminia Bielefeld": "Arminia Bielefeld",
     "Bayer 04 Leverkusen": "Bayer 04 Leverkusen",
     "Bayern Munich": "Bayern Munich",
+    "FC Bayern Munich": "Bayern Munich",
     "Borussia Dortmund": "Borussia Dortmund",
     "Borussia Mönchengladbach": "Borussia Mönchengladbach",
     "Eintracht Frankfurt": "Eintracht Frankfurt",
