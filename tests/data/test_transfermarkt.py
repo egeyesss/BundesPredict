@@ -83,6 +83,11 @@ def test_parse_squad_page_positions_and_missing_values() -> None:
     assert all(v is None or v > 0 for v in (p.market_value_eur for p in players))
 
 
+def test_bayerns_current_listing_name_maps_to_the_same_team() -> None:
+    # Transfermarkt's 26/27 league page switched from "Bayern Munich" in October 2026.
+    assert canonical_club_name("FC Bayern Munich") == canonical_club_name("Bayern Munich")
+
+
 def test_unmapped_club_fails_loudly() -> None:
     with pytest.raises(UnmappedTeamError, match="1860 Munich"):
         canonical_club_name("1860 Munich")
