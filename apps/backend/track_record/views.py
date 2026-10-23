@@ -5,8 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from config.api import not_implemented
-
+from .record import build_track_record
 from .serializers import TrackRecordQuerySerializer, TrackRecordSerializer
 
 
@@ -22,4 +21,6 @@ class TrackRecordView(APIView):
         description="Live results of frozen predictions, kept apart from the backtest.",
     )
     def get(self, request: Request) -> Response:
-        return not_implemented()
+        query = TrackRecordQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        return Response(build_track_record(query.validated_data.get("season")))
