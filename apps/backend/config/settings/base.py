@@ -177,6 +177,4 @@ STRIPE_RETURN_BASE_URL = env.str("STRIPE_RETURN_BASE_URL", default="http://local
 
 # --- notifications: the weekly matchday email ---------------------------------------------------
 MAILING_ADDRESS = env.str("MAILING_ADDRESS", default="L4B 0J4, Canada")
-# Public origin of the web app; every link and crest in an email is built on it.
-SITE_URL = env.str("SITE_URL", default="https://bundespredict.egeyesilyurt.ca")
 # --- end notifications block -------------------------------------------------------------------

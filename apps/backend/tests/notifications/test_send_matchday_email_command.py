@@ -32,6 +32,8 @@ CAMPAIGN = "matchday-2627-06"
 @pytest.fixture(autouse=True)
 def no_live_keys(settings: Any) -> None:
     settings.STRIPE_SECRET_KEY_LIVE = ""
+    settings.PUBLIC_SITE_URL = "https://bundespredict.egeyesilyurt.ca"
+    settings.DEFAULT_FROM_EMAIL = "BundesPredict <bundespredict@egeyesilyurt.ca>"
 
 
 @pytest.fixture

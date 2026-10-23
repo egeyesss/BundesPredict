@@ -205,7 +205,7 @@ def _label_colour(odds: DisplayOdds, index: int) -> str:
 
 
 def _crest(code: str | None) -> str | None:
-    return f"{settings.SITE_URL}/crests/png/{code}-48.png" if code else None
+    return f"{settings.PUBLIC_SITE_URL.rstrip('/')}/crests/png/{code}-48.png" if code else None
 
 
 def _line_context(line: FixtureLine, timezone_name: str | None) -> dict[str, Any]:
@@ -266,7 +266,7 @@ def render_matchday_email(matchday: Matchday, recipient: Recipient) -> RenderedE
         f"{word} fixture{'' if count == 1 else 's'}, the model's odds for each, and the closest "
         f"call of the weekend: {closest.home_name} v {closest.away_name}."
     )
-    site = settings.SITE_URL
+    site = settings.PUBLIC_SITE_URL.rstrip("/")
     context = {
         "site": site,
         "subject": subject,

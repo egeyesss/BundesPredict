@@ -6,6 +6,9 @@ import html as htmllib
 import re
 from dataclasses import replace
 from datetime import UTC, datetime
+from typing import Any
+
+import pytest
 
 from notifications.matchday import (
     FixtureLine,
@@ -16,6 +19,11 @@ from notifications.matchday import (
 )
 
 SITE = "https://bundespredict.egeyesilyurt.ca"
+
+
+@pytest.fixture(autouse=True)
+def public_site(settings: Any) -> None:
+    settings.PUBLIC_SITE_URL = SITE
 
 
 def line(
