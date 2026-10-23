@@ -5,6 +5,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from football.repositories import SERVING_VERSION, latest_model_run
+
 
 class HealthSerializer(serializers.Serializer[dict[str, object]]):
     status = serializers.ChoiceField(choices=["ok", "error"])
@@ -24,4 +26,5 @@ class HealthView(APIView):
         except Error:
             body = {"status": "error", "model_run_id": None, "db": "unavailable"}
             return Response(body, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        return Response({"status": "ok", "model_run_id": None, "db": "ok"})
+        run = latest_model_run(version=SERVING_VERSION)
+        return Response({"status": "ok", "model_run_id": run.pk if run else None, "db": "ok"})

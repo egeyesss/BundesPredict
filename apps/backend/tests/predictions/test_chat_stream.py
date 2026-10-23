@@ -458,3 +458,64 @@ def test_a_failed_turn_does_not_break_the_next_turn_of_the_conversation(
     assert retried[-1][0] == "result"
     first_turn = clients[0].messages.calls[0]["messages"][0]
     assert QUERY in first_turn["content"] and "try again" in first_turn["content"]
+
+
+class RecordingClient:
+    """Answers every call with plain text and keeps the system prompts it was sent."""
+
+    def __init__(self) -> None:
+        self.systems: list[str] = []
+        self.messages = self
+
+    def create(self, **kwargs: Any) -> FakeResponse:
+        self.systems.append(kwargs["system"])
+        return FakeResponse([FakeTextBlock("ok")], "end_turn")
+
+
+def pinned_fixture_for(teams: dict[str, Team]) -> Fixture:
+    return Fixture.objects.create(
+        season="2627",
+        matchday=1,
+        kickoff_utc=datetime(2026, 8, 28, 18, 30, tzinfo=UTC),
+        home=teams[HOME],
+        away=teams[AWAY],
+    )
+
+
+def test_the_first_turn_of_a_fixture_chat_tells_the_agent_which_match_it_is_about(
+    api_client: APIClient, teams: dict[str, Team], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fixture = pinned_fixture_for(teams)
+    recorder = RecordingClient()
+    use_client(monkeypatch, lambda: recorder)
+
+    chat(api_client, {"query": "Weather at kickoff is stormy", "fixture_id": fixture.id})
+
+    assert f"{HOME} v {AWAY}" in recorder.systems[0]
+    assert "2026-08-28" in recorder.systems[0]
+    assert str(fixture.id) in recorder.systems[0]
+
+
+def test_a_follow_up_turn_keeps_the_pinned_fixture(
+    api_client: APIClient, teams: dict[str, Team], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fixture = pinned_fixture_for(teams)
+    recorder = RecordingClient()
+    use_client(monkeypatch, lambda: recorder)
+    _, frames = chat(api_client, {"query": QUERY, "fixture_id": fixture.id})
+
+    chat(api_client, {"query": "and if he plays?", "conversation_id": frames[0][1]["id"]})
+
+    assert len(recorder.systems) == 2
+    assert f"{HOME} v {AWAY}" in recorder.systems[1]
+
+
+def test_a_chat_without_a_fixture_has_no_pinned_match_in_the_prompt(
+    api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    recorder = RecordingClient()
+    use_client(monkeypatch, lambda: recorder)
+
+    chat(api_client)
+
+    assert "pinned" not in recorder.systems[0].lower()

@@ -1,0 +1,4 @@
+{% extends "account/email/bundespredict_base.txt" %}
+{% block content %}Someone tried to sign up for BundesPredict with this address, but an account already exists.
+
+To get in, open {{ site_url }}/login and sign in with Google or an emailed code. If this was not you, ignore this email.{% endblock content %}

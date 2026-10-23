@@ -10,6 +10,8 @@ injected so it uses canonical spellings the engine recognizes.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from .adjustments import load_kb
@@ -89,6 +91,27 @@ matter and why. Plain paragraphs, bold for the key shifts, a short list at most 
 """
 
 
+@dataclass(frozen=True)
+class PinnedFixture:
+    """The match a chat was opened from, so the agent treats it as the subject."""
+
+    fixture_id: int
+    home: str
+    away: str
+    kickoff_utc: datetime
+
+
+def _pinned_fixture_block(fixture: PinnedFixture) -> str:
+    return (
+        f"This conversation is pinned to one match: {fixture.home} v {fixture.away} "
+        f"(home team first), kickoff {fixture.kickoff_utc.isoformat()} "
+        f"(fixture id {fixture.fixture_id}). Every message is about this match unless the user "
+        "names another one: never ask which match they mean. Predict it with `predict_match` "
+        f"using home={fixture.home!r} and away={fixture.away!r}, and take its date from the "
+        "kickoff for `get_weather`."
+    )
+
+
 def _kb_block() -> str:
     """Render the knowledge-base ranges as a compact reference table."""
     lines = ["Adjustment magnitude ranges (expected goals; the engine clamps to +/-0.6):"]
@@ -122,11 +145,17 @@ def _grounding_block(context: GroundingContext) -> str:
     return " ".join(lines)
 
 
-def build_system_prompt(teams: Sequence[str], context: GroundingContext | None = None) -> str:
+def build_system_prompt(
+    teams: Sequence[str],
+    context: GroundingContext | None = None,
+    pinned_fixture: PinnedFixture | None = None,
+) -> str:
     """Assemble the full system prompt for a given set of known teams."""
     team_list = ", ".join(teams)
     parts = [_PREAMBLE, _kb_block()]
     if context is not None:
         parts.append(_grounding_block(context))
+    if pinned_fixture is not None:
+        parts.append(_pinned_fixture_block(pinned_fixture))
     parts.append(f"Use these exact canonical team names: {team_list}.")
     return "\n\n".join(parts)

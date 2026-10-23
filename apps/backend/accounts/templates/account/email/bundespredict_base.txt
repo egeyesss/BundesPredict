@@ -1,0 +1,4 @@
+{% autoescape off %}{% block content %}{% endblock content %}
+
+BundesPredict | {{ site_url }}
+{% endautoescape %}

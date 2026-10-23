@@ -24,6 +24,7 @@ from accounts import quota
 from accounts.serializers import UsageSerializer
 from bundespredict.agent.loop import AgentEvent, AgentResult, LLMClient, run_agent_events
 from bundespredict.agent.ports import PredictionStore, ServingRun
+from bundespredict.agent.prompt import PinnedFixture
 from bundespredict.agent.service import PredictionService
 from chat.models import Conversation, Message
 from chat.services import history_for
@@ -103,6 +104,18 @@ def stage_data(event: AgentEvent) -> dict[str, Any]:
         "ok": ok,
         "summary": summarize_tool_result(event.data["name"], event.data["payload"], ok),
     }
+
+
+def _pinned_fixture(conversation: Conversation) -> PinnedFixture | None:
+    fixture = conversation.fixture
+    if fixture is None:
+        return None
+    return PinnedFixture(
+        fixture_id=fixture.pk,
+        home=fixture.home.name,
+        away=fixture.away.name,
+        kickoff_utc=fixture.kickoff_utc,
+    )
 
 
 def _next_event(events: Iterator[AgentEvent]) -> AgentEvent | None:
@@ -190,12 +203,14 @@ async def stream_prediction(
     llm_call_finished = False
     try:
         history = await sync_to_async(history_for)(conversation)
+        pinned_fixture = await sync_to_async(_pinned_fixture)(conversation)
         events = run_agent_events(
             query,
             PredictionService(serving.ratings, ports=ports),
             client=client,
             history=history,
             model=model,
+            pinned_fixture=pinned_fixture,
         )
         result: AgentResult | None = None
         while (event := await sync_to_async(_next_event)(events)) is not None:
