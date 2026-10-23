@@ -21,6 +21,11 @@ function unwrap<T>({ data, error, response }: Answer<T>): T {
   throw new ApiFailure(response.status, error?.code ?? "unexpected_response", error?.message ?? `The API answered ${response.status}.`);
 }
 
+function unwrapEmpty({ error, response }: Answer<never>): void {
+  if (response.ok) return;
+  throw new ApiFailure(response.status, error?.code ?? "unexpected_response", error?.message ?? `The API answered ${response.status}.`);
+}
+
 export async function fetchMe(signal: AbortSignal): Promise<Me> {
   return unwrap(await api().GET("/api/v1/me", { signal }));
 }
@@ -56,4 +61,9 @@ export async function createCheckout(): Promise<string> {
 
 export async function createPortal(): Promise<string> {
   return unwrap(await api().POST("/api/v1/billing/portal")).url;
+}
+
+/** Turns the Thursday matchday email off for the user the signed token names. */
+export async function unsubscribeFromEmail(token: string): Promise<void> {
+  unwrapEmpty(await api().POST("/api/v1/email/unsubscribe", { body: { token } }));
 }

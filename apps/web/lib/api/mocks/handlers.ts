@@ -174,7 +174,12 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
 
     http.post(`${API}/demo/start`, () => HttpResponse.json(meFor("demo"), { status: 201 })),
 
-    http.post(`${API}/email/unsubscribe`, () => new HttpResponse(null, { status: 204 })),
+    http.post(`${API}/email/unsubscribe`, async ({ request }) => {
+      const { token } = (await request.json()) as { token?: string };
+      return token === "invalid-link"
+        ? HttpResponse.json({ code: "invalid_token", message: "This unsubscribe link is not valid." }, { status: 400 })
+        : new HttpResponse(null, { status: 204 });
+    }),
 
     http.post(`${API}/predict/stream`, async ({ request }) => {
       const { query } = (await request.json()) as Partial<PredictRequest>;
