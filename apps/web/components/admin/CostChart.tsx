@@ -17,7 +17,8 @@ export const NET_REVENUE_CENTS = 455;
 const ROW_HEIGHT = 30;
 const MARGIN = { top: 22, bottom: 24, right: 90 };
 
-const AXIS_STEP_CENTS = 200;
+const AXIS_STEPS_CENTS = [200, 400, 1000, 2000];
+const MIN_TICK_SPACING_PX = 72;
 
 export function CostChart({ users }: { users: ProUserCost[] }) {
   const [ref, width] = useWidth<HTMLDivElement>();
@@ -25,9 +26,11 @@ export function CostChart({ users }: { users: ProUserCost[] }) {
   const labelWidth = Math.min(180, Math.max(110, width * 0.3));
   const height = MARGIN.top + MARGIN.bottom + users.length * ROW_HEIGHT;
   const maxCents = Math.max(NET_REVENUE_CENTS, ...users.map((user) => user.cost_cents));
-  const axisMax = Math.ceil(maxCents / AXIS_STEP_CENTS) * AXIS_STEP_CENTS;
-  const x = (cents: number) => labelWidth + ((width - labelWidth - MARGIN.right) * cents) / axisMax;
-  const gridValues = Array.from({ length: axisMax / AXIS_STEP_CENTS + 1 }, (_, index) => index * AXIS_STEP_CENTS);
+  const plotWidth = width - labelWidth - MARGIN.right;
+  const axisStep = AXIS_STEPS_CENTS.find((step) => (Math.ceil(maxCents / step) * MIN_TICK_SPACING_PX) <= plotWidth) ?? AXIS_STEPS_CENTS.at(-1)!;
+  const axisMax = Math.ceil(maxCents / axisStep) * axisStep;
+  const x = (cents: number) => labelWidth + (plotWidth * cents) / axisMax;
+  const gridValues = Array.from({ length: axisMax / axisStep + 1 }, (_, index) => index * axisStep);
 
   const table = (
     <DataTable label="Agent cost per Pro user" head={["Pro user", "Agent cost", "Status"]}>
@@ -61,7 +64,7 @@ export function CostChart({ users }: { users: ProUserCost[] }) {
             {gridValues.map((cents) => (
               <g key={cents}>
                 <line x1={x(cents)} x2={x(cents)} y1={MARGIN.top} y2={height - MARGIN.bottom} stroke="#222227" />
-                <text x={x(cents)} y={height - 6} textAnchor="middle" className="fill-[#71717A] font-mono text-[11px]">
+                <text x={x(cents)} y={height - 6} textAnchor="middle" className="fill-bp-text-muted font-mono text-[11px]">
                   {formatMoney(cents)}
                 </text>
               </g>

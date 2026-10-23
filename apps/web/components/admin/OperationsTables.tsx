@@ -30,18 +30,18 @@ export function WebhookCard({ events, now }: { events: AdminMetrics["webhook_eve
       {events.length === 0 ? (
         <p className="py-4 text-sm text-bp-text-muted">No webhook events yet. They appear after the first checkout.</p>
       ) : (
-        <DataTable label="Recent Stripe webhook events" head={["Event", "Mode", "Received", "Status"]}>
+        <DataTable label="Recent Stripe webhook events" head={["Event", "Status", "Mode", "Received"]}>
           {events.map((event) => (
             <tr key={event.event_id} className="group">
               <Cell>
                 {event.type}
-                {event.error && <span className="mt-0.5 block text-xs [overflow-wrap:anywhere] text-[#71717A]">{event.error}</span>}
+                {event.error && <span className="mt-0.5 block text-xs [overflow-wrap:anywhere] text-bp-text-muted">{event.error}</span>}
               </Cell>
+              <Cell>{event.status === "failed" ? <StatusBadge status="critical">failed</StatusBadge> : <StatusBadge status="good">processed</StatusBadge>}</Cell>
               <Cell>
                 <ModeTag livemode={event.livemode} />
               </Cell>
               <Cell mono>{formatAgo(event.received_at, now)}</Cell>
-              <Cell>{event.status === "failed" ? <StatusBadge status="critical">failed</StatusBadge> : <StatusBadge status="good">processed</StatusBadge>}</Cell>
             </tr>
           ))}
         </DataTable>

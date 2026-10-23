@@ -68,7 +68,7 @@ export function ChatsChart({ days }: { days: Day[] }) {
           {ticks.map((tick) => (
             <g key={tick}>
               <line x1={MARGIN.left} x2={width - MARGIN.right} y1={y(tick)} y2={y(tick)} stroke="#222227" />
-              <text x={MARGIN.left - 6} y={y(tick) + 4} textAnchor="end" className="fill-[#71717A] font-mono text-[11px]">
+              <text x={MARGIN.left - 6} y={y(tick) + 4} textAnchor="end" className="fill-bp-text-muted font-mono text-[11px]">
                 {tick}
               </text>
             </g>
@@ -90,7 +90,7 @@ export function ChatsChart({ days }: { days: Day[] }) {
                   return <rect key={key} x={x} y={upper} width={barWidth} height={height} rx={isTop ? Math.min(3, barWidth / 2) : 0} fill={color} />;
                 })}
                 {(days.length - 1 - index) % step === 0 && (
-                  <text x={x + barWidth / 2} y={HEIGHT - 8} textAnchor="middle" className="fill-[#71717A] font-mono text-[11px]">
+                  <text x={x + barWidth / 2} y={HEIGHT - 8} textAnchor="middle" className="fill-bp-text-muted font-mono text-[11px]">
                     {dayLabel(day.day, days.length <= 7)}
                   </text>
                 )}

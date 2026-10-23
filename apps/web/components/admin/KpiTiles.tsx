@@ -16,7 +16,7 @@ function Tile({ label, value, children }: { label: string; value: string; childr
     <div className="grid min-w-0 content-start gap-1 rounded-xl border border-bp-border bg-bp-surface-1 px-4 py-3.5">
       <span className="text-[13px] text-bp-text-muted">{label}</span>
       <strong className="font-display text-[34px] leading-none font-bold tabular-nums">{value}</strong>
-      <span className="flex flex-wrap items-center gap-x-1.5 font-mono text-[11px] text-[#71717A]">{children}</span>
+      <span className="flex flex-wrap items-center gap-x-1.5 font-mono text-[11px] text-bp-text-muted">{children}</span>
     </div>
   );
 }
