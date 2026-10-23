@@ -69,19 +69,31 @@ const BASE_YAW_RAD = -0.18;
 const DRIFT_AMPLITUDE_RAD = 0.22;
 const DRIFT_RATE = 0.06;
 
-/** A perspective projection of a pitch point onto the hero canvas; `scale` is 1 at the centre spot and grows toward the camera. */
-export function projectPitch(point: FieldPoint, camera: PitchCamera): { x: number; y: number; scale: number } {
+export type Projection = { x: number; y: number; scale: number };
+
+/** Builds a projector for one camera pose, so a frame computes the trig once instead of once per point. */
+export function pitchProjector(camera: PitchCamera): (point: FieldPoint) => Projection {
   const yaw = (camera.drifting ? Math.sin(camera.elapsedSeconds * DRIFT_RATE) * DRIFT_AMPLITUDE_RAD : 0) + BASE_YAW_RAD;
   const focal = (camera.width * 0.9 * DISTANCE) / 105;
-  const rotatedX = point.x * Math.cos(yaw) - point.z * Math.sin(yaw);
-  const rotatedZ = point.x * Math.sin(yaw) + point.z * Math.cos(yaw);
-  const screenY = -rotatedZ * Math.sin(TILT_RAD);
-  const depth = rotatedZ * Math.cos(TILT_RAD) + DISTANCE;
-  return {
-    x: camera.width * 0.5 + (focal * rotatedX) / depth,
-    y: camera.height * 0.6 + (focal * screenY) / depth,
-    scale: DISTANCE / depth,
+  const [sinYaw, cosYaw] = [Math.sin(yaw), Math.cos(yaw)];
+  const [sinTilt, cosTilt] = [Math.sin(TILT_RAD), Math.cos(TILT_RAD)];
+  const centerX = camera.width * 0.5;
+  const centerY = camera.height * 0.6;
+  return (point) => {
+    const rotatedX = point.x * cosYaw - point.z * sinYaw;
+    const rotatedZ = point.x * sinYaw + point.z * cosYaw;
+    const depth = rotatedZ * cosTilt + DISTANCE;
+    return {
+      x: centerX + (focal * rotatedX) / depth,
+      y: centerY + (focal * -rotatedZ * sinTilt) / depth,
+      scale: DISTANCE / depth,
+    };
   };
+}
+
+/** A perspective projection of a pitch point onto the hero canvas; `scale` is 1 at the centre spot and grows toward the camera. */
+export function projectPitch(point: FieldPoint, camera: PitchCamera): Projection {
+  return pitchProjector(camera)(point);
 }
 
 const SWEEP_SPEED = 0.16;

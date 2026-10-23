@@ -3,6 +3,7 @@ import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google";
 
 import { SessionProvider } from "@/components/account/SessionProvider";
 import { AppShell } from "@/components/brand/AppShell";
+import { DeferredSurface } from "@/components/signature/DeferredSurface";
 import { ApiMockingGate } from "@/components/dev/ApiMockingGate";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -60,7 +61,9 @@ export default function RootLayout({
         <ApiMockingGate>
           <SessionProvider>
             <TooltipProvider>
-              <AppShell>{children}</AppShell>
+              <DeferredSurface>
+                <AppShell>{children}</AppShell>
+              </DeferredSurface>
             </TooltipProvider>
           </SessionProvider>
           <Toaster />
