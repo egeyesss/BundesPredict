@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="supported-color-schemes" content="dark light">
+<title>{{ subject }}</title>
+</head>
+<body style="margin:0;padding:0;background:#0A0A0B;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{{ preheader }}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A0B;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+    <tr><td style="padding:8px 4px 20px;">
+      <span style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:30px;font-weight:700;color:#F4F4F5;letter-spacing:0.5px;">Bundes</span><span style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:30px;font-weight:700;color:#D20515;letter-spacing:0.5px;">Predict</span>
+    </td></tr>
+    <tr><td style="background:#131316;border:1px solid #2A2A30;border-radius:14px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="padding:22px 20px 6px;">
+          <div style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#A1A1AA;">Bundesliga {{ season }}</div>
+          <div style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:36px;font-weight:700;color:#F4F4F5;line-height:40px;padding-top:4px;">Matchday {{ number }}</div>
+          <div style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:15px;line-height:23px;color:#D4D4D8;padding-top:8px;">{% if first_name %}Hi {{ first_name }}, here{% else %}Here{% endif %}'s what the model expects this weekend. These are the model's odds as of this email; if team news breaks before kickoff, ask the agent and it will reprice the match.</div>
+        </td></tr>
+        <tr><td style="padding:16px 20px 18px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td width="50%" valign="top" style="padding-right:6px;"><div style="background:#0A0A0B;border:1px solid #2A2A30;border-radius:10px;padding:12px;">
+                <div style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8B8B94;">Strongest favourite</div>
+                <div style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:20px;font-weight:700;color:#F4F4F5;padding-top:4px;">{{ favourite }} <span style="color:#4ADE80;">{{ favourite_percent }}%</span></div>
+                <div style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:12px;color:#A1A1AA;">{{ favourite_where }}</div></div></td>
+              <td width="50%" valign="top" style="padding-left:6px;"><div style="background:#0A0A0B;border:1px solid #2A2A30;border-radius:10px;padding:12px;">
+                <div style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8B8B94;">Closest call</div>
+                <div style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:20px;font-weight:700;color:#F4F4F5;padding-top:4px;">{{ closest }}</div>
+                <div style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:12px;color:#A1A1AA;">{{ closest_note }}</div></div></td>
+            </tr>
+          </table>
+        </td></tr>
+{% for fixture in fixtures %}
+<tr><td style="padding:14px 20px;border-top:1px solid #2A2A30;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:11px;color:#8B8B94;padding-bottom:8px;" colspan="3">{{ fixture.kickoff.germany }}{% if fixture.kickoff.local %} &middot; <span style="color:#D4D4D8;">{{ fixture.kickoff.local }}</span>{% endif %}</td>
+    </tr>
+    <tr>
+      <td width="45%" style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:20px;font-weight:700;color:#F4F4F5;line-height:24px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>{% if fixture.home_crest %}<td width="24" style="padding-right:8px;"><img src="{{ fixture.home_crest }}" width="24" height="24" alt="" style="display:block;border:0;width:24px;height:24px;"></td>{% endif %}<td style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:20px;font-weight:700;color:#F4F4F5;">{{ fixture.home }}</td></tr></table></td>
+      <td width="10%" align="center" style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:11px;color:#8B8B94;">v</td>
+      <td width="45%" align="right"><table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr><td style="font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-size:20px;font-weight:700;color:#F4F4F5;">{{ fixture.away }}</td>{% if fixture.away_crest %}<td width="24" style="padding-left:8px;"><img src="{{ fixture.away_crest }}" width="24" height="24" alt="" style="display:block;border:0;width:24px;height:24px;"></td>{% endif %}</tr></table></td>
+    </tr>
+  </table>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;">
+    <tr>
+      <td width="{{ fixture.segments.0.width }}%" height="8" style="background:{{ fixture.segments.0.colour }};border-radius:2px;font-size:0;line-height:0;">&nbsp;</td>
+      <td width="2" style="font-size:0;line-height:0;">&nbsp;</td>
+      <td width="{{ fixture.segments.1.width }}%" height="8" style="background:{{ fixture.segments.1.colour }};border-radius:2px;font-size:0;line-height:0;">&nbsp;</td>
+      <td width="2" style="font-size:0;line-height:0;">&nbsp;</td>
+      <td width="{{ fixture.segments.2.width }}%" height="8" style="background:{{ fixture.segments.2.colour }};border-radius:2px;font-size:0;line-height:0;">&nbsp;</td>
+    </tr>
+  </table>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:6px;">
+    <tr>
+      <td width="33%" style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:12px;color:{{ fixture.segments.0.label_colour }};{% if fixture.segments.0.bold %}font-weight:600;{% endif %}">{{ fixture.segments.0.percent }}%</td>
+      <td width="34%" align="center" style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:12px;color:{{ fixture.segments.1.label_colour }};{% if fixture.segments.1.bold %}font-weight:600;{% endif %}">Draw {{ fixture.segments.1.percent }}%</td>
+      <td width="33%" align="right" style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:12px;color:{{ fixture.segments.2.label_colour }};{% if fixture.segments.2.bold %}font-weight:600;{% endif %}">{{ fixture.segments.2.percent }}%</td>
+    </tr>
+    <tr><td colspan="3" style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:11px;color:#8B8B94;padding-top:4px;">{{ fixture.xg }}</td></tr>
+  </table>
+</td></tr>
+{% endfor %}
+        <tr><td style="padding:22px 20px;border-top:1px solid #2A2A30;" align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="#D20515" style="border-radius:10px;">
+            <a href="{{ site }}/matchday" style="display:inline-block;padding:13px 22px;font-family:Inter,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:10px;">Ask the agent about a match</a>
+          </td></tr></table>
+          <div style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:12px;color:#8B8B94;padding-top:10px;">Lineups usually drop an hour before kickoff. That's when news moves odds most.</div>
+        </td></tr>
+{% if last %}
+        <tr><td style="padding:16px 20px 20px;border-top:1px solid #2A2A30;">
+          <div style="font-family:'JetBrains Mono',Menlo,Consolas,monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8B8B94;">Last matchday</div>
+          <div style="font-family:Inter,Helvetica,Arial,sans-serif;font-size:14px;line-height:21px;color:#D4D4D8;padding-top:4px;">The favourite won {{ last.favourites_won }} of {{ last.played }}. Model RPS {{ last.rps|floatformat:3 }} (lower is better). <a href="{{ site }}/track-record" style="color:#F4F4F5;">Full track record</a></div>
+        </td></tr>
+{% endif %}
+      </table>
+    </td></tr>
+    <tr><td style="padding:20px 6px 8px;font-family:Inter,Helvetica,Arial,sans-serif;font-size:12px;line-height:19px;color:#8B8B94;">
+      You're getting this because the Thursday matchday email is switched on for your BundesPredict Pro account.
+      <a href="{{ unsubscribe_url }}" style="color:#D4D4D8;">Unsubscribe</a> in one click, or
+      <a href="{{ site }}/account" style="color:#D4D4D8;">change email settings</a>.<br><br>
+      {% if timezone %}Kickoff times are German time and your time ({{ timezone }}, {% if timezone_from_browser %}from your browser when you last signed in{% else %}as you set it{% endif %}). <a href="{{ site }}/account" style="color:#D4D4D8;">Change your timezone</a>.{% else %}Kickoff times are German time and UTC. Sign in once from your browser and we'll show your local time too.{% endif %} Odds come from a statistical model and are not betting advice.<br><br>
+      BundesPredict is an independent project, not affiliated with, endorsed by or sponsored by DFL Deutsche Fu&szlig;ball Liga or the Bundesliga. Club names and crests are trademarks of their respective owners.<br><br>
+      Sent by BundesPredict &middot; {{ mailing_address }} &middot; <a href="mailto:{{ contact_email }}" style="color:#D4D4D8;">{{ contact_email }}</a> &middot; bundespredict.egeyesilyurt.ca
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>

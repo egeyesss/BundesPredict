@@ -1,0 +1,29 @@
+{% autoescape off %}BundesPredict | Bundesliga {{ season }} | Matchday {{ number }}
+
+{% if first_name %}Hi {{ first_name }}, here{% else %}Here{% endif %}'s what the model expects this weekend. These are the model's odds as of this email; if team news breaks before kickoff, ask the agent and it will reprice the match.
+
+Strongest favourite: {{ favourite }} {{ favourite_percent }}% ({{ favourite_where }})
+Closest call: {{ closest }} ({{ closest_note }})
+{% for fixture in fixtures %}
+{{ fixture.home }} v {{ fixture.away }}
+{{ fixture.kickoff.text }}
+{{ fixture.summary }}
+{{ fixture.xg }}
+{% endfor %}
+Ask the agent about a match: {{ site }}/matchday
+Lineups usually drop an hour before kickoff. That's when news moves odds most.
+{% if last %}
+Last matchday. The favourite won {{ last.favourites_won }} of {{ last.played }}. Model RPS {{ last.rps|floatformat:3 }} (lower is better).
+Full track record: {{ site }}/track-record
+{% endif %}
+--
+You're getting this because the Thursday matchday email is switched on for your BundesPredict Pro account.
+Unsubscribe in one click: {{ unsubscribe_url }}
+Change email settings: {{ site }}/account
+
+{% if timezone %}Kickoff times are German time and your time ({{ timezone }}, {% if timezone_from_browser %}from your browser when you last signed in{% else %}as you set it{% endif %}).{% else %}Kickoff times are German time and UTC. Sign in once from your browser and we'll show your local time too.{% endif %} Odds come from a statistical model and are not betting advice.
+
+BundesPredict is an independent project, not affiliated with, endorsed by or sponsored by DFL Deutsche Fußball Liga or the Bundesliga. Club names and crests are trademarks of their respective owners.
+
+Sent by BundesPredict | {{ mailing_address }} | {{ contact_email }} | bundespredict.egeyesilyurt.ca
+{% endautoescape %}
