@@ -174,3 +174,7 @@ STRIPE_PRICE_ID_LIVE = env.str("STRIPE_PRICE_ID_LIVE", default="")
 # Origin of the web app, where Checkout and the Customer Portal send the browser back.
 STRIPE_RETURN_BASE_URL = env.str("STRIPE_RETURN_BASE_URL", default="http://localhost:3000")
 # --- end billing block -------------------------------------------------------------------------
+
+# --- notifications: the weekly matchday email ---------------------------------------------------
+MAILING_ADDRESS = env.str("MAILING_ADDRESS", default="L4B 0J4, Canada")
+# --- end notifications block -------------------------------------------------------------------

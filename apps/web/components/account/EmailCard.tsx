@@ -35,7 +35,7 @@ export function EmailCard({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }
             Thursday matchday email
           </h2>
           <p className="text-[13px] text-bp-text-muted">
-            The weekend&apos;s fixtures with the model&apos;s odds, every Thursday at 12:00 UTC. Unsubscribe from any email.
+            Pro plan: the weekend&apos;s fixtures with the model&apos;s odds, every Thursday at 12:00 UTC. Every email has a one-click unsubscribe.
           </p>
         </div>
         <button

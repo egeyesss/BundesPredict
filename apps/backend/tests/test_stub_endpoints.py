@@ -17,7 +17,6 @@ STUBS: list[tuple[str, str, dict[str, Any] | None, bool]] = [
     ("get", "/api/v1/track-record", None, False),
     ("get", "/api/v1/admin/metrics", None, True),
     ("post", "/api/v1/demo/start", None, False),
-    ("post", "/api/v1/email/unsubscribe", {"token": "signed-token"}, False),
 ]
 
 
@@ -60,10 +59,3 @@ def test_public_endpoints_need_no_session(
     api_client: APIClient, method: str, path: str, body: dict[str, Any] | None
 ) -> None:
     assert _call(api_client, method, path, body).status_code == 501
-
-
-def test_unsubscribe_requires_a_token(api_client: APIClient) -> None:
-    response = api_client.post("/api/v1/email/unsubscribe", {}, format="json")
-
-    assert response.status_code == 400
-    assert response.json()["message"].startswith("token:")

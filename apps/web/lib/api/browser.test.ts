@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw/http";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { createCheckout, createPortal, fetchConversation, fetchConversations, fetchFixture, fetchMe, fetchWeekFixtures, updateMe } from "./browser";
+import { createCheckout, createPortal, fetchConversation, fetchConversations, fetchFixture, fetchMe, fetchWeekFixtures, unsubscribeFromEmail, updateMe } from "./browser";
 import { notAuthenticated } from "./mocks/data";
 import { server } from "./mocks/node";
 import { setMockSession } from "./mocks/session";
@@ -64,5 +64,15 @@ describe("account writes", () => {
       ),
     );
     await expect(createPortal()).rejects.toMatchObject({ status: 404, code: "no_billing_account" });
+  });
+});
+
+describe("unsubscribeFromEmail", () => {
+  it("resolves when the token is accepted", async () => {
+    await expect(unsubscribeFromEmail("signed")).resolves.toBeUndefined();
+  });
+
+  it("rejects with the API's code for a bad token", async () => {
+    await expect(unsubscribeFromEmail("invalid-link")).rejects.toMatchObject({ status: 400, code: "invalid_token" });
   });
 });
