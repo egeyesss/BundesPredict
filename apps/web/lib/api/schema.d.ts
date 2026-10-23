@@ -575,6 +575,59 @@ export interface components {
              */
             hit_rate: number | null;
         };
+        NewsChat: {
+            prediction_id: number;
+            fixture_id: number;
+            matchday: number;
+            /** Format: date-time */
+            kickoff_utc: string;
+            /** Format: date-time */
+            logged_at: string;
+            /** Format: double */
+            hours_before_kickoff: number;
+            home: components["schemas"]["TeamRef"];
+            away: components["schemas"]["TeamRef"];
+            /**
+             * @description The outcome the news moved the most.
+             *
+             *     * `H` - H
+             *     * `D` - D
+             *     * `A` - A
+             */
+            outcome: components["schemas"]["OutcomeEnum"];
+            /**
+             * Format: double
+             * @description Probability of that outcome after the news.
+             */
+            agent: number;
+            /**
+             * Format: double
+             * @description De-vigged opening line.
+             */
+            opening: number | null;
+            /**
+             * Format: double
+             * @description De-vigged closing line.
+             */
+            closing: number | null;
+            ahead: boolean | null;
+            verdict: string;
+        };
+        NewsEdge: {
+            /** @description Chats that brought news before kickoff. */
+            n_logged: number;
+            /** @description Logged chats with an opening and closing line. */
+            n_compared: number;
+            n_ahead: number;
+            minimum_for_rate: number;
+            /**
+             * Format: double
+             * @description Share ahead of the market; null until enough chats are compared.
+             */
+            rate: number | null;
+            /** @description Every logged chat, oldest first. */
+            chats: components["schemas"]["NewsChat"][];
+        };
         /**
          * @description * `H` - H
          *     * `D` - D
@@ -773,6 +826,8 @@ export interface components {
             matchdays: components["schemas"]["MatchdayRow"][];
             /** @description Live predictions, home/draw/away pooled into probability bins. */
             calibration: components["schemas"]["CalibrationBin"][];
+            /** @description Chats that brought news before kickoff, checked against the market's moves. */
+            news_edge: components["schemas"]["NewsEdge"];
         };
         TrackRecordPeriod: {
             kind: components["schemas"]["PeriodKindEnum"];

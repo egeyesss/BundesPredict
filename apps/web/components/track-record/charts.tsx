@@ -144,9 +144,10 @@ export function RpsLineChart({ rows }: { rows: MatchdayRow[] }) {
   const [tip, setTip] = useState<TipState>(null);
   const [cursor, setCursor] = useState<number | null>(null);
   const height = 280;
-  const margin = { left: 48, right: width < 480 ? 12 : 100, top: 12, bottom: 34 };
+  const single = rows.length === 1;
+  const margin = { left: 48, right: width < 480 || single ? 12 : 100, top: 28, bottom: 34 };
   const { low, high } = rpsDomain(rows);
-  const x = (index: number) => margin.left + (rows.length === 1 ? (width - margin.left - margin.right) / 2 : (index * (width - margin.left - margin.right)) / (rows.length - 1));
+  const x = (index: number) => margin.left + (single ? Math.min(120, (width - margin.left - margin.right) / 3) : (index * (width - margin.left - margin.right)) / (rows.length - 1));
   const y = (value: number) => margin.top + ((high - value) * (height - margin.top - margin.bottom)) / (high - low);
 
   const ends = LINE_SERIES.map((series) => {
@@ -195,7 +196,7 @@ export function RpsLineChart({ rows }: { rows: MatchdayRow[] }) {
               </text>
             </g>
           ))}
-          <text x={0} y={margin.top + 4} className="chart-text">
+          <text x={0} y={10} className="chart-text">
             RPS ↓
           </text>
           {rows.map((row, index) => (
@@ -215,10 +216,10 @@ export function RpsLineChart({ rows }: { rows: MatchdayRow[] }) {
               </g>
             );
           })}
-          {width >= 480 &&
+          {(width >= 480 || single) &&
             ends.map((end) => (
-              <text key={end.series.key} x={width - margin.right + 10} y={end.y + 4} className="chart-label">
-                {end.series.label}
+              <text key={end.series.key} x={single ? x(0) + 14 : width - margin.right + 10} y={end.y + 4} className="chart-label">
+                {single ? `${end.series.label} ${score(rows[0][end.series.key] as number)}` : end.series.label}
               </text>
             ))}
           <rect

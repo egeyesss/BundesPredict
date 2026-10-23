@@ -49,3 +49,29 @@ export function rpsDomain(rows: readonly MatchdayRow[]): { low: number; high: nu
 export function isShortRecord(period: Period): boolean {
   return period.model !== null && period.model.n_fixtures < SHORT_RECORD_MATCHES;
 }
+
+export type NewsEdge = TrackRecord["news_edge"];
+export type NewsChat = NewsEdge["chats"][number];
+
+export function beforeKickoff(hours: number): string {
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min before`;
+  if (hours < 48) return `${Math.round(hours)} h before`;
+  return `${Math.round(hours / 24)} days before`;
+}
+
+export function newsOutcomeName(chat: Pick<NewsChat, "home" | "away" | "outcome">): string {
+  if (chat.outcome === "D") return "Draw";
+  return `${(chat.outcome === "H" ? chat.home : chat.away).name} win`;
+}
+
+/** Percentage points of the outcome's probability between two lines. */
+export const points = (from: number, to: number) => (to - from) * 100;
+
+/** Half-width of the tracker axis in points: at least 8, grown to the next multiple of 4 that fits every dot. */
+export function edgeAxisLimit(chats: readonly NewsChat[]): number {
+  const widest = chats.reduce((max, chat) => {
+    if (chat.opening === null || chat.closing === null) return max;
+    return Math.max(max, Math.abs(points(chat.opening, chat.closing)), Math.abs(points(chat.opening, chat.agent)));
+  }, 0);
+  return Math.max(8, Math.ceil(widest / 4) * 4);
+}

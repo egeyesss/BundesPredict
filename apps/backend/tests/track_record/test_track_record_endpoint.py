@@ -222,6 +222,16 @@ class TestMatchdays:
         assert row["base_rate_rps"] == pytest.approx(0.5 * (0.56**2 + 0.31**2))
 
 
+class TestNewsEdge:
+    def test_is_empty_with_no_rate_when_nothing_is_logged(self, api_client: APIClient) -> None:
+        edge = fetch(api_client)["news_edge"]
+
+        assert edge["n_logged"] == 0
+        assert edge["chats"] == []
+        assert edge["rate"] is None
+        assert edge["minimum_for_rate"] == 20
+
+
 class TestSeasonFilter:
     def test_defaults_to_the_newest_season(
         self, api_client: APIClient, add_fixture: AddFixture

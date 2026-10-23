@@ -188,6 +188,36 @@ function matchdayRow(matchday: number, rps: number, logLoss: number, hitRate: nu
   };
 }
 
+function newsChat(
+  id: number,
+  home: [string, string],
+  away: [string, string],
+  outcome: "H" | "D" | "A",
+  hoursBefore: number,
+  opening: number,
+  agent: number,
+  closing: number | null,
+) {
+  const judged = closing !== null;
+  const ahead = judged && Math.abs(agent - closing) < Math.abs(closing - opening) && Math.sign(agent - opening) === Math.sign(closing - opening);
+  return {
+    prediction_id: id,
+    fixture_id: id,
+    matchday: id,
+    kickoff_utc: "2026-10-10T13:30:00Z",
+    logged_at: "2026-10-09T11:30:00Z",
+    hours_before_kickoff: hoursBefore,
+    home: { name: home[0], code: home[1] },
+    away: { name: away[0], code: away[1] },
+    outcome,
+    agent,
+    opening: judged ? opening : null,
+    closing,
+    ahead: judged ? ahead : null,
+    verdict: judged ? (ahead ? "ahead of the market" : "market went the other way") : "waiting for the closing line",
+  };
+}
+
 export const trackRecord: TrackRecord = {
   season: null,
   live: {
@@ -237,6 +267,27 @@ export const trackRecord: TrackRecord = {
     { lower: 0.8, upper: 0.9, predicted_mean: 0.839, observed_rate: 0.889, count: 9 },
     { lower: 0.9, upper: 1.0, predicted_mean: 0.921, observed_rate: 1.0, count: 1 },
   ],
+  news_edge: {
+    n_logged: 3,
+    n_compared: 2,
+    n_ahead: 1,
+    minimum_for_rate: 20,
+    rate: null,
+    chats: [
+      newsChat(1, ["Borussia Dortmund", "BVB"], ["Hamburger SV", "HSV"], "H", 26, 0.66, 0.7, 0.69),
+      newsChat(2, ["SV Werder Bremen", "SVW"], ["RB Leipzig", "RBL"], "A", 48, 0.52, 0.46, 0.47),
+      newsChat(3, ["Bayern Munich", "FCB"], ["VfB Stuttgart", "VFB"], "H", 3, 0.76, 0.8, null),
+    ],
+  },
+};
+
+export const newsEdgeEmpty: TrackRecord["news_edge"] = {
+  n_logged: 0,
+  n_compared: 0,
+  n_ahead: 0,
+  minimum_for_rate: 20,
+  rate: null,
+  chats: [],
 };
 
 export const adminMetrics: AdminMetrics = {

@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { trackRecord } from "@/lib/api/mocks/data";
+import { newsEdgeEmpty, trackRecord } from "@/lib/api/mocks/data";
 import type { TrackRecord } from "@/lib/api/types";
 
 import { TrackRecordView } from "./TrackRecordView";
@@ -102,5 +102,33 @@ describe("TrackRecordView when the API fails", () => {
 
     expect(screen.getByRole("heading", { name: "Couldn't load the track record" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Retry/ })).toBeInTheDocument();
+  });
+});
+
+describe("news edge tracker", () => {
+  it("lists every logged chat with its verdict and shows no rate under 20 compared", () => {
+    render(<TrackRecordView outcome={{ status: "ok", record: trackRecord }} />);
+
+    const tracker = screen.getByRole("region", { name: "News edge tracker" });
+    expect(within(tracker).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(tracker).getByLabelText(/Borussia Dortmund win: opening 66%, agent 70%, closing 69%, ahead of the market/)).toBeInTheDocument();
+    expect(within(tracker).getByLabelText(/Bayern Munich win: agent 80%, waiting for the closing line/)).toBeInTheDocument();
+    expect(within(tracker).getByText(/No rate until 20 are compared \(18 to go\)/)).toBeInTheDocument();
+    expect(within(tracker).queryByText(/% \)/)).not.toBeInTheDocument();
+  });
+
+  it("shows the rate once enough chats are compared", () => {
+    const record = { ...trackRecord, news_edge: { ...trackRecord.news_edge, n_compared: 20, n_ahead: 9, rate: 0.45 } };
+    render(<TrackRecordView outcome={{ status: "ok", record }} />);
+
+    expect(screen.getByText("Ahead of the market in 9 of 20 compared chats (45%)")).toBeInTheDocument();
+  });
+
+  it("has an honest empty state with no example rows", () => {
+    render(<TrackRecordView outcome={{ status: "ok", record: { ...trackRecord, news_edge: newsEdgeEmpty } }} />);
+
+    const tracker = screen.getByRole("region", { name: "News edge tracker" });
+    expect(within(tracker).getByText("No chats logged yet this season")).toBeInTheDocument();
+    expect(within(tracker).queryByRole("listitem")).not.toBeInTheDocument();
   });
 });

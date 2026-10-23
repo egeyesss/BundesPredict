@@ -14,6 +14,7 @@ from football.models import Match
 
 from .backtest_summary import BACKTEST
 from .models import FixturePrediction, Resolution
+from .news_edge import build_news_edge
 from .scoring import (
     BASE_RATE,
     Forecast,
@@ -198,4 +199,5 @@ def build_track_record(season: str | None = None) -> dict[str, Any]:
         "backtest": _backtest_period(),
         "matchdays": _matchday_rows(scope, items) if scope is not None else [],
         "calibration": [asdict(b) for b in calibration_bins([item.model for item in items])],
+        "news_edge": build_news_edge(),
     }

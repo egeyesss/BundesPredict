@@ -112,6 +112,11 @@ class TestCalibrationBins:
         top = [b for b in bins if b.count and b.upper == pytest.approx(1.0)]
         assert top and top[0].predicted_mean == 1.0
 
+    def test_bin_edges_are_clean_decimals(self) -> None:
+        bins = calibration_bins([Forecast(probs=(0.35, 0.35, 0.3), outcome=0)])
+
+        assert [(b.lower, b.upper) for b in bins] == [(0.3, 0.4)]
+
     def test_empty_bins_are_dropped(self) -> None:
         bins = calibration_bins([HOME_CALLED_HOME])
 

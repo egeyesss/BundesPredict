@@ -91,6 +91,39 @@ class CalibrationBinSerializer(serializers.Serializer[dict[str, Any]]):
     count = serializers.IntegerField()
 
 
+class NewsChatSerializer(serializers.Serializer[dict[str, Any]]):
+    prediction_id = serializers.IntegerField()
+    fixture_id = serializers.IntegerField()
+    matchday = serializers.IntegerField()
+    kickoff_utc = serializers.DateTimeField()
+    logged_at = serializers.DateTimeField()
+    hours_before_kickoff = serializers.FloatField()
+    home = TeamRefSerializer()
+    away = TeamRefSerializer()
+    outcome = serializers.ChoiceField(
+        choices=OUTCOME_LETTERS, help_text="The outcome the news moved the most."
+    )
+    agent = serializers.FloatField(help_text="Probability of that outcome after the news.")
+    opening = serializers.FloatField(allow_null=True, help_text="De-vigged opening line.")
+    closing = serializers.FloatField(allow_null=True, help_text="De-vigged closing line.")
+    ahead = serializers.BooleanField(allow_null=True)
+    verdict = serializers.CharField()
+
+
+class NewsEdgeSerializer(serializers.Serializer[dict[str, Any]]):
+    n_logged = serializers.IntegerField(help_text="Chats that brought news before kickoff.")
+    n_compared = serializers.IntegerField(
+        help_text="Logged chats with an opening and closing line."
+    )
+    n_ahead = serializers.IntegerField()
+    minimum_for_rate = serializers.IntegerField()
+    rate = serializers.FloatField(
+        allow_null=True,
+        help_text="Share ahead of the market; null until enough chats are compared.",
+    )
+    chats = NewsChatSerializer(many=True, help_text="Every logged chat, oldest first.")
+
+
 class TrackRecordSerializer(serializers.Serializer[dict[str, Any]]):
     season = serializers.CharField(allow_null=True, help_text="The requested season, if any.")
     live = TrackRecordPeriodSerializer()
@@ -98,6 +131,9 @@ class TrackRecordSerializer(serializers.Serializer[dict[str, Any]]):
     matchdays = MatchdayRowSerializer(many=True, help_text="Live matchdays, newest first.")
     calibration = CalibrationBinSerializer(
         many=True, help_text="Live predictions, home/draw/away pooled into probability bins."
+    )
+    news_edge = NewsEdgeSerializer(
+        help_text="Chats that brought news before kickoff, checked against the market's moves."
     )
 
 

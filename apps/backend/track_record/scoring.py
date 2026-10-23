@@ -14,6 +14,7 @@ BASE_RATE: tuple[float, float, float] = (0.44, 0.25, 0.31)
 
 CALIBRATION_BINS = 10
 HOME, DRAW, AWAY = 0, 1, 2
+OUTCOME_LETTERS = ("H", "D", "A")
 
 
 @dataclass(frozen=True)
@@ -113,8 +114,8 @@ def calibration_bins(forecasts: Sequence[Forecast]) -> list[CalibrationBin]:
             continue
         bins.append(
             CalibrationBin(
-                lower=index * width,
-                upper=(index + 1) * width,
+                lower=round(index * width, 2),
+                upper=round((index + 1) * width, 2),
                 predicted_mean=float(predicted_array[in_bin].mean()),
                 observed_rate=float(happened_array[in_bin].mean()),
                 count=count,

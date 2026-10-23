@@ -3,6 +3,7 @@ import type { TrackRecord } from "@/lib/api/types";
 import { ChartCard, LINE_LEGEND, Legend, ReliabilityChart, ReliabilityTable, RpsLineChart, RpsLineTable } from "./charts";
 import { formatDay, isShortRecord, percent, scoredMatchdays, score } from "./format";
 import { MatchdayList } from "./MatchdayList";
+import { NewsEdge } from "./NewsEdge";
 import { Tiles } from "./Tiles";
 
 function EmptyLive({ record, onSeeBacktest }: { record: TrackRecord; onSeeBacktest: () => void }) {
@@ -26,7 +27,14 @@ function EmptyLive({ record, onSeeBacktest }: { record: TrackRecord; onSeeBackte
 
 export function LivePanel({ record, onSeeBacktest }: { record: TrackRecord; onSeeBacktest: () => void }) {
   const { live } = record;
-  if (!live.model) return <EmptyLive record={record} onSeeBacktest={onSeeBacktest} />;
+  if (!live.model) {
+    return (
+      <>
+        <EmptyLive record={record} onSeeBacktest={onSeeBacktest} />
+        <NewsEdge edge={record.news_edge} />
+      </>
+    );
+  }
 
   const matchdays = scoredMatchdays(record.matchdays);
   const hits = Math.round((live.model.hit_rate ?? 0) * live.model.n_fixtures);
@@ -85,11 +93,20 @@ export function LivePanel({ record, onSeeBacktest }: { record: TrackRecord; onSe
         <ChartCard
           title="When it says 40%, does it happen 40% of the time?"
           description="Every home, draw and away probability scored this season, grouped into bins. Points on the dashed line are perfectly calibrated."
-          chart={<ReliabilityChart bins={record.calibration} />}
+          chart={
+            <div className="grid items-start gap-6 min-[900px]:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+              <ReliabilityChart bins={record.calibration} />
+              <p className="max-w-[48ch] text-sm text-bp-text-muted">
+                A point above the dashed line means that outcome happened more often than the model said; below means less often. Hover a point to see how many predictions sit in it.
+              </p>
+            </div>
+          }
           table={<ReliabilityTable bins={record.calibration} />}
           note={isShortRecord(live) ? <p className="font-mono text-[11px] text-bp-text-muted">With this few matches most bins hold only a handful of predictions, so read the shape loosely.</p> : undefined}
         />
       )}
+
+      <NewsEdge edge={record.news_edge} />
 
       <h2 className="font-display text-[clamp(28px,4vw,38px)] leading-none font-bold">Every match</h2>
       <MatchdayList rows={record.matchdays} />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { axisTicks, formatDay, formatDayRange, isShortRecord, rpsDomain, scoredMatchdays, score, type MatchdayRow, type Period } from "./format";
+import { axisTicks, beforeKickoff, edgeAxisLimit, formatDay, formatDayRange, isShortRecord, rpsDomain, scoredMatchdays, score, type MatchdayRow, type Period } from "./format";
 
 function row(matchday: number, rps: number | null, nResolved = 9): MatchdayRow {
   return {
@@ -75,5 +75,27 @@ describe("isShortRecord", () => {
     expect(isShortRecord(period(7))).toBe(true);
     expect(isShortRecord(period(50))).toBe(false);
     expect(isShortRecord(period(null))).toBe(false);
+  });
+});
+
+describe("beforeKickoff", () => {
+  it("reads in minutes, hours or days", () => {
+    expect(beforeKickoff(0.4)).toBe("24 min before");
+    expect(beforeKickoff(26)).toBe("26 h before");
+    expect(beforeKickoff(72)).toBe("3 days before");
+  });
+});
+
+describe("edgeAxisLimit", () => {
+  const chat = (opening: number | null, agent: number, closing: number | null) =>
+    ({ opening, agent, closing }) as Parameters<typeof edgeAxisLimit>[0][number];
+
+  it("is 8 points unless a dot lands further out", () => {
+    expect(edgeAxisLimit([chat(0.5, 0.54, 0.55)])).toBe(8);
+    expect(edgeAxisLimit([chat(0.5, 0.64, 0.55)])).toBe(16);
+  });
+
+  it("ignores chats that have no closing line yet", () => {
+    expect(edgeAxisLimit([chat(null, 0.9, null)])).toBe(8);
   });
 });
