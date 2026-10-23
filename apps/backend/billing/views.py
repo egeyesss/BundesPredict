@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 
 from accounts import plans
 from config.api import ErrorSerializer
+from ops import webhook_failures
 
 from . import stripe_api, sync
 from .models import StripeCustomer
@@ -116,7 +117,11 @@ def _handle_webhook(request: HttpRequest, livemode: bool) -> Response:
         event = stripe_api.construct_event(request.body, signature, secret)
     except (ValueError, stripe.SignatureVerificationError) as error:
         raise InvalidSignature from error
-    sync.handle_event(event, livemode)
+    try:
+        sync.handle_event(event, livemode)
+    except Exception as error:
+        webhook_failures.record(event.id, event.type, livemode, error)
+        raise
     return Response(status=status.HTTP_200_OK)
 
 

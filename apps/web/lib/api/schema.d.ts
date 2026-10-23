@@ -305,6 +305,8 @@ export interface components {
             active_subscribers: number;
             /** @description Live-mode subscriptions only. */
             mrr_cents: number;
+            /** @description The same two numbers for test-mode subscriptions; never added to the live ones. */
+            test_mode: components["schemas"]["ModeSummary"];
             signups_7d: number;
             signups_30d: number;
             /**
@@ -313,11 +315,22 @@ export interface components {
              */
             monthly_churn: number;
             chats_per_day: components["schemas"]["ChatsPerDay"][];
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Mean agent spend over 30 days per user who asked the agent anything.
+             */
             llm_cost_per_user_cents: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Pro users' agent spend over their net revenue; null with no Pro users.
+             */
             cost_to_revenue_per_pro_user: number | null;
+            /** @description The ten heaviest Pro users. */
+            pro_user_costs: components["schemas"]["ProUserCost"][];
+            /** @description Events whose sync failed and that Stripe has not redelivered yet. */
             webhook_failures: components["schemas"]["WebhookFailure"][];
+            /** @description Newest first, failed or processed. */
+            webhook_events: components["schemas"]["WebhookEvent"][];
             failed_payments: components["schemas"]["FailedPayment"][];
         };
         AppliedAdjustment: {
@@ -436,6 +449,7 @@ export interface components {
         FailedPayment: {
             /** @description Masked for demo viewers. */
             email: string;
+            livemode: boolean;
             amount_cents: number;
             /** Format: date-time */
             failed_at: string;
@@ -481,10 +495,16 @@ export interface components {
          */
         ForecasterKindEnum: "model" | "market";
         Health: {
-            status: components["schemas"]["StatusEnum"];
+            status: components["schemas"]["HealthStatusEnum"];
             model_run_id: number | null;
             db: components["schemas"]["DbEnum"];
         };
+        /**
+         * @description * `ok` - ok
+         *     * `error` - error
+         * @enum {string}
+         */
+        HealthStatusEnum: "ok" | "error";
         Markets: {
             /** Format: double */
             p_home: number;
@@ -574,6 +594,10 @@ export interface components {
              * @description Share of fixtures whose top pick won, in [0, 1]; null if not recorded.
              */
             hit_rate: number | null;
+        };
+        ModeSummary: {
+            active_subscribers: number;
+            mrr_cents: number;
         };
         NewsChat: {
             prediction_id: number;
@@ -676,6 +700,12 @@ export interface components {
             prediction_id: number | null;
         };
         PredictStreamFrame: components["schemas"]["ConversationFrame"] | components["schemas"]["QuotaFrame"] | components["schemas"]["StageFrame"] | components["schemas"]["ResultFrame"] | components["schemas"]["ErrorFrame"];
+        ProUserCost: {
+            /** @description Masked for demo viewers. */
+            email: string;
+            /** @description Agent spend over the last 30 days. */
+            cost_cents: number;
+        };
         /** @description The 402 body: the usual error plus where the user stands and where to upgrade. */
         QuotaExceededError: {
             code: string;
@@ -748,12 +778,6 @@ export interface components {
          * @enum {string}
          */
         StageFrameEventEnum: "stage";
-        /**
-         * @description * `ok` - ok
-         *     * `error` - error
-         * @enum {string}
-         */
-        StatusEnum: "ok" | "error";
         /** @description Sent in place of `result` when the run fails after the stream has started. */
         StreamErrorData: {
             code: string;
@@ -858,6 +882,21 @@ export interface components {
             /** Format: date-time */
             resets_at: string;
         };
+        WebhookEvent: {
+            event_id: string;
+            type: string;
+            livemode: boolean;
+            error: string;
+            /** Format: date-time */
+            received_at: string;
+            status: components["schemas"]["WebhookEventStatusEnum"];
+        };
+        /**
+         * @description * `processed` - processed
+         *     * `failed` - failed
+         * @enum {string}
+         */
+        WebhookEventStatusEnum: "processed" | "failed";
         WebhookFailure: {
             event_id: string;
             type: string;
@@ -877,7 +916,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     admin_metrics_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Length of `chats_per_day`; default 30. */
+                days?: 30 | 7 | 90;
+            };
             header?: never;
             path?: never;
             cookie?: never;
