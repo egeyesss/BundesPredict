@@ -1,0 +1,58 @@
+# Score every frozen prediction whose result has been ingested since kickoff.
+# Daily at 05:45 UTC, after the 05:00 refit has pulled the latest results.
+# A scheduled run always targets production, a manual run targets the chosen database.
+name: resolve
+
+on:
+  schedule:
+    - cron: "45 5 * * *"
+  workflow_dispatch:
+    inputs:
+      database:
+        description: Database to run against
+        type: choice
+        options:
+          - adoption
+          - production
+        default: adoption
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_CHOICE: ${{ github.event_name == 'schedule' && 'production' || inputs.database }}
+      ADOPTION_DATABASE_URL: ${{ secrets.ADOPTION_DATABASE_URL }}
+      PRODUCTION_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: not-serving-requests
+      DJANGO_ALLOWED_HOSTS: localhost
+      PROXY_SECRET: not-serving-requests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --no-dev --package bundespredict-backend
+      - name: Pick the database
+        # Each database has its own secret and an empty one fails the run, so a missing
+        # adoption secret can never end up writing to production.
+        run: |
+          case "$DATABASE_CHOICE" in
+            adoption) url="$ADOPTION_DATABASE_URL" ;;
+            production) url="$PRODUCTION_DATABASE_URL" ;;
+            *) echo "::error::unknown database '$DATABASE_CHOICE'"; exit 1 ;;
+          esac
+          if [ -z "$url" ]; then
+            echo "::error::the secret for the $DATABASE_CHOICE database is empty"
+            exit 1
+          fi
+          echo "DATABASE_URL=$url" >> "$GITHUB_ENV"
+          echo "Running against the $DATABASE_CHOICE database" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check the database is fully migrated
+        # Migrations ship with the backend deploy; a daily job applying them could run a
+        # newer schema under older serving code.
+        run: uv run --no-sync apps/backend/manage.py migrate --check
+      - name: Resolve finished fixtures
+        run: uv run --no-sync apps/backend/manage.py resolve_predictions
