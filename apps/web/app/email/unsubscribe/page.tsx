@@ -9,7 +9,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
   const token = typeof t === "string" && t !== "" ? t : null;
 
   return (
-    <section aria-label="Unsubscribe" className="grid flex-1 content-start justify-items-center px-4 pt-10 pb-16">
+    <section aria-label="Email preferences" className="grid flex-1 content-start justify-items-center px-4 pt-10 pb-16">
       <UnsubscribeCard token={token} />
     </section>
   );
