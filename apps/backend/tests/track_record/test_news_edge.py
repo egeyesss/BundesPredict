@@ -152,6 +152,16 @@ class TestBuildNewsEdge:
 
         assert build_news_edge()["n_logged"] == 0
 
+    def test_a_chat_weeks_before_kickoff_is_outside_the_window(self, chat: Chat) -> None:
+        chat(hours_before=24 * 7 + 1)
+
+        assert build_news_edge()["n_logged"] == 0
+
+    def test_a_chat_just_inside_the_window_is_logged(self, chat: Chat) -> None:
+        chat(hours_before=24 * 7 - 1)
+
+        assert build_news_edge()["n_logged"] == 1
+
     def test_compares_with_the_opening_and_closing_lines_once_the_match_has_odds(
         self, chat: Chat
     ) -> None:

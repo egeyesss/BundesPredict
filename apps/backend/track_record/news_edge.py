@@ -7,6 +7,7 @@ that brought news is a row with applied adjustments created before the fixture k
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 import numpy as np
@@ -19,6 +20,8 @@ from predictions.models import Prediction
 from .scoring import OUTCOME_LETTERS
 
 MIN_CHATS_FOR_RATE = 20
+# Lines open early in the week; a chat weeks ahead has no market to be compared with.
+NEWS_WINDOW = timedelta(days=7)
 
 
 @dataclass(frozen=True)
@@ -89,6 +92,7 @@ def build_news_edge() -> dict[str, Any]:
                 home_id=prediction.home_id,
                 away_id=prediction.away_id,
                 kickoff_utc__gt=prediction.created_at,
+                kickoff_utc__lte=prediction.created_at + NEWS_WINDOW,
             )
             .order_by("kickoff_utc")
             .first()
