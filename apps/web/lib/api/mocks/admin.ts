@@ -34,12 +34,12 @@ export const adminMetrics: AdminMetrics = {
   llm_cost_per_user_cents: 14.2,
   cost_to_revenue_per_pro_user: 0.28,
   pro_user_costs: [
-    { email: "eren.k@gmail.com", cost_cents: 612 },
-    { email: "sofia.m@outlook.com", cost_cents: 431 },
-    { email: "jonas.w@gmail.com", cost_cents: 387 },
-    { email: "mina.t@icloud.com", cost_cents: 302 },
-    { email: "omar.h@gmail.com", cost_cents: 264 },
-    { email: "lea.b@web.de", cost_cents: 86 },
+    { email: "eren.k@example.com", cost_cents: 612 },
+    { email: "sofia.m@example.org", cost_cents: 431 },
+    { email: "jonas.w@example.com", cost_cents: 387 },
+    { email: "mina.t@example.org", cost_cents: 302 },
+    { email: "omar.h@example.com", cost_cents: 264 },
+    { email: "lea.b@example.org", cost_cents: 86 },
   ],
   webhook_failures: [
     {
