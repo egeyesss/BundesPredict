@@ -3,7 +3,6 @@ import { http, HttpResponse } from "msw/http";
 
 import type { PredictRequest } from "../types";
 import {
-  adminMetrics,
   billingRedirects,
   conversationPage,
   fixtureCards,
@@ -20,6 +19,7 @@ import {
   trackRecord,
 } from "./data";
 import { clearMockSession, meChanges, meForMockPlan, mockPlanFrom, setMockCsrfCookie, setMockSession } from "./session";
+import { adminMetricsFor, ADMIN_RANGES } from "./admin";
 import { mockUsage } from "./state";
 import { recordedStreams, sseResponse } from "./streams";
 
@@ -170,7 +170,16 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
 
     http.get(`${API}/track-record`, () => HttpResponse.json(trackRecord)),
 
-    http.get(`${API}/admin/metrics`, () => HttpResponse.json(adminMetrics)),
+    http.get(`${API}/admin/metrics`, ({ cookies, request }) => {
+      const plan = mockPlanFrom(cookies);
+      if (!plan) return HttpResponse.json(notAuthenticated, { status: 401 });
+      if (plan !== "admin" && plan !== "demo") {
+        return HttpResponse.json({ code: "permission_denied", message: "You do not have permission to do that." }, { status: 403 });
+      }
+      const days = Number(new URL(request.url).searchParams.get("days") ?? 30);
+      if (!(ADMIN_RANGES as readonly number[]).includes(days)) return validationError("days: Use one of 7, 30, 90.");
+      return HttpResponse.json(adminMetricsFor(days, plan === "demo"));
+    }),
 
     http.post(`${API}/demo/start`, () => HttpResponse.json(meFor("demo"), { status: 201 })),
 

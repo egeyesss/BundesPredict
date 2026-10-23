@@ -106,7 +106,8 @@ describe("read endpoints", () => {
     expect(record?.backtest.kind).toBe("backtest");
     expect(record?.calibration.length).toBeGreaterThan(5);
 
-    expect((await client.GET("/api/v1/admin/metrics")).data?.active_subscribers).toBeGreaterThan(0);
+    setMockSession("admin");
+    expect((await client.GET("/api/v1/admin/metrics")).data?.chats_per_day).toHaveLength(30);
 
     const demo = await client.POST("/api/v1/demo/start");
     expect(demo.response.status).toBe(201);

@@ -1,7 +1,7 @@
 export const SESSION_COOKIE = "sessionid";
 export const MOCK_PLAN_COOKIE = "bp_mock_plan";
 
-const GUARDED_PREFIXES = ["/account", "/chat"];
+const GUARDED_PREFIXES = ["/account", "/chat", "/admin"];
 
 export function isGuardedPath(pathname: string): boolean {
   return GUARDED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
