@@ -36,14 +36,14 @@ function Row({ chat, limit }: { chat: NewsChat; limit: number }) {
     ? `${newsOutcomeName(chat)}: opening ${percent(chat.opening!)}, agent ${percent(chat.agent)}, closing ${percent(chat.closing!)}, ${chat.verdict}`
     : `${newsOutcomeName(chat)}: agent ${percent(chat.agent)}, ${chat.verdict}`;
   return (
-    <li aria-label={summary} className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1.6fr)_190px] items-center gap-4 border-b border-bp-border py-3 last:border-b-0 max-[860px]:grid-cols-1 max-[860px]:gap-2">
+    <li aria-label={summary} className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1.6fr)_210px] items-center gap-4 border-b border-bp-border py-3 last:border-b-0 max-[860px]:grid-cols-1 max-[860px]:gap-2">
       <div className="grid min-w-0 gap-0.5">
-        <span className="flex min-w-0 items-center gap-1.5 font-display text-base leading-tight font-semibold tracking-[0.02em]">
-          <span className="mr-1 font-mono text-[11px] font-normal text-bp-text-muted">MD {chat.matchday}</span>
+        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 font-display text-base leading-tight font-semibold tracking-[0.02em]">
+          <span className="mr-1 shrink-0 font-mono text-[11px] font-normal whitespace-nowrap text-bp-text-muted">MD {chat.matchday}</span>
           <ClubCrest team={{ name: chat.home.name, code: codeOf(chat.home) }} size={20} />
-          <span className="truncate">{chat.home.name}</span>
+          <span>{chat.home.name}</span>
           <span aria-hidden="true" className="font-mono text-xs font-normal text-bp-text-muted">v</span>
-          <span className="truncate">{chat.away.name}</span>
+          <span>{chat.away.name}</span>
           <ClubCrest team={{ name: chat.away.name, code: codeOf(chat.away) }} size={20} />
         </span>
         <span className="font-mono text-[11px] text-bp-text-muted">
@@ -55,7 +55,7 @@ function Row({ chat, limit }: { chat: NewsChat; limit: number }) {
       ) : (
         <span className="font-mono text-xs text-bp-text-muted">Agent put it at {percent(chat.agent)}</span>
       )}
-      <span className={cn("flex items-center gap-2 font-mono text-xs whitespace-nowrap", chat.ahead ? "text-bp-text" : "text-bp-text-muted")}>
+      <span className={cn("flex items-center gap-2 font-mono text-xs", chat.ahead ? "text-bp-text" : "text-bp-text-muted")}>
         <span
           aria-hidden="true"
           className={cn("grid size-[26px] shrink-0 place-items-center rounded-full text-xs font-bold", chat.ahead ? "bg-odds-win text-bp-bg" : "border border-bp-border")}
@@ -140,7 +140,7 @@ export function NewsEdge({ edge }: { edge: NewsEdgeData }) {
 
       <section aria-label="News edge tracker" className="grid min-w-0 gap-3.5 rounded-xl border border-bp-border bg-bp-surface-1 p-5">
         <div className="grid gap-1">
-          <h3 className="font-display text-xl leading-tight font-semibold tracking-[0.02em]">News edge tracker</h3>
+          <h2 className="font-display text-xl leading-tight font-semibold tracking-[0.02em]">News edge tracker</h2>
           <p className="max-w-[70ch] text-sm text-bp-text-muted">
             Each row is a chat that brought news before kickoff. Points are the change from the opening line for the outcome the news moved most. A green circle means the agent&apos;s odds landed closer to the closing line than the opening line did, in the direction the market later moved. This is a separate measure from the model&apos;s score above, and chats stay private: only the odds are shown.
           </p>
@@ -148,7 +148,7 @@ export function NewsEdge({ edge }: { edge: NewsEdgeData }) {
         <Headline edge={edge} />
         {edge.n_logged === 0 ? (
           <div className="grid gap-2 rounded-xl border border-dashed border-[#3a3a42] p-6">
-            <h4 className="font-display text-xl font-semibold">No chats logged yet this season</h4>
+            <h3 className="font-display text-xl font-semibold">No chats logged yet this season</h3>
             <p className="max-w-[70ch] text-sm text-bp-text-muted">
               Every chat that brings news before kickoff is logged with the odds the agent produced. After the match, it is checked against the opening and closing lines and shows up here, hits and misses alike.
             </p>

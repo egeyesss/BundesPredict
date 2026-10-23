@@ -46,15 +46,15 @@ export function BacktestPanel({ period }: { period: TrackRecord["backtest"] }) {
       <div className="grid grid-cols-3 gap-3 max-[900px]:grid-cols-1">
         {FINDINGS.map((finding) => (
           <div key={finding.title} className="grid content-start gap-2 border-t-2 border-bp-border pt-3.5">
-            <h3 className="font-display text-xl leading-tight font-semibold tracking-[0.02em]">{finding.title}</h3>
+            <h2 className="font-display text-xl leading-tight font-semibold tracking-[0.02em]">{finding.title}</h2>
             <p className="text-sm text-bp-text-muted">{finding.body}</p>
           </div>
         ))}
       </div>
       <div className="grid max-w-[76ch] gap-2 text-sm text-bp-text-muted">
-        <h3 className="font-display text-xl leading-tight font-semibold tracking-[0.02em] text-bp-text">How the backtest works</h3>
+        <h2 className="font-display text-xl leading-tight font-semibold tracking-[0.02em] text-bp-text">How the backtest works</h2>
         <p>
-          <b className="font-medium text-bp-text">Walk-forward.</b> Before each gameweek the model is refit on results strictly before that round&apos;s kickoff, then predicts the round. Nothing from the future leaks in.
+          <b className="font-medium text-bp-text">Walk-forward.</b>{" "}Before each gameweek the model is refit on results strictly before that round&apos;s kickoff, then predicts the round. Nothing from the future leaks in.
         </p>
         <p>
           <b className="font-medium text-bp-text">Scored with RPS.</b> The ranked probability score treats home, draw and away as ordered, so calling a draw when the home side wins costs less than calling an away win.

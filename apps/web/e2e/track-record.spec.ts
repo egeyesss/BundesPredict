@@ -15,7 +15,7 @@ test.describe("track record", () => {
     await page.getByRole("tab", { name: "Backtest · 5 seasons" }).click();
 
     const panel = page.getByRole("tabpanel", { name: "Backtest · 5 seasons" });
-    await expect(panel.getByText("1,827")).toBeVisible();
+    await expect(panel.getByText("1,827", { exact: true })).toBeVisible();
     await expect(panel.getByRole("img", { name: /Ranked probability score by forecaster/ })).toBeVisible();
   });
 

@@ -86,7 +86,7 @@ export function ChartCard({
     <section aria-label={title} className={cn("grid min-w-0 gap-3.5 rounded-xl border border-bp-border bg-bp-surface-1 p-5", className)}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2.5">
         <div className="grid min-w-[240px] flex-1 gap-1">
-          <h3 className="font-display text-xl leading-tight font-semibold tracking-[0.02em]">{title}</h3>
+          <h2 className="font-display text-xl leading-tight font-semibold tracking-[0.02em]">{title}</h2>
           <p className="max-w-[62ch] text-sm text-bp-text-muted">{description}</p>
         </div>
         <button

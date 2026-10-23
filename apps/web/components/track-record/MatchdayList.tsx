@@ -18,14 +18,16 @@ function FixtureRow({ fixture }: { fixture: Fixture }) {
   const probs = [fixture.p_home, fixture.p_draw, fixture.p_away] as const;
   const markerAt = probs.slice(0, actual).reduce((sum, p) => sum + p, 0) + probs[actual] / 2;
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_56px] items-center gap-x-3.5 gap-y-2 border-t border-bp-border px-4 py-2.5 min-[720px]:grid-cols-[minmax(0,1.4fr)_64px_minmax(0,1.5fr)_132px]">
+    <li className="grid grid-cols-[minmax(0,1fr)_56px] items-center gap-x-3.5 gap-y-2 border-t border-bp-border px-4 py-2.5 min-[720px]:grid-cols-[minmax(0,1.4fr)_64px_minmax(0,1.5fr)_150px]">
       <span className="flex min-w-0 items-center gap-2 font-display text-[17px] leading-tight font-semibold tracking-[0.02em]">
         <ClubCrest team={{ name: home.name, code: codeOf(home) }} size={20} />
-        <span className="truncate">{home.name}</span>
+        <span className="truncate max-[720px]:hidden">{home.name}</span>
+        <span aria-hidden="true" className="hidden max-[720px]:inline">{codeOf(home)}</span>
         <span aria-hidden="true" className="font-mono text-xs font-normal text-bp-text-muted">
           v
         </span>
-        <span className="truncate">{away.name}</span>
+        <span className="truncate max-[720px]:hidden">{away.name}</span>
+        <span aria-hidden="true" className="hidden max-[720px]:inline">{codeOf(away)}</span>
         <ClubCrest team={{ name: away.name, code: codeOf(away) }} size={20} />
       </span>
       <span className="text-center font-display text-xl leading-none font-bold tabular-nums" aria-label={`Final score ${fixture.home_goals} to ${fixture.away_goals}`}>
