@@ -79,7 +79,8 @@ test.describe("matchday visuals", () => {
   });
 });
 
-test("the home page sends visitors to the matchday", async ({ page }) => {
+test("the home page is the landing page for anonymous visitors", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/matchday$/);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1, name: "BundesPredict" })).toBeVisible();
 });
