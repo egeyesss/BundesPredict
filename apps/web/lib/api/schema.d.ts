@@ -114,6 +114,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Turns the Thursday matchday email off for the token's user. Also the target of the `List-Unsubscribe-Post` one-click request, which sends the token in the query string. */
         post: operations["email_unsubscribe"];
         delete?: never;
         options?: never;
@@ -989,7 +990,10 @@ export interface operations {
     };
     email_unsubscribe: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The same token as the body field; mail clients put it in the URL. */
+                token?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
