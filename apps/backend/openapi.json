@@ -9,6 +9,21 @@
             "get": {
                 "operationId": "admin_metrics_retrieve",
                 "description": "Admins see real values; demo users get the same numbers with emails masked.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "days",
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                30,
+                                7,
+                                90
+                            ]
+                        },
+                        "description": "Length of `chats_per_day`; default 30."
+                    }
+                ],
                 "tags": [
                     "ops"
                 ],
@@ -894,6 +909,14 @@
                         "type": "integer",
                         "description": "Live-mode subscriptions only."
                     },
+                    "test_mode": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ModeSummary"
+                            }
+                        ],
+                        "description": "The same two numbers for test-mode subscriptions; never added to the live ones."
+                    },
                     "signups_7d": {
                         "type": "integer"
                     },
@@ -913,18 +936,35 @@
                     },
                     "llm_cost_per_user_cents": {
                         "type": "number",
-                        "format": "double"
+                        "format": "double",
+                        "description": "Mean agent spend over 30 days per user who asked the agent anything."
                     },
                     "cost_to_revenue_per_pro_user": {
                         "type": "number",
                         "format": "double",
-                        "nullable": true
+                        "nullable": true,
+                        "description": "Pro users' agent spend over their net revenue; null with no Pro users."
+                    },
+                    "pro_user_costs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProUserCost"
+                        },
+                        "description": "The ten heaviest Pro users."
                     },
                     "webhook_failures": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/WebhookFailure"
-                        }
+                        },
+                        "description": "Events whose sync failed and that Stripe has not redelivered yet."
+                    },
+                    "webhook_events": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/WebhookEvent"
+                        },
+                        "description": "Newest first, failed or processed."
                     },
                     "failed_payments": {
                         "type": "array",
@@ -943,8 +983,11 @@
                     "masked",
                     "monthly_churn",
                     "mrr_cents",
+                    "pro_user_costs",
                     "signups_30d",
                     "signups_7d",
+                    "test_mode",
+                    "webhook_events",
                     "webhook_failures"
                 ]
             },
@@ -1258,6 +1301,9 @@
                         "type": "string",
                         "description": "Masked for demo viewers."
                     },
+                    "livemode": {
+                        "type": "boolean"
+                    },
                     "amount_cents": {
                         "type": "integer"
                     },
@@ -1269,7 +1315,8 @@
                 "required": [
                     "amount_cents",
                     "email",
-                    "failed_at"
+                    "failed_at",
+                    "livemode"
                 ]
             },
             "FixtureCard": {
@@ -1402,7 +1449,7 @@
                 "type": "object",
                 "properties": {
                     "status": {
-                        "$ref": "#/components/schemas/StatusEnum"
+                        "$ref": "#/components/schemas/HealthStatusEnum"
                     },
                     "model_run_id": {
                         "type": "integer",
@@ -1417,6 +1464,14 @@
                     "model_run_id",
                     "status"
                 ]
+            },
+            "HealthStatusEnum": {
+                "enum": [
+                    "ok",
+                    "error"
+                ],
+                "type": "string",
+                "description": "* `ok` - ok\n* `error` - error"
             },
             "Markets": {
                 "type": "object",
@@ -1679,6 +1734,21 @@
                     "log_loss",
                     "n_fixtures",
                     "rps"
+                ]
+            },
+            "ModeSummary": {
+                "type": "object",
+                "properties": {
+                    "active_subscribers": {
+                        "type": "integer"
+                    },
+                    "mrr_cents": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "active_subscribers",
+                    "mrr_cents"
                 ]
             },
             "NewsChat": {
@@ -1950,6 +2020,23 @@
                     }
                 }
             },
+            "ProUserCost": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Masked for demo viewers."
+                    },
+                    "cost_cents": {
+                        "type": "integer",
+                        "description": "Agent spend over the last 30 days."
+                    }
+                },
+                "required": [
+                    "cost_cents",
+                    "email"
+                ]
+            },
             "QuotaExceededError": {
                 "type": "object",
                 "description": "The 402 body: the usual error plus where the user stands and where to upgrade.",
@@ -2136,14 +2223,6 @@
                 ],
                 "type": "string",
                 "description": "* `stage` - stage"
-            },
-            "StatusEnum": {
-                "enum": [
-                    "ok",
-                    "error"
-                ],
-                "type": "string",
-                "description": "* `ok` - ok\n* `error` - error"
             },
             "StreamErrorData": {
                 "type": "object",
@@ -2437,6 +2516,46 @@
                     "resets_at",
                     "used"
                 ]
+            },
+            "WebhookEvent": {
+                "type": "object",
+                "properties": {
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "livemode": {
+                        "type": "boolean"
+                    },
+                    "error": {
+                        "type": "string"
+                    },
+                    "received_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/WebhookEventStatusEnum"
+                    }
+                },
+                "required": [
+                    "error",
+                    "event_id",
+                    "livemode",
+                    "received_at",
+                    "status",
+                    "type"
+                ]
+            },
+            "WebhookEventStatusEnum": {
+                "enum": [
+                    "processed",
+                    "failed"
+                ],
+                "type": "string",
+                "description": "* `processed` - processed\n* `failed` - failed"
             },
             "WebhookFailure": {
                 "type": "object",

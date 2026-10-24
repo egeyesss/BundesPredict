@@ -14,7 +14,6 @@ NOT_IMPLEMENTED = {
 
 # (method, path, json body, needs a session)
 STUBS: list[tuple[str, str, dict[str, Any] | None, bool]] = [
-    ("get", "/api/v1/admin/metrics", None, True),
     ("post", "/api/v1/demo/start", None, False),
 ]
 

@@ -100,6 +100,7 @@ describe("proxy", () => {
       "/accounts/:path*",
       "/account/:path*",
       "/chat/:path*",
+      "/admin/:path*",
     ]);
   });
 });
@@ -113,6 +114,8 @@ describe("proxy session guard", () => {
   it.each([
     ["/account", "/login?next=%2Faccount"],
     ["/account?checkout=success", "/login?next=%2Faccount%3Fcheckout%3Dsuccess"],
+    ["/admin", "/login?next=%2Fadmin"],
+    ["/admin?days=7", "/login?next=%2Fadmin%3Fdays%3D7"],
     ["/chat", "/login?next=%2Fchat"],
     ["/chat?fixture=803", "/login?next=%2Fchat%3Ffixture%3D803"],
     ["/chat/5f0c7d7e-6a1b-4b8e-9d3c-0a1b2c3d4e5f", "/login?next=%2Fchat%2F5f0c7d7e-6a1b-4b8e-9d3c-0a1b2c3d4e5f"],
@@ -132,6 +135,14 @@ describe("proxy session guard", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("keeps /admin on the Next page instead of rewriting it to Django's admin site", () => {
+    vi.stubEnv("API_BASE_URL", "https://api.example.com");
+    const response = visit("/admin", "sessionid=xyz");
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   it("also accepts the mock session cookie while the API is mocked", () => {

@@ -1,5 +1,4 @@
 import type {
-  AdminMetrics,
   ApiError,
   BillingRedirect,
   Conversation,
@@ -290,31 +289,4 @@ export const newsEdgeEmpty: TrackRecord["news_edge"] = {
   chats: [],
 };
 
-export const adminMetrics: AdminMetrics = {
-  generated_at: "2026-10-15T12:00:00Z",
-  masked: false,
-  active_subscribers: 12,
-  mrr_cents: 6000,
-  signups_7d: 9,
-  signups_30d: 31,
-  monthly_churn: 0.0833,
-  chats_per_day: [
-    { day: "2026-10-13", free: 14, pro: 22, demo: 6 },
-    { day: "2026-10-14", free: 17, pro: 25, demo: 4 },
-    { day: "2026-10-15", free: 9, pro: 18, demo: 3 },
-  ],
-  llm_cost_per_user_cents: 14.2,
-  cost_to_revenue_per_pro_user: 0.19,
-  webhook_failures: [
-    {
-      event_id: "evt_1QmockFailed01",
-      type: "invoice.payment_failed",
-      livemode: false,
-      error: "Subscription row not found yet; retried after 2 minutes.",
-      received_at: "2026-10-14T16:03:55Z",
-    },
-  ],
-  failed_payments: [
-    { email: "a.keller@example.com", amount_cents: 500, failed_at: "2026-10-14T16:03:50Z" },
-  ],
-};
+export { adminMetrics } from "./admin";
