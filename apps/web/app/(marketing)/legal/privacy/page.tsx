@@ -66,7 +66,6 @@ export default function PrivacyPage() {
       <LegalSection title="How long it is kept">
         <ul>
           <li>Account, chats and usage stay until you ask for them to be deleted.</li>
-          <li>Demo accounts and everything in them are deleted after 24 hours.</li>
           <li>Payment records may be kept by Stripe and by me for as long as tax and accounting rules require.</li>
         </ul>
       </LegalSection>
