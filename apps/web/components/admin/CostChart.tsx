@@ -19,6 +19,8 @@ const MARGIN = { top: 22, bottom: 24, right: 90 };
 
 const AXIS_STEPS_CENTS = [200, 400, 1000, 2000];
 const MIN_TICK_SPACING_PX = 72;
+const VALUE_CHAR_WIDTH_PX = 7.4;
+const LINE_CLEARANCE_PX = 6;
 
 export function CostChart({ users }: { users: ProUserCost[] }) {
   const [ref, width] = useWidth<HTMLDivElement>();
@@ -30,6 +32,13 @@ export function CostChart({ users }: { users: ProUserCost[] }) {
   const axisStep = AXIS_STEPS_CENTS.find((step) => (Math.ceil(maxCents / step) * MIN_TICK_SPACING_PX) <= plotWidth) ?? AXIS_STEPS_CENTS.at(-1)!;
   const axisMax = Math.ceil(maxCents / axisStep) * axisStep;
   const x = (cents: number) => labelWidth + (plotWidth * cents) / axisMax;
+  const lineX = x(NET_REVENUE_CENTS);
+  /** A value label starts just past its bar, or past the reference line when it would sit on it. */
+  const labelX = (cents: number, text: string) => {
+    const start = x(cents) + 8;
+    const end = start + text.length * VALUE_CHAR_WIDTH_PX;
+    return start < lineX + LINE_CLEARANCE_PX && end > lineX - LINE_CLEARANCE_PX ? lineX + LINE_CLEARANCE_PX + 2 : start;
+  };
   const gridValues = Array.from({ length: axisMax / axisStep + 1 }, (_, index) => index * axisStep);
 
   const table = (
@@ -78,7 +87,7 @@ export function CostChart({ users }: { users: ProUserCost[] }) {
                     {user.email.length > 22 ? `${user.email.slice(0, 21)}…` : user.email}
                   </text>
                   <rect x={labelWidth} y={centerY - 7} width={Math.max(2, x(user.cost_cents) - labelWidth)} height={14} rx={3} fill={over ? "var(--status-critical)" : "var(--plan-pro)"} />
-                  <text x={x(user.cost_cents) + 8} y={centerY + 4} className="fill-bp-text font-mono text-xs [paint-order:stroke] stroke-bp-surface-1 stroke-[5px]">
+                  <text x={labelX(user.cost_cents, `${formatMoney(user.cost_cents)}${over ? "  ▲ over" : ""}`)} y={centerY + 4} className="fill-bp-text font-mono text-xs [paint-order:stroke] stroke-bp-surface-1 stroke-[5px]">
                     {formatMoney(user.cost_cents)}
                     {over ? "  ▲ over" : ""}
                   </text>
