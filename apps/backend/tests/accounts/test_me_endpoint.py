@@ -38,7 +38,8 @@ def test_me_requires_a_session(api_client: APIClient) -> None:
 def test_new_users_get_a_profile(user: User) -> None:
     profile = UserProfile.objects.get(user=user)
 
-    assert (profile.role, profile.is_demo, profile.email_opt_in) == ("user", False, True)
+    # CASL needs an explicit yes, so nobody is on the matchday email until they switch it on.
+    assert (profile.role, profile.is_demo, profile.email_opt_in) == ("user", False, False)
     assert (profile.timezone, profile.timezone_source) == (None, "browser")
 
 
@@ -62,7 +63,7 @@ def test_get_returns_the_contract_shape(client: APIClient, user: User) -> None:
     assert body["name"] == "Ada Lovelace"
     assert (body["plan"], body["role"], body["is_demo"]) == ("free", "user", False)
     assert body["subscription"] is None
-    assert body["email_opt_in"] is True
+    assert body["email_opt_in"] is False
     assert body["timezone"] is None
     assert body["usage"]["used"] == 0
     assert body["usage"]["limit"] == 3
@@ -99,10 +100,10 @@ def test_a_demo_profile_reports_the_demo_plan(client: APIClient, user: User) -> 
 
 
 def test_patch_updates_email_opt_in(client: APIClient, user: User) -> None:
-    body = client.patch(ME, {"email_opt_in": False}, format="json").json()
+    body = client.patch(ME, {"email_opt_in": True}, format="json").json()
 
-    assert body["email_opt_in"] is False
-    assert UserProfile.objects.get(user=user).email_opt_in is False
+    assert body["email_opt_in"] is True
+    assert UserProfile.objects.get(user=user).email_opt_in is True
 
 
 def test_patch_ignores_fields_that_are_not_writable(client: APIClient, user: User) -> None:
