@@ -22,12 +22,13 @@ const SECTIONS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/track-record", label: "Track record" },
   { href: "/account", label: "Account" },
   { href: "/login", label: "Sign in" },
+  { href: "/how-its-built", label: "How it's built" },
+  { href: "/legal", label: "Legal" },
   { href: "/styleguide", label: "Styleguide" },
 ];
 
 function sectionFor(pathname: string) {
-  const path = pathname === "/" ? "/chat" : pathname;
-  return SECTIONS.find(({ href }) => path === href || path.startsWith(`${href}/`));
+  return SECTIONS.find(({ href }) => pathname === href || pathname.startsWith(`${href}/`));
 }
 
 /** The page name the island's live activity shows when the agent is idle. */

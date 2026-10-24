@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { buildUpstreamHeaders, upstreamUrl } from "@/lib/api/proxy";
 import { loginUrl } from "@/lib/auth/next-path";
-import { hasSessionCookie, isGuardedPath } from "@/lib/auth/session-cookie";
+import { hasSessionCookie, isGuardedPath, signedInHomePath } from "@/lib/auth/session-cookie";
 
 /**
  * Sends the backend's paths to Django so the browser only ever talks to this origin, and answers
@@ -11,6 +11,10 @@ import { hasSessionCookie, isGuardedPath } from "@/lib/auth/session-cookie";
  */
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const home = signedInHomePath(pathname, request.cookies);
+  if (home) return NextResponse.redirect(new URL(home, request.url));
+  if (pathname === "/") return NextResponse.next();
+
   if (isGuardedPath(pathname)) {
     if (hasSessionCookie(request.cookies)) return NextResponse.next();
     return NextResponse.redirect(new URL(loginUrl(`${pathname}${search}`), request.url));
@@ -22,5 +26,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/_allauth/:path*", "/accounts/:path*", "/account/:path*", "/chat/:path*", "/admin/:path*"],
+  matcher: ["/", "/api/:path*", "/_allauth/:path*", "/accounts/:path*", "/account/:path*", "/chat/:path*", "/admin/:path*"],
 };

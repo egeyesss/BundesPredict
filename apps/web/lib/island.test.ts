@@ -39,7 +39,9 @@ describe("islandMode", () => {
 
 describe("sectionLabel", () => {
   it.each([
-    ["/", "Chat"],
+    ["/", "BundesPredict"],
+    ["/how-its-built", "How it's built"],
+    ["/legal/privacy", "Legal"],
     ["/matchday", "Matchday"],
     ["/matchday/7", "Matchday"],
     ["/chat/abc", "Chat"],
@@ -54,8 +56,8 @@ describe("sectionLabel", () => {
 });
 
 describe("isCurrentSection", () => {
-  it("treats the chat demo at / as the Chat section", () => {
-    expect(isCurrentSection("/", "/chat")).toBe(true);
+  it("does not treat the landing page as the Chat section", () => {
+    expect(isCurrentSection("/", "/chat")).toBe(false);
   });
 
   it("matches nested routes but not sibling prefixes", () => {

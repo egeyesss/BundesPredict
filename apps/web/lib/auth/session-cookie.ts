@@ -15,3 +15,11 @@ export function hasSessionCookie(cookies: { has(name: string): boolean }): boole
   if (cookies.has(SESSION_COOKIE)) return true;
   return process.env.API_MOCKING === "enabled" && cookies.has(MOCK_PLAN_COOKIE);
 }
+
+/**
+ * Where a signed-in visitor should land instead of the marketing page. The landing page is
+ * static, so the proxy answers this before the page renders rather than the page asking Django.
+ */
+export function signedInHomePath(pathname: string, cookies: { has(name: string): boolean }): string | null {
+  return pathname === "/" && hasSessionCookie(cookies) ? "/matchday" : null;
+}

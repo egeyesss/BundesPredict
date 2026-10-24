@@ -93,8 +93,23 @@ describe("proxy", () => {
     expect(response.headers.get("x-middleware-request-x-client-ip")).toBe("203.0.113.7");
   });
 
+  it("sends a visitor with a session cookie from the landing page to the matchday", () => {
+    const response = proxy(new NextRequest("https://bundespredict.egeyesilyurt.ca/", { headers: { cookie: "sessionid=abc" } }));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://bundespredict.egeyesilyurt.ca/matchday");
+  });
+
+  it("serves the landing page to an anonymous visitor without rewriting it", () => {
+    const response = proxy(new NextRequest("https://bundespredict.egeyesilyurt.ca/"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+  });
+
   it("matches the backend's path prefixes and the pages that need a session", () => {
     expect(config.matcher).toEqual([
+      "/",
       "/api/:path*",
       "/_allauth/:path*",
       "/accounts/:path*",

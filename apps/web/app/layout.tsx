@@ -3,9 +3,11 @@ import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google";
 
 import { SessionProvider } from "@/components/account/SessionProvider";
 import { AppShell } from "@/components/brand/AppShell";
+import { DeferredSurface } from "@/components/signature/DeferredSurface";
 import { ApiMockingGate } from "@/components/dev/ApiMockingGate";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SITE_URL } from "@/lib/site";
 
 import "./globals.css";
 
@@ -26,10 +28,16 @@ const mono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+const DESCRIPTION =
+  "Win, draw and loss probabilities for every Bundesliga fixture from a calibrated model, with an agent that adjusts them for the news.";
+
 export const metadata: Metadata = {
-  title: "BundesPredict",
-  description:
-    "Calibrated Bundesliga match predictor with an LLM context-adjustment layer.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "BundesPredict", template: "%s | BundesPredict" },
+  description: DESCRIPTION,
+  applicationName: "BundesPredict",
+  openGraph: { type: "website", siteName: "BundesPredict", locale: "en_CA" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
@@ -53,7 +61,9 @@ export default function RootLayout({
         <ApiMockingGate>
           <SessionProvider>
             <TooltipProvider>
-              <AppShell>{children}</AppShell>
+              <DeferredSurface>
+                <AppShell>{children}</AppShell>
+              </DeferredSurface>
             </TooltipProvider>
           </SessionProvider>
           <Toaster />

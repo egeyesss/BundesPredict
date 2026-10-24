@@ -6,6 +6,8 @@ Components copied into this repo (not installed from npm) and the licence they c
 |---|---|---|---|
 | shadcn/ui primitives (button, input, dialog, sheet, tabs, tooltip, dropdown-menu, sonner, skeleton, avatar, badge, card, chart) | `components/ui/` | https://ui.shadcn.com | MIT |
 | OtpInput (sign-in code field) | `components/ui/otp-input.tsx` | https://www.rareui.com/components/otpinput | Free for commercial use with a visible credit link (the footer links to rareui.com) |
+| FAQ chat bubbles (grey questions, red answers with the orb avatar) | `components/marketing/Faq.tsx` | https://www.rareui.com | Free for commercial use with a visible credit link (the footer links to rareui.com); rebuilt here with our own tokens and the `motion` package |
+| Barlow Condensed Bold (font file for the generated icons and share image) | `assets/fonts/BarlowCondensed-Bold.ttf` | https://github.com/jpt/barlow | SIL Open Font License 1.1 |
 
 The primitives are restyled with the project's design tokens.
 Packages they pull in from npm (Radix UI, `cn`, Recharts, Sonner, Lucide) keep their own licences in `node_modules`.

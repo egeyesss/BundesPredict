@@ -70,7 +70,7 @@ export function IslandNav({ wordmark, user, authPending = false, links = NAV_LIN
   const pathname = usePathname();
   const billing = useBillingRedirect({ onError: (message) => toast.error(message) });
   const { signOut } = useSignOut({ onError: (message) => toast.error(message) });
-  const { agentCaption } = useIslandActivity();
+  const { agentCaption, sectionName } = useIslandActivity();
 
   const width = useSyncExternalStore(subscribeViewport, readWidth, serverWidth);
   const scrolled = useSyncExternalStore(subscribeViewport, readScrolled, serverScrolled);
@@ -181,7 +181,7 @@ export function IslandNav({ wordmark, user, authPending = false, links = NAV_LIN
   };
 
   const Root = preview ? "div" : "nav";
-  const label = sectionLabel(pathname);
+  const label = sectionName ?? sectionLabel(pathname);
   const logo = (
     <Link href="/" aria-label="BundesPredict home" className="isl-logo" data-focus-key="logo" onClick={handleHomeClick}>
       {wordmark}
