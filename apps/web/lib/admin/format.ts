@@ -34,3 +34,10 @@ export function labelEvery(days: number): number {
   if (days <= 7) return 1;
   return days <= 30 ? 7 : 14;
 }
+
+/** Shortens an axis label to fit `widthPx`, estimating `charPx` per character, so it never runs off the card. */
+export function fitLabel(label: string, widthPx: number, charPx: number): string {
+  const fits = Math.floor(widthPx / charPx);
+  if (label.length <= fits) return label;
+  return `${label.slice(0, Math.max(1, fits - 1))}…`;
+}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { formatMoney } from "@/lib/admin/format";
+import { fitLabel, formatMoney } from "@/lib/admin/format";
 import type { AdminMetrics } from "@/lib/api/types";
 
 import { ChartFrame } from "./ChartFrame";
@@ -21,6 +21,8 @@ const AXIS_STEPS_CENTS = [200, 400, 1000, 2000];
 const MIN_TICK_SPACING_PX = 72;
 const VALUE_CHAR_WIDTH_PX = 7.4;
 const LINE_CLEARANCE_PX = 6;
+const LABEL_CHAR_WIDTH_PX = 6.8;
+const LABEL_GAP_PX = 10;
 
 export function CostChart({ users }: { users: ProUserCost[] }) {
   const [ref, width] = useWidth<HTMLDivElement>();
@@ -83,8 +85,8 @@ export function CostChart({ users }: { users: ProUserCost[] }) {
               const over = user.cost_cents > NET_REVENUE_CENTS;
               return (
                 <g key={user.email} opacity={hovered === null || hovered === index ? 1 : 0.55}>
-                  <text x={labelWidth - 10} y={centerY + 4} textAnchor="end" className="fill-bp-text-muted text-xs">
-                    {user.email.length > 22 ? `${user.email.slice(0, 21)}…` : user.email}
+                  <text x={labelWidth - LABEL_GAP_PX} y={centerY + 4} textAnchor="end" className="fill-bp-text-muted text-xs">
+                    {fitLabel(user.email, labelWidth - LABEL_GAP_PX, LABEL_CHAR_WIDTH_PX)}
                   </text>
                   <rect x={labelWidth} y={centerY - 7} width={Math.max(2, x(user.cost_cents) - labelWidth)} height={14} rx={3} fill={over ? "var(--status-critical)" : "var(--plan-pro)"} />
                   <text x={labelX(user.cost_cents, `${formatMoney(user.cost_cents)}${over ? "  ▲ over" : ""}`)} y={centerY + 4} className="fill-bp-text font-mono text-xs [paint-order:stroke] stroke-bp-surface-1 stroke-[5px]">

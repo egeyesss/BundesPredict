@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { axisScale, costStatus, formatAgo, formatMoney, formatPercent, labelEvery } from "./format";
+import { axisScale, costStatus, fitLabel, formatAgo, formatMoney, formatPercent, labelEvery } from "./format";
 
 describe("formatMoney", () => {
   it("shows cents as dollars with two decimals", () => {
@@ -46,5 +46,26 @@ describe("axisScale", () => {
 describe("labelEvery", () => {
   it("labels every bar for a week and thins out longer ranges", () => {
     expect([7, 30, 90].map(labelEvery)).toEqual([1, 7, 14]);
+  });
+});
+
+describe("fitLabel", () => {
+  // 6.8px is the average width of a 12px Inter character the chart budgets for.
+  const CHAR_PX = 6.8;
+
+  it("keeps a label that fits", () => {
+    expect(fitLabel("lea.b@example.org", 180, CHAR_PX)).toBe("lea.b@example.org");
+  });
+
+  it("cuts a label to the space it has, ending in an ellipsis", () => {
+    const label = fitLabel("jonas.w@example.com", 100, CHAR_PX);
+
+    expect(label.endsWith("…")).toBe(true);
+    expect(label.length * CHAR_PX).toBeLessThanOrEqual(100);
+    expect("jonas.w@example.com".startsWith(label.slice(0, -1))).toBe(true);
+  });
+
+  it("never returns less than one character and the ellipsis", () => {
+    expect(fitLabel("someone@example.com", 4, CHAR_PX)).toBe("s…");
   });
 });
