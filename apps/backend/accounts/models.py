@@ -19,7 +19,7 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     is_demo = models.BooleanField(default=False)
     demo_expires_at = models.DateTimeField(null=True, blank=True)
-    email_opt_in = models.BooleanField(default=True)
+    email_opt_in = models.BooleanField(default=False)
     timezone = models.CharField(max_length=64, null=True, blank=True)
     timezone_source = models.CharField(
         max_length=10, choices=TimezoneSource.choices, default=TimezoneSource.BROWSER

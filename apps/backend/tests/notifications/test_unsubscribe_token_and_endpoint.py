@@ -16,7 +16,10 @@ URL = "/api/v1/email/unsubscribe"
 
 @pytest.fixture
 def user() -> User:
-    return User.objects.create_user(username="reader", email="reader@example.com")
+    reader = User.objects.create_user(username="reader", email="reader@example.com")
+    reader.profile.email_opt_in = True
+    reader.profile.save()
+    return reader
 
 
 def test_token_round_trips_to_the_user_id(user: User) -> None:
