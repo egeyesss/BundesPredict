@@ -463,6 +463,23 @@ export interface components {
             model_run_id: number;
             markets: components["schemas"]["Markets"];
         };
+        Forecaster: {
+            key: string;
+            label: string;
+            kind: components["schemas"]["ForecasterKindEnum"];
+            /** Format: double */
+            rps: number;
+            /** Format: double */
+            log_loss: number;
+            /** @description True for the model that serves predictions. */
+            serving: boolean;
+        };
+        /**
+         * @description * `model` - model
+         *     * `market` - market
+         * @enum {string}
+         */
+        ForecasterKindEnum: "model" | "market";
         Health: {
             status: components["schemas"]["StatusEnum"];
             model_run_id: number | null;
@@ -492,6 +509,7 @@ export interface components {
         MatchdayRow: {
             season: string;
             matchday: number;
+            /** @description Frozen predictions on this matchday. */
             n_fixtures: number;
             n_resolved: number;
             /** Format: double */
@@ -500,6 +518,12 @@ export interface components {
             log_loss: number | null;
             /** Format: double */
             hit_rate: number | null;
+            /** Format: double */
+            bookmaker_rps: number | null;
+            /** Format: double */
+            base_rate_rps: number | null;
+            /** @description Resolved fixtures, kickoff order. */
+            fixtures: components["schemas"]["ResolvedFixture"][];
         };
         Me: {
             id: number;
@@ -547,10 +571,70 @@ export interface components {
             log_loss: number;
             /**
              * Format: double
-             * @description Share of fixtures whose top pick won, in [0, 1].
+             * @description Share of fixtures whose top pick won, in [0, 1]; null if not recorded.
              */
-            hit_rate: number;
+            hit_rate: number | null;
         };
+        NewsChat: {
+            prediction_id: number;
+            fixture_id: number;
+            matchday: number;
+            /** Format: date-time */
+            kickoff_utc: string;
+            /** Format: date-time */
+            logged_at: string;
+            /** Format: double */
+            hours_before_kickoff: number;
+            home: components["schemas"]["TeamRef"];
+            away: components["schemas"]["TeamRef"];
+            /**
+             * @description The outcome the news moved the most.
+             *
+             *     * `H` - H
+             *     * `D` - D
+             *     * `A` - A
+             */
+            outcome: components["schemas"]["OutcomeEnum"];
+            /**
+             * Format: double
+             * @description Probability of that outcome after the news.
+             */
+            agent: number;
+            /**
+             * Format: double
+             * @description De-vigged opening line.
+             */
+            opening: number | null;
+            /**
+             * Format: double
+             * @description De-vigged closing line.
+             */
+            closing: number | null;
+            ahead: boolean | null;
+            verdict: string;
+        };
+        NewsEdge: {
+            /** @description Chats that brought news before kickoff. */
+            n_logged: number;
+            /** @description Logged chats with an opening and closing line. */
+            n_compared: number;
+            n_ahead: number;
+            minimum_for_rate: number;
+            /**
+             * Format: double
+             * @description Share ahead of the market; null until enough chats are compared.
+             */
+            rate: number | null;
+            /** @description Every logged chat, oldest first. */
+            chats: components["schemas"]["NewsChat"][];
+        };
+        /**
+         * @description * `H` - H
+         *     * `D` - D
+         *     * `A` - A
+         * @enum {string}
+         */
+        OutcomeEnum: "H" | "D" | "A";
         PatchedMeUpdate: {
             email_opt_in?: boolean;
             timezone?: string | null;
@@ -612,6 +696,25 @@ export interface components {
          * @enum {string}
          */
         QuotaFrameEventEnum: "quota";
+        ResolvedFixture: {
+            fixture_id: number;
+            /** Format: date-time */
+            kickoff_utc: string;
+            home: components["schemas"]["TeamRef"];
+            away: components["schemas"]["TeamRef"];
+            home_goals: number;
+            away_goals: number;
+            outcome: components["schemas"]["OutcomeEnum"];
+            /** Format: double */
+            p_home: number;
+            /** Format: double */
+            p_draw: number;
+            /** Format: double */
+            p_away: number;
+            /** Format: double */
+            rps: number;
+            hit: boolean;
+        };
         ResultFrame: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -672,6 +775,10 @@ export interface components {
             /** @description Site-relative path such as "/crests/BVB.svg". */
             crest: string | null;
         };
+        TeamRef: {
+            name: string;
+            code: string | null;
+        };
         /**
          * @description * `browser` - browser
          *     * `manual` - manual
@@ -719,6 +826,8 @@ export interface components {
             matchdays: components["schemas"]["MatchdayRow"][];
             /** @description Live predictions, home/draw/away pooled into probability bins. */
             calibration: components["schemas"]["CalibrationBin"][];
+            /** @description Chats that brought news before kickoff, checked against the market's moves. */
+            news_edge: components["schemas"]["NewsEdge"];
         };
         TrackRecordPeriod: {
             kind: components["schemas"]["PeriodKindEnum"];
@@ -727,10 +836,17 @@ export interface components {
             /** Format: date */
             since: string | null;
             model: components["schemas"]["MetricSummary"] | null;
-            /** @description Bookmaker closing odds over the same fixtures. */
+            /** @description Bookmaker closing odds over the fixtures that have them. */
             bookmaker: components["schemas"]["MetricSummary"] | null;
-            /** @description A naive model that always backs the home side. */
-            home_win_baseline: components["schemas"]["MetricSummary"] | null;
+            /** @description The league's long-run 44% home, 25% draw, 31% away split as a forecast. */
+            base_rate: components["schemas"]["MetricSummary"] | null;
+            /**
+             * Format: double
+             * @description Expected calibration error of the model; backtest only.
+             */
+            calibration_error: number | null;
+            /** @description Every forecaster scored in the backtest; empty for the live record. */
+            forecasters: components["schemas"]["Forecaster"][];
         };
         Unsubscribe: {
             /** @description Signed token from the email's unsubscribe link. */
@@ -1292,6 +1408,7 @@ export interface operations {
     track_record_retrieve: {
         parameters: {
             query?: {
+                /** @description Season code such as 2627; defaults to the newest. */
                 season?: string;
             };
             header?: never;

@@ -754,7 +754,8 @@
                         "schema": {
                             "type": "string",
                             "minLength": 1
-                        }
+                        },
+                        "description": "Season code such as 2627; defaults to the newest."
                     }
                 ],
                 "tags": [
@@ -1355,6 +1356,48 @@
                     "season"
                 ]
             },
+            "Forecaster": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "$ref": "#/components/schemas/ForecasterKindEnum"
+                    },
+                    "rps": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "log_loss": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "serving": {
+                        "type": "boolean",
+                        "description": "True for the model that serves predictions."
+                    }
+                },
+                "required": [
+                    "key",
+                    "kind",
+                    "label",
+                    "log_loss",
+                    "rps",
+                    "serving"
+                ]
+            },
+            "ForecasterKindEnum": {
+                "enum": [
+                    "model",
+                    "market"
+                ],
+                "type": "string",
+                "description": "* `model` - model\n* `market` - market"
+            },
             "Health": {
                 "type": "object",
                 "properties": {
@@ -1451,7 +1494,8 @@
                         "type": "integer"
                     },
                     "n_fixtures": {
-                        "type": "integer"
+                        "type": "integer",
+                        "description": "Frozen predictions on this matchday."
                     },
                     "n_resolved": {
                         "type": "integer"
@@ -1470,9 +1514,29 @@
                         "type": "number",
                         "format": "double",
                         "nullable": true
+                    },
+                    "bookmaker_rps": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "base_rate_rps": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "fixtures": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ResolvedFixture"
+                        },
+                        "description": "Resolved fixtures, kickoff order."
                     }
                 },
                 "required": [
+                    "base_rate_rps",
+                    "bookmaker_rps",
+                    "fixtures",
                     "hit_rate",
                     "log_loss",
                     "matchday",
@@ -1606,7 +1670,8 @@
                     "hit_rate": {
                         "type": "number",
                         "format": "double",
-                        "description": "Share of fixtures whose top pick won, in [0, 1]."
+                        "nullable": true,
+                        "description": "Share of fixtures whose top pick won, in [0, 1]; null if not recorded."
                     }
                 },
                 "required": [
@@ -1615,6 +1680,135 @@
                     "n_fixtures",
                     "rps"
                 ]
+            },
+            "NewsChat": {
+                "type": "object",
+                "properties": {
+                    "prediction_id": {
+                        "type": "integer"
+                    },
+                    "fixture_id": {
+                        "type": "integer"
+                    },
+                    "matchday": {
+                        "type": "integer"
+                    },
+                    "kickoff_utc": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "logged_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "hours_before_kickoff": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "home": {
+                        "$ref": "#/components/schemas/TeamRef"
+                    },
+                    "away": {
+                        "$ref": "#/components/schemas/TeamRef"
+                    },
+                    "outcome": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/OutcomeEnum"
+                            }
+                        ],
+                        "description": "The outcome the news moved the most.\n\n* `H` - H\n* `D` - D\n* `A` - A"
+                    },
+                    "agent": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Probability of that outcome after the news."
+                    },
+                    "opening": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true,
+                        "description": "De-vigged opening line."
+                    },
+                    "closing": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true,
+                        "description": "De-vigged closing line."
+                    },
+                    "ahead": {
+                        "type": "boolean",
+                        "nullable": true
+                    },
+                    "verdict": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "agent",
+                    "ahead",
+                    "away",
+                    "closing",
+                    "fixture_id",
+                    "home",
+                    "hours_before_kickoff",
+                    "kickoff_utc",
+                    "logged_at",
+                    "matchday",
+                    "opening",
+                    "outcome",
+                    "prediction_id",
+                    "verdict"
+                ]
+            },
+            "NewsEdge": {
+                "type": "object",
+                "properties": {
+                    "n_logged": {
+                        "type": "integer",
+                        "description": "Chats that brought news before kickoff."
+                    },
+                    "n_compared": {
+                        "type": "integer",
+                        "description": "Logged chats with an opening and closing line."
+                    },
+                    "n_ahead": {
+                        "type": "integer"
+                    },
+                    "minimum_for_rate": {
+                        "type": "integer"
+                    },
+                    "rate": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true,
+                        "description": "Share ahead of the market; null until enough chats are compared."
+                    },
+                    "chats": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/NewsChat"
+                        },
+                        "description": "Every logged chat, oldest first."
+                    }
+                },
+                "required": [
+                    "chats",
+                    "minimum_for_rate",
+                    "n_ahead",
+                    "n_compared",
+                    "n_logged",
+                    "rate"
+                ]
+            },
+            "OutcomeEnum": {
+                "enum": [
+                    "H",
+                    "D",
+                    "A"
+                ],
+                "type": "string",
+                "description": "* `H` - H\n* `D` - D\n* `A` - A"
             },
             "PatchedMeUpdate": {
                 "type": "object",
@@ -1802,6 +1996,66 @@
                 "type": "string",
                 "description": "* `quota` - quota"
             },
+            "ResolvedFixture": {
+                "type": "object",
+                "properties": {
+                    "fixture_id": {
+                        "type": "integer"
+                    },
+                    "kickoff_utc": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "home": {
+                        "$ref": "#/components/schemas/TeamRef"
+                    },
+                    "away": {
+                        "$ref": "#/components/schemas/TeamRef"
+                    },
+                    "home_goals": {
+                        "type": "integer"
+                    },
+                    "away_goals": {
+                        "type": "integer"
+                    },
+                    "outcome": {
+                        "$ref": "#/components/schemas/OutcomeEnum"
+                    },
+                    "p_home": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_draw": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "p_away": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "rps": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "hit": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "away",
+                    "away_goals",
+                    "fixture_id",
+                    "hit",
+                    "home",
+                    "home_goals",
+                    "kickoff_utc",
+                    "outcome",
+                    "p_away",
+                    "p_draw",
+                    "p_home",
+                    "rps"
+                ]
+            },
             "ResultFrame": {
                 "type": "object",
                 "properties": {
@@ -1958,6 +2212,22 @@
                     "short_name"
                 ]
             },
+            "TeamRef": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "code",
+                    "name"
+                ]
+            },
             "TimezoneSourceEnum": {
                 "enum": [
                     "browser",
@@ -2051,6 +2321,14 @@
                             "$ref": "#/components/schemas/CalibrationBin"
                         },
                         "description": "Live predictions, home/draw/away pooled into probability bins."
+                    },
+                    "news_edge": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/NewsEdge"
+                            }
+                        ],
+                        "description": "Chats that brought news before kickoff, checked against the market's moves."
                     }
                 },
                 "required": [
@@ -2058,6 +2336,7 @@
                     "calibration",
                     "live",
                     "matchdays",
+                    "news_edge",
                     "season"
                 ]
             },
@@ -2091,21 +2370,36 @@
                             }
                         ],
                         "nullable": true,
-                        "description": "Bookmaker closing odds over the same fixtures."
+                        "description": "Bookmaker closing odds over the fixtures that have them."
                     },
-                    "home_win_baseline": {
+                    "base_rate": {
                         "allOf": [
                             {
                                 "$ref": "#/components/schemas/MetricSummary"
                             }
                         ],
                         "nullable": true,
-                        "description": "A naive model that always backs the home side."
+                        "description": "The league's long-run 44% home, 25% draw, 31% away split as a forecast."
+                    },
+                    "calibration_error": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true,
+                        "description": "Expected calibration error of the model; backtest only."
+                    },
+                    "forecasters": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Forecaster"
+                        },
+                        "description": "Every forecaster scored in the backtest; empty for the live record."
                     }
                 },
                 "required": [
+                    "base_rate",
                     "bookmaker",
-                    "home_win_baseline",
+                    "calibration_error",
+                    "forecasters",
                     "kind",
                     "label",
                     "model",

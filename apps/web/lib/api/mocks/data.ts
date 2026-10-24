@@ -150,15 +150,71 @@ export const billingRedirects: { checkout: BillingRedirect; portal: BillingRedir
   portal: { url: "https://billing.stripe.com/p/session/test_mock" },
 };
 
+function resolvedFixture(id: number, home: [string, string], away: [string, string], score: [number, number], probs: [number, number, number], rps: number) {
+  const outcome = score[0] > score[1] ? "H" : score[0] < score[1] ? "A" : "D";
+  const top = probs[0] >= probs[2] ? (probs[0] >= probs[1] ? "H" : "D") : probs[2] >= probs[1] ? "A" : "D";
+  return {
+    fixture_id: id,
+    kickoff_utc: "2026-10-10T13:30:00Z",
+    home: { name: home[0], code: home[1] },
+    away: { name: away[0], code: away[1] },
+    home_goals: score[0],
+    away_goals: score[1],
+    outcome: outcome as "H" | "D" | "A",
+    p_home: probs[0],
+    p_draw: probs[1],
+    p_away: probs[2],
+    rps,
+    hit: outcome === top,
+  };
+}
+
 function matchdayRow(matchday: number, rps: number, logLoss: number, hitRate: number) {
   return {
-    season: "2026-27",
+    season: "2627",
     matchday,
     n_fixtures: 9,
     n_resolved: 9,
     rps,
     log_loss: logLoss,
     hit_rate: hitRate,
+    bookmaker_rps: Number((rps - 0.008).toFixed(4)),
+    base_rate_rps: 0.2304,
+    fixtures: [
+      resolvedFixture(matchday * 10 + 1, ["Borussia Dortmund", "BVB"], ["SV Werder Bremen", "SVW"], [2, 2], [0.6524, 0.1859, 0.1617], 0.2259),
+      resolvedFixture(matchday * 10 + 2, ["1899 Hoffenheim", "TSG"], ["Hamburger SV", "HSV"], [2, 3], [0.5081, 0.2242, 0.2677], 0.3972),
+      resolvedFixture(matchday * 10 + 3, ["Bayern Munich", "FCB"], ["VfB Stuttgart", "VFB"], [5, 1], [0.6819, 0.1681, 0.15], 0.0618),
+    ],
+  };
+}
+
+function newsChat(
+  id: number,
+  home: [string, string],
+  away: [string, string],
+  outcome: "H" | "D" | "A",
+  hoursBefore: number,
+  opening: number,
+  agent: number,
+  closing: number | null,
+) {
+  const judged = closing !== null;
+  const ahead = judged && Math.abs(agent - closing) < Math.abs(closing - opening) && Math.sign(agent - opening) === Math.sign(closing - opening);
+  return {
+    prediction_id: id,
+    fixture_id: id,
+    matchday: id,
+    kickoff_utc: "2026-10-10T13:30:00Z",
+    logged_at: "2026-10-09T11:30:00Z",
+    hours_before_kickoff: hoursBefore,
+    home: { name: home[0], code: home[1] },
+    away: { name: away[0], code: away[1] },
+    outcome,
+    agent,
+    opening: judged ? opening : null,
+    closing,
+    ahead: judged ? ahead : null,
+    verdict: judged ? (ahead ? "ahead of the market" : "market went the other way") : "waiting for the closing line",
   };
 }
 
@@ -170,15 +226,25 @@ export const trackRecord: TrackRecord = {
     since: "2026-08-28",
     model: { n_fixtures: 63, rps: 0.2086, log_loss: 0.9931, hit_rate: 0.5238 },
     bookmaker: { n_fixtures: 63, rps: 0.2012, log_loss: 0.9714, hit_rate: 0.5397 },
-    home_win_baseline: { n_fixtures: 63, rps: 0.2491, log_loss: 1.0988, hit_rate: 0.4127 },
+    base_rate: { n_fixtures: 63, rps: 0.2304, log_loss: 1.0602, hit_rate: 0.4127 },
+    calibration_error: null,
+    forecasters: [],
   },
   backtest: {
     kind: "backtest",
     label: "Backtest, 5 seasons",
     since: null,
-    model: { n_fixtures: 1530, rps: 0.2049, log_loss: 0.9862, hit_rate: 0.5314 },
-    bookmaker: { n_fixtures: 1530, rps: 0.1987, log_loss: 0.9635, hit_rate: 0.5412 },
-    home_win_baseline: { n_fixtures: 1530, rps: 0.2476, log_loss: 1.0961, hit_rate: 0.4379 },
+    model: { n_fixtures: 1827, rps: 0.2045, log_loss: 1.001, hit_rate: null },
+    bookmaker: { n_fixtures: 1827, rps: 0.1967, log_loss: 0.9744, hit_rate: null },
+    base_rate: null,
+    calibration_error: 0.0105,
+    forecasters: [
+      { key: "market_close", label: "Closing market", kind: "market", rps: 0.1967, log_loss: 0.9744, serving: false },
+      { key: "market_open", label: "Opening market", kind: "market", rps: 0.1976, log_loss: 0.9775, serving: false },
+      { key: "model_calibrated", label: "Model (calibrated)", kind: "model", rps: 0.2045, log_loss: 1.001, serving: true },
+      { key: "model_uncalibrated", label: "Model (uncalibrated)", kind: "model", rps: 0.2046, log_loss: 1.0019, serving: false },
+      { key: "model_xg", label: "Model + pre-match xG", kind: "model", rps: 0.2069, log_loss: 1.0116, serving: false },
+    ],
   },
   matchdays: [
     matchdayRow(7, 0.1973, 0.9602, 0.5556),
@@ -201,6 +267,27 @@ export const trackRecord: TrackRecord = {
     { lower: 0.8, upper: 0.9, predicted_mean: 0.839, observed_rate: 0.889, count: 9 },
     { lower: 0.9, upper: 1.0, predicted_mean: 0.921, observed_rate: 1.0, count: 1 },
   ],
+  news_edge: {
+    n_logged: 3,
+    n_compared: 2,
+    n_ahead: 1,
+    minimum_for_rate: 20,
+    rate: null,
+    chats: [
+      newsChat(1, ["Borussia Dortmund", "BVB"], ["Hamburger SV", "HSV"], "H", 26, 0.66, 0.7, 0.69),
+      newsChat(2, ["SV Werder Bremen", "SVW"], ["RB Leipzig", "RBL"], "A", 48, 0.52, 0.46, 0.47),
+      newsChat(3, ["Bayern Munich", "FCB"], ["VfB Stuttgart", "VFB"], "H", 3, 0.76, 0.8, null),
+    ],
+  },
+};
+
+export const newsEdgeEmpty: TrackRecord["news_edge"] = {
+  n_logged: 0,
+  n_compared: 0,
+  n_ahead: 0,
+  minimum_for_rate: 20,
+  rate: null,
+  chats: [],
 };
 
 export const adminMetrics: AdminMetrics = {

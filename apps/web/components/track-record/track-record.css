@@ -1,0 +1,20 @@
+.track-record {
+  --series-model: #e5484d;
+  --series-market: #3987e5;
+  --series-base: #c98500;
+  --chart-grid: #222227;
+  --chart-faint: #71717a;
+}
+
+.track-record .chart-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--chart-faint);
+}
+
+.track-record .chart-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--bp-text-muted);
+}

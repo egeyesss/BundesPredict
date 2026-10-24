@@ -65,3 +65,30 @@ class FixturePrediction(models.Model):
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         raise RuntimeError("a frozen prediction cannot be deleted")
+
+
+class Resolution(models.Model):
+    """The final score of a frozen prediction's fixture, written once the result is in."""
+
+    prediction = models.OneToOneField(
+        FixturePrediction, on_delete=models.PROTECT, related_name="resolution"
+    )
+    home_goals = models.PositiveSmallIntegerField()
+    away_goals = models.PositiveSmallIntegerField()
+    outcome = models.CharField(max_length=1, choices=[("H", "Home"), ("D", "Draw"), ("A", "Away")])
+    resolved_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(outcome="H", home_goals__gt=F("away_goals"))
+                    | Q(outcome="D", home_goals=F("away_goals"))
+                    | Q(outcome="A", home_goals__lt=F("away_goals"))
+                ),
+                name="track_record_outcome_matches_score",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"prediction {self.prediction_id} resolved {self.home_goals}-{self.away_goals}"
