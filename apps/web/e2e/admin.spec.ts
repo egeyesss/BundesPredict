@@ -43,6 +43,9 @@ test.describe("/admin", () => {
 
   test("a demo viewer sees masked emails and the read-only note", async ({ page, context }) => {
     await signInAs(context, "demo");
+    // The mock demo user's tour is answered but has not started, so neither the welcome card nor the hotspots show.
+    await page.addInitScript(() => window.sessionStorage.setItem("bp-tour:102", JSON.stringify({ phase: "idle", index: 0, answered: false, completed: false })));
+    await page.clock.setFixedTime(new Date("2026-10-16T12:00:00Z"));
     await page.goto("/admin");
     await settled(page);
 
