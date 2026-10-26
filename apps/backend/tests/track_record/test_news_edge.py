@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from django.contrib.auth.models import User
 
 from football.models import Fixture, Match, ModelRun, Team
 from predictions.models import Prediction
@@ -218,3 +219,22 @@ class TestBuildNewsEdge:
 
         assert edge["n_ahead"] == MIN_CHATS_FOR_RATE // 2
         assert edge["rate"] == pytest.approx(0.5)
+
+
+class TestDemoUsersAreExcluded:
+    def test_a_demo_users_chat_stays_out_of_the_public_numbers(self, chat: Chat) -> None:
+        prediction = chat()
+        demo_user = User.objects.create_user(username="demo-viewer", email="d@example.com")
+        demo_user.profile.is_demo = True
+        demo_user.profile.save()
+        Prediction.objects.filter(pk=prediction.pk).update(user=demo_user)
+
+        assert build_news_edge()["n_logged"] == 0
+
+    def test_real_and_ownerless_chats_still_count(self, chat: Chat) -> None:
+        owned = chat()
+        chat()
+        real = User.objects.create_user(username="real-user", email="r@example.com")
+        Prediction.objects.filter(pk=owned.pk).update(user=real)
+
+        assert build_news_edge()["n_logged"] == 2

@@ -97,7 +97,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Creates a throwaway demo user and signs the browser in as them. */
+        /** @description Creates a throwaway demo user with two saved chats and signs the browser in as them. 429 carries `demo_ip_limit` or `demo_budget`. */
         post: operations["demo_start"];
         delete?: never;
         options?: never;
@@ -558,6 +558,11 @@ export interface components {
             email_opt_in: boolean;
             /** @description IANA name such as America/Toronto; null until reported. */
             timezone: string | null;
+            /**
+             * Format: date-time
+             * @description When a demo account and its data are deleted; null otherwise.
+             */
+            demo_expires_at: string | null;
         };
         /**
          * @description * `user` - user
@@ -877,9 +882,13 @@ export interface components {
             token: string;
         };
         Usage: {
+            /** @description Chats spent today; for demo accounts, in total. */
             used: number;
             limit: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description The next UTC midnight; for demo accounts, when the account is deleted.
+             */
             resets_at: string;
         };
         WebhookEvent: {

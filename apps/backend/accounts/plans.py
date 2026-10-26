@@ -13,6 +13,7 @@ from .models import UserProfile
 
 FREE_DAILY_LIMIT = 3
 PRO_DAILY_LIMIT = 100
+DEMO_CHAT_LIMIT = 10
 
 
 def _user_subscriptions(user: AbstractBaseUser) -> QuerySet[Subscription]:
@@ -39,8 +40,14 @@ def current_subscription(
     return granting or subscriptions.order_by("-updated_at").first()
 
 
+def is_demo(user: AbstractBaseUser) -> bool:
+    return UserProfile.objects.filter(user_id=user.pk, is_demo=True).exists()
+
+
 def limit_for(user: AbstractBaseUser, now: datetime | None = None) -> int:
-    """Chats per UTC day. Demo users keep the free limit; their own cap comes with the demo flow."""
+    """Chats per UTC day, except for demo users, whose cap covers the account's whole life."""
+    if is_demo(user):
+        return DEMO_CHAT_LIMIT
     return PRO_DAILY_LIMIT if has_pro(user, now) else FREE_DAILY_LIMIT
 
 

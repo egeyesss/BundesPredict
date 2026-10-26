@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -57,6 +58,7 @@ def test_get_returns_the_contract_shape(client: APIClient, user: User) -> None:
         "subscription",
         "email_opt_in",
         "timezone",
+        "demo_expires_at",
     }
     assert body["id"] == user.pk
     assert body["email"] == "ada@example.com"
@@ -65,6 +67,7 @@ def test_get_returns_the_contract_shape(client: APIClient, user: User) -> None:
     assert body["subscription"] is None
     assert body["email_opt_in"] is False
     assert body["timezone"] is None
+    assert body["demo_expires_at"] is None
     assert body["usage"]["used"] == 0
     assert body["usage"]["limit"] == 3
     assert body["usage"]["resets_at"].endswith("T00:00:00Z")
@@ -92,11 +95,13 @@ def test_get_creates_a_missing_profile(client: APIClient, user: User) -> None:
 
 
 def test_a_demo_profile_reports_the_demo_plan(client: APIClient, user: User) -> None:
-    UserProfile.objects.filter(user=user).update(is_demo=True)
+    expires_at = datetime(2026, 10, 27, 9, 30, tzinfo=UTC)
+    UserProfile.objects.filter(user=user).update(is_demo=True, demo_expires_at=expires_at)
 
     body = client.get(ME).json()
 
     assert (body["plan"], body["is_demo"]) == ("demo", True)
+    assert body["demo_expires_at"] == "2026-10-27T09:30:00Z"
 
 
 def test_patch_updates_email_opt_in(client: APIClient, user: User) -> None:

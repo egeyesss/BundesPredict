@@ -119,14 +119,14 @@ def test_a_test_subscription_is_ignored_once_live_keys_exist(user: User, setting
     assert plans.plan_for(user.profile, now=NOW) == "pro"
 
 
-def test_demo_users_stay_demo_without_a_subscription_and_keep_the_existing_limit(
+def test_demo_users_stay_demo_without_a_subscription_and_get_the_demo_cap(
     user: User,
 ) -> None:
     UserProfile.objects.filter(user=user).update(is_demo=True)
     user.refresh_from_db()
 
     assert plans.plan_for(user.profile, now=NOW) == "demo"
-    assert plans.limit_for(user, now=NOW) == plans.FREE_DAILY_LIMIT
+    assert plans.limit_for(user, now=NOW) == plans.DEMO_CHAT_LIMIT
 
 
 def test_a_demo_user_with_a_test_subscription_is_pro_even_with_live_keys(

@@ -11,9 +11,11 @@ TIMEZONE_SOURCES = ("browser", "manual")
 
 
 class UsageSerializer(serializers.Serializer[dict[str, Any]]):
-    used = serializers.IntegerField()
+    used = serializers.IntegerField(help_text="Chats spent today; for demo accounts, in total.")
     limit = serializers.IntegerField()
-    resets_at = serializers.DateTimeField()
+    resets_at = serializers.DateTimeField(
+        help_text="The next UTC midnight; for demo accounts, when the account is deleted."
+    )
 
 
 class SubscriptionSerializer(serializers.Serializer[dict[str, Any]]):
@@ -34,6 +36,9 @@ class MeSerializer(serializers.Serializer[dict[str, Any]]):
     email_opt_in = serializers.BooleanField()
     timezone = serializers.CharField(
         allow_null=True, help_text="IANA name such as America/Toronto; null until reported."
+    )
+    demo_expires_at = serializers.DateTimeField(
+        allow_null=True, help_text="When a demo account and its data are deleted; null otherwise."
     )
 
 
