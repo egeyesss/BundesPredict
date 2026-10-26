@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll } from "vitest";
 
 import { server } from "./node";
 import { clearMockSession, resetMeChanges } from "./session";
-import { mockUsage } from "./state";
+import { resetMockUsage } from "./state";
 
 /**
  * Call once at the top of a test file to serve the contract mocks. Requests with no handler
@@ -13,7 +13,7 @@ export function setupApiMocks(): void {
   beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
   afterEach(() => {
     server.resetHandlers();
-    mockUsage.reset();
+    resetMockUsage();
     clearMockSession();
     resetMeChanges();
   });
