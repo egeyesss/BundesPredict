@@ -11,9 +11,9 @@ const COST_BADGE = {
   high: { status: "critical", label: "high" },
 } as const satisfies Record<string, { status: Status; label: string }>;
 
-function Tile({ label, value, children }: { label: string; value: string; children?: React.ReactNode }) {
+function Tile({ label, value, tour, children }: { label: string; value: string; tour?: string; children?: React.ReactNode }) {
   return (
-    <div className="grid min-w-0 content-start gap-1 rounded-xl border border-bp-border bg-bp-surface-1 px-4 py-3.5">
+    <div data-tour={tour} className="grid min-w-0 content-start gap-1 rounded-xl border border-bp-border bg-bp-surface-1 px-4 py-3.5">
       <span className="text-[13px] text-bp-text-muted">{label}</span>
       <strong className="font-display text-[34px] leading-none font-bold tabular-nums">{value}</strong>
       <span className="flex flex-wrap items-center gap-x-1.5 font-mono text-[11px] text-bp-text-muted">{children}</span>
@@ -33,7 +33,7 @@ export function KpiTiles({ metrics }: { metrics: AdminMetrics }) {
       <Tile label="Pro subscribers" value={String(metrics.active_subscribers)}>
         live mode
       </Tile>
-      <Tile label="MRR" value={formatMoney(metrics.mrr_cents)}>
+      <Tile label="MRR" value={formatMoney(metrics.mrr_cents)} tour="mrr">
         live mode only
       </Tile>
       <Tile label="New sign-ups" value={String(metrics.signups_7d)}>

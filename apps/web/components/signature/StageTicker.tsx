@@ -9,14 +9,16 @@ export type StageTickerProps = {
   /** Fold the list to its summary line, for example once the explanation starts typing. */
   collapsed?: boolean;
   className?: string;
+  /** Value for the `data-tour` anchor attribute. */
+  tour?: string;
 };
 
 /** A compact list of what the agent has done so far, one line per tool call. */
-export function StageTicker({ stages, collapsed = false, className }: StageTickerProps) {
+export function StageTicker({ stages, collapsed = false, className, tour }: StageTickerProps) {
   if (stages.length === 0) return null;
 
   return (
-    <details open={!collapsed} className={cn("group", className)}>
+    <details open={!collapsed} data-tour={tour} className={cn("group", className)}>
       <summary className="inline-flex cursor-pointer list-none gap-1.5 rounded-sm font-mono text-xs text-bp-text-muted before:text-bp-text-muted before:content-['\25B8'] group-open:before:content-['\25BE'] [&::-webkit-details-marker]:hidden">
         {stages.length} agent {stages.length === 1 ? "step" : "steps"}
       </summary>

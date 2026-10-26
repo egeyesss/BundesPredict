@@ -2,7 +2,7 @@
 .island-wrap {
   position: fixed;
   z-index: 40;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(env(safe-area-inset-top, 0px) + var(--demo-bar-h, 0px) + 12px);
   left: 0;
   right: 0;
   display: flex;

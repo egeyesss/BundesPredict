@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { Fragment, useEffect, useReducer, useRef, useState } from "react";
 
 import { useIslandActivity } from "@/components/brand/IslandActivity";
+import { replaySchedule } from "@/components/marketing/demo-replay";
+import { useReducedMotion } from "@/components/signature/reduced-motion";
+import { suggestedMessage, useTourChatLink, type ChatStatus } from "@/components/tour/chat-link";
+import { RECORDED_ANSWER, RECORDED_QUESTION } from "@/components/tour/recorded-answer";
 import { captionFor, type AgentEvent } from "@/lib/agent-state";
 import { browserOrigin, fetchFixture, fetchMe } from "@/lib/api/browser";
 import { startPredictStream, type PredictStreamStart } from "@/lib/api/predict-stream";
@@ -50,6 +54,13 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
   const [usageOverride, setUsageOverride] = useState<Usage | null>(null);
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const rateLimit = useCountdown();
+  const tourLink = useTourChatLink();
+  const registerWithTour = tourLink?.register;
+  const wantsTourDraft = tourLink?.wantsDraft ?? false;
+  const reducedMotion = useReducedMotion(false);
+  const [recordedAt, setRecordedAt] = useState<number | null>(null);
+  const replayTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const tourDraftOffered = useRef(false);
 
   const me = useResource(fetchMe, "me");
   const fixture = useResource((signal) => fetchFixture(fixtureId ?? 0, signal), fixtureId === null ? null : `fixture-${fixtureId}`);
@@ -78,7 +89,13 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
     return () => setAgentCaption(null);
   }, [busy, caption, setAgentCaption]);
 
-  useEffect(() => () => run.current?.abort(), []);
+  useEffect(
+    () => () => {
+      run.current?.abort();
+      replayTimers.current.forEach(clearTimeout);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (orb.phase !== "done") return;
@@ -162,6 +179,26 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
     void send(text);
   }
 
+  /** Plays the landing page's recorded answer as if it were live, for a tour stop that needs an answer to point at. */
+  function replayRecording() {
+    run.current?.abort();
+    replayTimers.current.forEach(clearTimeout);
+    replayTimers.current = [];
+
+    const last = transcript.at(-1);
+    const dropsLastTurn = last?.kind === "assistant" && last.phase !== "done";
+    if (dropsLastTurn) dispatch({ type: "discard" });
+    setRecordedAt(dropsLastTurn ? transcript.length - 2 : transcript.length);
+
+    turnCount.current += 1;
+    dispatch({ type: "send", id: `turn-${turnCount.current}`, text: RECORDED_QUESTION });
+    let elapsed = 0;
+    for (const step of replaySchedule(RECORDED_ANSWER, { instant: reducedMotion }).slice(1)) {
+      elapsed += step.delayMs;
+      replayTimers.current.push(setTimeout(() => dispatch({ type: "agent", event: step.event }), elapsed));
+    }
+  }
+
   const result = latestResult(transcript);
   const news =
     result?.adjusted && result.adjustments.length > 0 && fixture.resource.status === "ready" && resultMatchesFixture(result, fixture.resource.data)
@@ -173,7 +210,35 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
   const signInRequired = needsSignIn || (me.resource.status === "error" && me.resource.failure.status === 401);
   const narrow = useNarrowScreen();
   const matchName = fixture.resource.status === "ready" ? `${fixture.resource.data.home.short_name} v ${fixture.resource.data.away.short_name}` : null;
+  const outOfChats = usage !== null && isExhausted(plan, usage);
+  const tourStatus: ChatStatus = !lastAssistant ? "empty" : busy ? "busy" : lastAssistant.phase === "done" ? "done" : "failed";
+  const canSend = draft.trim() !== "" && !busy && !outOfChats && !signInRequired && !rateLimit.active;
   const placeholder = !matchName ? "Ask about a Bundesliga match" : narrow ? "Tell the agent what changed" : `Tell the agent what changed for ${matchName}`;
+
+  const tourActions = useRef({ send: () => {}, replay: () => {} });
+  useEffect(() => {
+    tourActions.current = { send: () => void send(draft), replay: replayRecording };
+  });
+
+  const recorded = recordedAt !== null;
+  useEffect(() => {
+    registerWithTour?.({
+      status: tourStatus,
+      canSend,
+      outOfChats,
+      recorded,
+      send: () => tourActions.current.send(),
+      replay: () => tourActions.current.replay(),
+    });
+    return () => registerWithTour?.(null);
+  }, [registerWithTour, tourStatus, canSend, outOfChats, recorded]);
+
+  const pinnedFixture = fixture.resource.status === "ready" ? fixture.resource.data : null;
+  useEffect(() => {
+    if (!wantsTourDraft || tourDraftOffered.current || pinnedFixture === null || transcript.length > 0) return;
+    tourDraftOffered.current = true;
+    setDraft((current) => (current === "" ? suggestedMessage(pinnedFixture) : current));
+  }, [wantsTourDraft, pinnedFixture, transcript.length]);
 
   return (
     <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
@@ -183,13 +248,20 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
       <div ref={logRef} role="log" aria-label="Conversation" className="flex flex-col overflow-y-auto px-5 py-5 max-[860px]:px-3.5">
         <div ref={contentRef} className="flex flex-col gap-[22px]">
           {transcript.length === 0 && <EmptyChat match={matchName} />}
-          {transcript.map((turn) =>
-            turn.kind === "user" ? (
-              <UserTurn key={turn.id} turn={turn} />
-            ) : (
-              <AssistantTurn key={turn.id} turn={turn} teams={history.teams} onWritten={() => dispatch({ type: "written" })} onRetry={retry} />
-            ),
-          )}
+          {transcript.map((turn, index) => (
+            <Fragment key={turn.id}>
+              {index === recordedAt && (
+                <p className="mx-auto w-full max-w-[760px] font-mono text-xs text-bp-text-muted">
+                  Recorded example, not a live answer. It did not use any of your chats.
+                </p>
+              )}
+              {turn.kind === "user" ? (
+                <UserTurn turn={turn} />
+              ) : (
+                <AssistantTurn turn={turn} teams={history.teams} onWritten={() => dispatch({ type: "written" })} onRetry={retry} />
+              )}
+            </Fragment>
+          ))}
         </div>
       </div>
 

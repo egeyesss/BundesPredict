@@ -25,7 +25,7 @@ export function ModeTag({ livemode }: { livemode: boolean }) {
 
 export function WebhookCard({ events, now }: { events: AdminMetrics["webhook_events"]; now: number }) {
   return (
-    <Card>
+    <Card data-tour="webhooks">
       <Heading title="Stripe webhooks" description="Newest first. Stripe redelivers a failed event on its own; a failure drops off this list once a retry goes through." />
       {events.length === 0 ? (
         <p className="py-4 text-sm text-bp-text-muted">No webhook events yet. They appear after the first checkout.</p>

@@ -64,6 +64,7 @@ export function CostChart({ users }: { users: ProUserCost[] }) {
   return (
     <ChartFrame
       title="What each Pro subscriber costs to run"
+      tour="cost"
       description={`Agent spend over the last 30 days for the ten heaviest Pro users, against the ${formatMoney(NET_REVENUE_CENTS)} each pays after Stripe's fee. Anyone past the line costs more than they bring in.`}
       table={table}
     >

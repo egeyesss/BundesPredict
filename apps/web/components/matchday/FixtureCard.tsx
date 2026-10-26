@@ -23,6 +23,7 @@ export function FixtureCard({ fixture, enterDelayMs, className }: FixtureCardPro
   return (
     <article
       aria-label={label}
+      data-tour="fixture"
       data-enter={enterDelayMs === undefined ? undefined : ""}
       style={enterDelayMs === undefined ? undefined : ({ "--enter-delay": `${enterDelayMs}ms` } as React.CSSProperties)}
       className={cn(
@@ -51,20 +52,23 @@ export function FixtureCard({ fixture, enterDelayMs, className }: FixtureCardPro
         </span>
       </div>
 
-      <OddsBar
-        home={home.short_name}
-        away={away.short_name}
-        probs={[base.p_home, base.p_draw, base.p_away]}
-        expectedGoals={[base.exp_home_goals, base.exp_away_goals]}
-      />
+      <div data-tour="bar">
+        <OddsBar
+          home={home.short_name}
+          away={away.short_name}
+          probs={[base.p_home, base.p_draw, base.p_away]}
+          expectedGoals={[base.exp_home_goals, base.exp_away_goals]}
+        />
+      </div>
 
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="font-mono text-bp-text-muted tabular-nums">
+        <span data-tour="xg" className="font-mono text-bp-text-muted tabular-nums">
           xG <b className="font-semibold text-bp-text">{base.exp_home_goals.toFixed(2)}</b> {"–"}{" "}
           <b className="font-semibold text-bp-text">{base.exp_away_goals.toFixed(2)}</b>
         </span>
         <Link
           href={`/chat?fixture=${fixture.id}`}
+          data-tour="ask"
           className="touch-target rounded-sm text-[13px] font-medium text-bp-text hover:text-bp-red-text"
         >
           Ask about this match →

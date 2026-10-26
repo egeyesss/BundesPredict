@@ -50,7 +50,7 @@ export function AssistantTurn({ turn, teams, onWritten, onRetry }: AssistantTurn
           </p>
         )}
 
-        <StageTicker stages={turn.agent.stages} collapsed={turn.phase !== "working"} />
+        <StageTicker stages={turn.agent.stages} collapsed={turn.phase !== "working"} tour="steps" />
 
         {showExplanation &&
           (typing ? (

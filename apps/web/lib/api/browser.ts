@@ -38,6 +38,10 @@ export async function fetchWeekFixtures(signal: AbortSignal): Promise<FixtureCar
   return unwrap(await api().GET("/api/v1/fixtures", { params: { query: { scope: "week" } }, signal }));
 }
 
+export async function fetchNextMatchdayFixtures(signal: AbortSignal): Promise<FixtureCard[]> {
+  return unwrap(await api().GET("/api/v1/fixtures", { params: { query: { scope: "next_matchday" } }, signal }));
+}
+
 export async function fetchConversations(signal: AbortSignal, cursor?: string): Promise<ConversationPage> {
   return unwrap(await api().GET("/api/v1/conversations", { params: { query: cursor ? { cursor } : {} }, signal }));
 }

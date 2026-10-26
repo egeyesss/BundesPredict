@@ -280,6 +280,7 @@ export function IslandNav({ wordmark, user, authPending = false, links = NAV_LIN
           type="button"
           className="burger"
           aria-label="Open menu"
+          data-tour="upgrade"
           aria-expanded={mode === "open"}
           onClick={() => setMenuOpen(true)}
         >
@@ -323,12 +324,12 @@ export function IslandNav({ wordmark, user, authPending = false, links = NAV_LIN
           {user ? (
             <>
               <Button
-                variant={user.plan === "free" ? "default" : "secondary"}
+                variant={user.plan === "free" || user.plan === "demo" ? "default" : "secondary"}
                 size="lg"
                 disabled={billing.pending !== null}
-                onClick={() => void billing.start(user.plan === "free" ? "checkout" : "portal")}
+                onClick={() => void billing.start(user.plan === "free" || user.plan === "demo" ? "checkout" : "portal")}
               >
-                {user.plan === "free" ? "Upgrade to Pro" : "Manage billing"}
+                {user.plan === "free" || user.plan === "demo" ? "Upgrade to Pro" : "Manage billing"}
               </Button>
               <Button variant="secondary" size="lg" onClick={() => void signOut()}>
                 Sign out

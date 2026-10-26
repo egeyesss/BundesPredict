@@ -55,6 +55,7 @@ export function Composer({ value, onChange, onSend, busy, placeholder, rateLimit
         event.preventDefault();
         submit();
       }}
+      data-tour="composer"
       className="mx-auto grid w-full max-w-[760px] gap-2.5"
     >
       {(rateLimit.active || rateLimit.finished) && (

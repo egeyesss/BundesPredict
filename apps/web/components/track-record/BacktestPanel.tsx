@@ -31,7 +31,7 @@ export function BacktestPanel({ period }: { period: TrackRecord["backtest"] }) {
       <Tiles
         tiles={[
           { label: "Matches predicted", value: model.n_fixtures.toLocaleString("en-US"), context: "2021/22 to 2025/26, refit every gameweek" },
-          { label: "Model RPS", value: score(model.rps), context: <>closing market <b>{score(bookmaker.rps)}</b></> },
+          { label: "Model RPS", value: score(model.rps), context: <>closing market <b>{score(bookmaker.rps)}</b></>, tour: "rps" },
           { label: "Log loss", value: score(model.log_loss), context: <>closing market <b>{score(bookmaker.log_loss)}</b></> },
           { label: "Calibration error", value: score(period.calibration_error ?? 0), context: "ECE, lower is better" },
         ]}

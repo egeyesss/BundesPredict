@@ -29,10 +29,12 @@ export function ResultCard({ result, teams }: ResultCardProps) {
     >
       <h2 className="font-mono text-xs font-normal tracking-[0.08em] text-bp-text-muted uppercase">{title}</h2>
 
-      <ProbabilityBars home={home} away={away} baseline={baseline} adjusted={withNews ? adjusted : undefined} />
+      <div data-tour="result">
+        <ProbabilityBars home={home} away={away} baseline={baseline} adjusted={withNews ? adjusted : undefined} />
+      </div>
 
       {withNews && (
-        <ul className="flex list-none flex-wrap gap-2 p-0">
+        <ul data-tour="chips" className="flex list-none flex-wrap gap-2 p-0">
           {adjustments.map((adjustment, index) => (
             <li key={`${adjustment.factor}-${adjustment.target}-${index}`} className="max-w-full">
               <AdjustmentChip adjustment={adjustment} homeName={home} awayName={away} />

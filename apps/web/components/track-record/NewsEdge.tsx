@@ -138,7 +138,7 @@ export function NewsEdge({ edge }: { edge: NewsEdgeData }) {
         </ol>
       </section>
 
-      <section aria-label="News edge tracker" className="grid min-w-0 gap-3.5 rounded-xl border border-bp-border bg-bp-surface-1 p-5">
+      <section aria-label="News edge tracker" data-tour="edge" className="grid min-w-0 gap-3.5 rounded-xl border border-bp-border bg-bp-surface-1 p-5">
         <div className="grid gap-1">
           <h2 className="font-display text-xl leading-tight font-semibold tracking-[0.02em]">News edge tracker</h2>
           <p className="max-w-[70ch] text-sm text-bp-text-muted">
