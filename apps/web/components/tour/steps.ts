@@ -78,7 +78,7 @@ export const STEPS: readonly TourStep[] = [
     anchors: ["message", "composer"],
     side: "top",
     title: "Say what changed",
-    what: "Plain words are fine. The agent works out which teams and players you mean. We filled in a what-if for this match; edit it or send it as it is.",
+    what: "Plain words are fine. The agent works out which teams and players you mean. We filled in a hypothetical for this match; edit it or send it as it is.",
     how: "The agent looks players up in squad data scraped from Transfermarkt instead of trusting the name in your message. Sending uses one of your 10 demo chats.",
   },
   {
@@ -105,7 +105,7 @@ export const STEPS: readonly TourStep[] = [
     anchors: ["chips", "result"],
     side: "top",
     title: "Capped adjustments",
-    what: "Each chip is one nudge to expected goals: what the agent asked for and what it was allowed. Hover or focus a chip to read the agent's reason.",
+    what: "Each chip is one nudge to expected goals: what the agent asked for and what it was allowed. Hover or focus a chip to read the agent's reason. No chips means the agent found nothing to adjust.",
     how: "Every adjustment is clamped to 0.60 xG either way on the server, whatever the language model asks for, and a chip says \"capped\" when a request went past that. There is no way for the agent to set a probability directly.",
   },
   {

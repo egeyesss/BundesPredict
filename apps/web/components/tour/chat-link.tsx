@@ -31,7 +31,7 @@ export function useTourChatLink(): TourChatLink | null {
   return useContext(TourChatLinkContext);
 }
 
-/** A what-if built from the pinned fixture's real club name; it never claims anyone is injured. */
+/** A hypothetical built from the pinned fixture's real club name; it never claims anyone is injured. */
 export function suggestedMessage(fixture: Pick<FixtureDetail, "home">): string {
-  return `What if ${fixture.home.name}'s top scorer is out?`;
+  return `Suppose ${fixture.home.name}'s main striker misses this match. Treat him as a key player and show how it moves the odds.`;
 }

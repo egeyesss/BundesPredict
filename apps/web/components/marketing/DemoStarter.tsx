@@ -129,7 +129,7 @@ export function DemoStarter() {
     const copy = LIMIT_COPY[limit.code] ?? IP_LIMIT_COPY;
     return (
       <StateMessage tone="warn" icon={<AlertTriangle className="size-4" />} title={copy.title} actions={<WaysForward />}>
-        <span>{limit.message ?? copy.message}</span> <span>Sign up free for 3 chats a day, or look around without an account.</span>
+        <span>{limit.message ?? copy.message}</span> <span>Free accounts get 3 chats a day, and the matchday and track record are open to everyone.</span>
       </StateMessage>
     );
   }
