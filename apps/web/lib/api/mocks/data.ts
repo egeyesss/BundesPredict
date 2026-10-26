@@ -36,6 +36,7 @@ const baseMe: Me = {
   subscription: null,
   email_opt_in: false,
   timezone: "America/Toronto",
+  demo_expires_at: null,
 };
 
 export function meFor(plan: Me["plan"]): Me {
@@ -64,6 +65,7 @@ export function meFor(plan: Me["plan"]): Me {
         is_demo: true,
         usage: { used: 2, limit: 10, resets_at: RESETS_AT },
         timezone: null,
+        demo_expires_at: "2026-10-16T14:05:00Z",
       };
   }
 }

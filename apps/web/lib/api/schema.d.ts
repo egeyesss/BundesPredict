@@ -558,6 +558,11 @@ export interface components {
             email_opt_in: boolean;
             /** @description IANA name such as America/Toronto; null until reported. */
             timezone: string | null;
+            /**
+             * Format: date-time
+             * @description When a demo account and its data are deleted; null otherwise.
+             */
+            demo_expires_at: string | null;
         };
         /**
          * @description * `user` - user

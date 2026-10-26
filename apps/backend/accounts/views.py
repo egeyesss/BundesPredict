@@ -36,6 +36,7 @@ def _serialize_me(user: User, profile: UserProfile) -> dict[str, object]:
             ),
             "email_opt_in": profile.email_opt_in,
             "timezone": profile.timezone,
+            "demo_expires_at": profile.demo_expires_at,
         }
     ).data
 

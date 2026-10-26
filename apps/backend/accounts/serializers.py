@@ -35,6 +35,9 @@ class MeSerializer(serializers.Serializer[dict[str, Any]]):
     timezone = serializers.CharField(
         allow_null=True, help_text="IANA name such as America/Toronto; null until reported."
     )
+    demo_expires_at = serializers.DateTimeField(
+        allow_null=True, help_text="When a demo account and its data are deleted; null otherwise."
+    )
 
 
 class MeUpdateSerializer(serializers.Serializer[dict[str, Any]]):

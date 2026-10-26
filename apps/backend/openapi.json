@@ -1642,9 +1642,16 @@
                         "type": "string",
                         "nullable": true,
                         "description": "IANA name such as America/Toronto; null until reported."
+                    },
+                    "demo_expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "description": "When a demo account and its data are deleted; null otherwise."
                     }
                 },
                 "required": [
+                    "demo_expires_at",
                     "email",
                     "email_opt_in",
                     "id",
