@@ -82,6 +82,7 @@ def build_news_edge() -> dict[str, Any]:
             )
         )
         .filter(adjustment_count__gt=0)
+        .exclude(user__profile__is_demo=True)
         .select_related("home", "away")
         .order_by("created_at", "id")
     )
