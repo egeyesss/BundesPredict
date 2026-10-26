@@ -11,9 +11,11 @@ TIMEZONE_SOURCES = ("browser", "manual")
 
 
 class UsageSerializer(serializers.Serializer[dict[str, Any]]):
-    used = serializers.IntegerField()
+    used = serializers.IntegerField(help_text="Chats spent today; for demo accounts, in total.")
     limit = serializers.IntegerField()
-    resets_at = serializers.DateTimeField()
+    resets_at = serializers.DateTimeField(
+        help_text="The next UTC midnight; for demo accounts, when the account is deleted."
+    )
 
 
 class SubscriptionSerializer(serializers.Serializer[dict[str, Any]]):

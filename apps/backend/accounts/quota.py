@@ -2,6 +2,9 @@
 
 `consume` is one INSERT ... ON CONFLICT statement, so two concurrent requests at `limit - 1`
 serialize on the row lock and exactly one of them passes the `WHERE` clause.
+
+Demo users have one allowance for the account's whole life instead: `used` is the sum over every
+day, and `resets_at` is when the account is deleted, since nothing ever resets before that.
 """
 
 from __future__ import annotations
@@ -10,10 +13,11 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 
 from django.contrib.auth.models import AbstractBaseUser
-from django.db import connection
+from django.db import connection, transaction
 from django.utils import timezone
 
 from . import plans
+from .models import UserProfile
 
 _CONSUME_SQL = """
 INSERT INTO accounts_dailyusage (user_id, day, chats_used) VALUES (%s, %s, 1)
@@ -28,6 +32,8 @@ WHERE user_id = %s AND day = %s
 """
 
 _CURRENT_SQL = "SELECT chats_used FROM accounts_dailyusage WHERE user_id = %s AND day = %s"
+
+_LIFETIME_SQL = "SELECT COALESCE(SUM(chats_used), 0) FROM accounts_dailyusage WHERE user_id = %s"
 
 
 @dataclass(frozen=True)
@@ -51,12 +57,37 @@ def consume(user: AbstractBaseUser, now: datetime | None = None) -> Usage | None
     if limit <= 0:
         return None
     day = _utc_day(now)
+    if plans.is_demo(user):
+        return _consume_lifetime(user, limit, day)
     with connection.cursor() as cursor:
         cursor.execute(_CONSUME_SQL, [user.pk, day, limit])
         row = cursor.fetchone()
     if row is None:
         return None
     return Usage(used=row[0], limit=limit, resets_at=_next_reset(day))
+
+
+def _lifetime_used(user: AbstractBaseUser) -> int:
+    with connection.cursor() as cursor:
+        cursor.execute(_LIFETIME_SQL, [user.pk])
+        return int(cursor.fetchone()[0])
+
+
+def _demo_resets_at(user: AbstractBaseUser, day: date) -> datetime:
+    expires_at = UserProfile.objects.values_list("demo_expires_at", flat=True).get(user_id=user.pk)
+    return expires_at or _next_reset(day)
+
+
+def _consume_lifetime(user: AbstractBaseUser, limit: int, day: date) -> Usage | None:
+    """The profile row lock serializes a demo user's chats, so the sum read below is current."""
+    with transaction.atomic():
+        UserProfile.objects.select_for_update().get(user_id=user.pk)
+        used = _lifetime_used(user)
+        if used >= limit:
+            return None
+        with connection.cursor() as cursor:
+            cursor.execute(_CONSUME_SQL, [user.pk, day, limit])
+        return Usage(used=used + 1, limit=limit, resets_at=_demo_resets_at(user, day))
 
 
 def refund(user: AbstractBaseUser, now: datetime | None = None) -> None:
@@ -67,6 +98,12 @@ def refund(user: AbstractBaseUser, now: datetime | None = None) -> None:
 
 def current(user: AbstractBaseUser, now: datetime | None = None) -> Usage:
     day = _utc_day(now)
+    if plans.is_demo(user):
+        return Usage(
+            used=_lifetime_used(user),
+            limit=plans.limit_for(user),
+            resets_at=_demo_resets_at(user, day),
+        )
     with connection.cursor() as cursor:
         cursor.execute(_CURRENT_SQL, [user.pk, day])
         row = cursor.fetchone()

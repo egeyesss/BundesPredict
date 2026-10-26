@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts import quota
+from accounts import plans, quota
 from accounts.serializers import UsageSerializer
 from chat.models import Conversation
 from chat.services import owned_conversation
@@ -136,7 +136,11 @@ def _quota_exceeded(user: User) -> Response:
     return Response(
         {
             "code": "quota_exceeded",
-            "message": "You have used all of today's chats.",
+            "message": (
+                "You have used all of your demo chats."
+                if plans.is_demo(user)
+                else "You have used all of today's chats."
+            ),
             "usage": UsageSerializer(
                 {"used": usage.used, "limit": usage.limit, "resets_at": usage.resets_at}
             ).data,
