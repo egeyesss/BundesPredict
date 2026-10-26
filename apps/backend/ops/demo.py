@@ -104,20 +104,13 @@ class PurgeReport:
     counters: int
 
 
-def _session_keys_of(user_ids: set[int]) -> list[str]:
-    keys = []
-    for session in Session.objects.iterator():
-        raw_id = session.get_decoded().get("_auth_user_id")
-        if raw_id is not None and int(raw_id) in user_ids:
-            keys.append(session.session_key)
-    return keys
-
-
 def purge_expired(now: datetime | None = None) -> PurgeReport:
     """Deletes expired demo users and every row tied to them, plus start counters past retention.
 
     Predictions go first because `Prediction.user` is SET_NULL: left to the cascade they would
-    survive as ownerless rows and be counted as real chats.
+    survive as ownerless rows and be counted as real chats. Sessions are removed by expiry
+    instead of by owner: the scheduled job runs with a placeholder SECRET_KEY and can't decode
+    them, and a demo session never outlives its account by more than a day.
     """
     now = now or timezone.now()
     expired_ids = set(
@@ -128,8 +121,7 @@ def purge_expired(now: datetime | None = None) -> PurgeReport:
     with transaction.atomic():
         conversations = Conversation.objects.filter(user_id__in=expired_ids).count()
         predictions, _ = Prediction.objects.filter(user_id__in=expired_ids).delete()
-        session_keys = _session_keys_of(expired_ids) if expired_ids else []
-        Session.objects.filter(session_key__in=session_keys).delete()
+        sessions, _ = Session.objects.filter(expire_date__lt=now).delete()
         User.objects.filter(pk__in=expired_ids).delete()
         counters, _ = DemoStartCount.objects.filter(
             day__lt=now.astimezone(UTC).date() - COUNTER_RETENTION
@@ -138,6 +130,6 @@ def purge_expired(now: datetime | None = None) -> PurgeReport:
         users=len(expired_ids),
         conversations=conversations,
         predictions=predictions,
-        sessions=len(session_keys),
+        sessions=sessions,
         counters=counters,
     )

@@ -7,10 +7,12 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sessions.models import Session
-from django.test import Client
+from django.test import Client, override_settings
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from accounts.models import DailyUsage
 from billing.models import StripeCustomer, Subscription
@@ -71,8 +73,10 @@ def test_an_expired_demo_user_and_all_their_rows_are_deleted(
     assert not StripeCustomer.objects.exists()
     assert not Subscription.objects.exists()
     assert not EmailAddress.objects.exists()
-    assert browser.session.session_key is not None
-    assert not Session.objects.filter(pk=browser.session.session_key).exists()
+    assert (
+        browser.get("/api/v1/me", headers={"x-proxy-secret": settings.PROXY_SECRET}).status_code
+        == 401
+    )
     assert output.count("\n") == 0
     assert "1 demo user" in output
 
@@ -136,3 +140,17 @@ def test_old_start_counters_go_too(demo_world: None, run_command: RunCommand) ->
 
 def test_a_run_with_nothing_to_do_says_so(demo_world: None, run_command: RunCommand) -> None:
     assert "0 demo users" in run_command("purge_demo_users")
+
+
+def test_a_demo_session_goes_even_when_the_purge_cannot_read_sessions(
+    api_client: APIClient, demo_world: None
+) -> None:
+    # The scheduled workflow runs with a placeholder SECRET_KEY, so it can't decode session data.
+    response = api_client.post("/api/v1/demo/start", headers={"x-client-ip": "203.0.113.7"})
+    session_key = response.cookies["sessionid"].value
+
+    with override_settings(SECRET_KEY="not-the-key-that-signed-the-session"):
+        report = demo.purge_expired(now=timezone.now() + timedelta(hours=25))
+
+    assert report.users == 1
+    assert not Session.objects.filter(pk=session_key).exists()

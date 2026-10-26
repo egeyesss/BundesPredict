@@ -21,6 +21,6 @@ class Command(BaseCommand):
             f"purged {_plural(report.users, 'demo user')} "
             f"({_plural(report.conversations, 'conversation')}, "
             f"{_plural(report.predictions, 'prediction')}, "
-            f"{_plural(report.sessions, 'session')}); "
+            f"{_plural(report.sessions, 'expired session')}); "
             f"{_plural(report.counters, 'old start counter')} removed"
         )
