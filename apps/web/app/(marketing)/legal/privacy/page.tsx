@@ -39,6 +39,10 @@ export default function PrivacyPage() {
           <li>Billing: a Stripe customer ID and your subscription status. Card details go to Stripe and never reach this site.</li>
           <li>Email preferences: whether you opted in to the weekly matchday email.</li>
           <li>Technical data: your IP address (used for rate limiting) and error reports, which can include the page you were on and your browser type.</li>
+          <li>
+            Demo accounts: starting a demo keeps a one-way hash of your IP address for up to two days to limit abuse. The demo account
+            and its data are deleted after 24 hours.
+          </li>
         </ul>
         <p className="m-0">
           The site sets cookies for your session and for form security only. There are no advertising or analytics cookies.
@@ -65,7 +69,7 @@ export default function PrivacyPage() {
 
       <LegalSection title="How long it is kept">
         <ul>
-          <li>Account, chats and usage stay until you ask for them to be deleted.</li>
+          <li>Account, chats and usage stay until you ask for them to be deleted. Demo accounts and their data are deleted after 24 hours.</li>
           <li>Payment records may be kept by Stripe and by me for as long as tax and accounting rules require.</li>
         </ul>
       </LegalSection>

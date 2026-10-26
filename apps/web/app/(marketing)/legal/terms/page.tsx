@@ -38,6 +38,10 @@ export default function TermsPage() {
         <ul>
           <li>You sign in with Google or an email code. You must be at least 18 to use the service.</li>
           <li>Keep your sign-in method to yourself. You are responsible for what happens under your account.</li>
+          <li>
+            Demo accounts are throwaway accounts for trying the product. They get 10 chats in total, bill only in Stripe&apos;s test mode,
+            and the account and its data are deleted after 24 hours.
+          </li>
         </ul>
       </LegalSection>
 
