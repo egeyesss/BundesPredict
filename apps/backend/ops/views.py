@@ -1,19 +1,27 @@
 from __future__ import annotations
 
+from django.contrib.auth import login
 from django.contrib.auth.models import User
+from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.me import serialize_me
 from accounts.serializers import MeSerializer
-from config.api import ErrorSerializer, not_implemented
+from config.api import ErrorSerializer
+from predictions.throttles import CLIENT_IP_META
 
+from .demo import DEMO_LIFETIME, DemoLimitReached, start_demo
 from .metrics import build_metrics
 from .serializers import AdminMetricsSerializer
 
 RANGES = (7, 30, 90)
+DEMO_LOGIN_BACKEND = "django.contrib.auth.backends.ModelBackend"
+UNKNOWN_CLIENT = "unknown"
 
 
 def _is_staff(user: User) -> bool:
@@ -23,6 +31,12 @@ def _is_staff(user: User) -> bool:
 def _is_demo(user: User) -> bool:
     profile = getattr(user, "profile", None)
     return bool(profile and profile.is_demo)
+
+
+def _client_ip(request: Request) -> str | None:
+    """The address the web proxy forwarded; its `unknown` marker means there is none."""
+    forwarded = request.META.get(CLIENT_IP_META, "").strip()
+    return None if forwarded in ("", UNKNOWN_CLIENT) else forwarded
 
 
 class AdminMetricsView(APIView):
@@ -63,7 +77,20 @@ class DemoStartView(APIView):
         tags=["ops"],
         request=None,
         responses={201: MeSerializer, 429: ErrorSerializer},
-        description="Creates a throwaway demo user and signs the browser in as them.",
+        description=(
+            "Creates a throwaway demo user with two saved chats and signs the browser in as "
+            "them. 429 carries `demo_ip_limit` or `demo_budget`."
+        ),
     )
     def post(self, request: Request) -> Response:
-        return not_implemented()
+        try:
+            with transaction.atomic():
+                user = start_demo(client_ip=_client_ip(request))
+                login(request, user, backend=DEMO_LOGIN_BACKEND)
+                request.session.set_expiry(int(DEMO_LIFETIME.total_seconds()))
+        except DemoLimitReached as limit:
+            return Response(
+                {"code": limit.code, "message": limit.message},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        return Response(serialize_me(user, user.profile), status=status.HTTP_201_CREATED)

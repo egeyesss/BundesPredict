@@ -18,3 +18,17 @@ class WebhookFailure(models.Model):
 
     def __str__(self) -> str:
         return f"{self.event_id} ({self.type})"
+
+
+class DemoStartCount(models.Model):
+    """Demo starts per UTC day for one hashed client address, or for the whole site."""
+
+    scope = models.CharField(max_length=80)
+    day = models.DateField()
+    starts = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["scope", "day"], name="one_count_per_day")]
+
+    def __str__(self) -> str:
+        return f"{self.scope[:12]} {self.day}: {self.starts}"

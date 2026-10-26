@@ -8,37 +8,9 @@ from rest_framework.views import APIView
 
 from config.api import ErrorSerializer
 
-from . import plans, quota
+from .me import serialize_me
 from .models import UserProfile
 from .serializers import MeSerializer, MeUpdateSerializer
-
-
-def _serialize_me(user: User, profile: UserProfile) -> dict[str, object]:
-    usage = quota.current(user)
-    subscription = plans.current_subscription(user)
-    return MeSerializer(
-        {
-            "id": user.pk,
-            "email": user.email,
-            "name": user.get_full_name() or None,
-            "plan": plans.plan_for(profile),
-            "role": profile.role,
-            "is_demo": profile.is_demo,
-            "usage": {"used": usage.used, "limit": usage.limit, "resets_at": usage.resets_at},
-            "subscription": (
-                {
-                    "status": subscription.status,
-                    "current_period_end": subscription.current_period_end,
-                    "cancel_at_period_end": subscription.cancel_at_period_end,
-                }
-                if subscription
-                else None
-            ),
-            "email_opt_in": profile.email_opt_in,
-            "timezone": profile.timezone,
-            "demo_expires_at": profile.demo_expires_at,
-        }
-    ).data
 
 
 def _apply_timezone(profile: UserProfile, timezone: str | None, source: str) -> None:
@@ -62,7 +34,7 @@ class MeView(APIView):
     def get(self, request: Request) -> Response:
         user: User = request.user  # type: ignore[assignment]
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        return Response(_serialize_me(user, profile))
+        return Response(serialize_me(user, profile))
 
     @extend_schema(
         operation_id="me_partial_update",
@@ -85,4 +57,4 @@ class MeView(APIView):
         if "timezone" in data:
             _apply_timezone(profile, data["timezone"], data.get("timezone_source", "browser"))
         profile.save()
-        return Response(_serialize_me(user, profile))
+        return Response(serialize_me(user, profile))

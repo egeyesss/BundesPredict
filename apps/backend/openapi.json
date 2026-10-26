@@ -308,7 +308,7 @@
         "/api/v1/demo/start": {
             "post": {
                 "operationId": "demo_start",
-                "description": "Creates a throwaway demo user and signs the browser in as them.",
+                "description": "Creates a throwaway demo user with two saved chats and signs the browser in as them. 429 carries `demo_ip_limit` or `demo_budget`.",
                 "tags": [
                     "ops"
                 ],
@@ -2508,14 +2508,16 @@
                 "type": "object",
                 "properties": {
                     "used": {
-                        "type": "integer"
+                        "type": "integer",
+                        "description": "Chats spent today; for demo accounts, in total."
                     },
                     "limit": {
                         "type": "integer"
                     },
                     "resets_at": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "description": "The next UTC midnight; for demo accounts, when the account is deleted."
                     }
                 },
                 "required": [
