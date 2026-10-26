@@ -127,7 +127,7 @@ def _seed_one(
     answer = _answer(scenario, team.name, who, record)
 
     conversation = Conversation.objects.create(
-        user=user, title=Conversation.title_for(question), fixture=fixture
+        user=user, title=Conversation.title_for(f"If {who} is out"), fixture=fixture
     )
     prediction_id = ports.save(
         model_run_id=run_id, record=record, explanation=answer, query=question, match_date=None

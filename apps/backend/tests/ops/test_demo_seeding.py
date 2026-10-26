@@ -72,7 +72,8 @@ def test_the_messages_use_the_fixtures_real_team_names_and_a_real_squad_player(
         assert any(name in question.content for name in names)
         assert any(name in answer.content for name in names)
         assert any(player in question.content for player in squad)
-        assert conversation.title == Conversation.title_for(question.content)
+        assert conversation.title.endswith("is out")
+        assert any(player in conversation.title for player in squad)
 
 
 def test_each_answer_is_the_engines_own_adjusted_output(demo_world: None) -> None:
