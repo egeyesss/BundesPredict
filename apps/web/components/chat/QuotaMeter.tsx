@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /** How many chats are left: a pip per chat for capped plans, plain text for pro. */
 export function QuotaMeter({ plan, usage }: { plan: Me["plan"]; usage: Usage }) {
   return (
-    <div className="flex items-center gap-2 font-mono text-xs text-bp-text-muted">
+    <div data-tour="quota" className="flex items-center gap-2 font-mono text-xs text-bp-text-muted">
       {plan !== "pro" && (
         <span aria-hidden="true" className="flex gap-[3px]">
           {Array.from({ length: usage.limit }, (_, index) => {

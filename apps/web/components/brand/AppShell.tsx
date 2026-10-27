@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ShellWordmark } from "@/components/signature/ShellWordmark";
+import { TourProvider } from "@/components/tour/TourProvider";
 
 import { IslandActivityProvider } from "./IslandActivity";
 import { SessionIslandNav } from "./SessionIslandNav";
@@ -23,8 +24,8 @@ export function AppShell({ children, wordmark = <ShellWordmark /> }: AppShellPro
       </a>
       <div className="flex min-h-dvh flex-col">
         <SessionIslandNav wordmark={wordmark} />
-        <main id="main" className="flex flex-1 flex-col pt-[calc(76px+env(safe-area-inset-top,0px))]">
-          {children}
+        <main id="main" className="flex flex-1 flex-col pt-[calc(76px+var(--demo-bar-h,0px)+env(safe-area-inset-top,0px))]">
+          <TourProvider>{children}</TourProvider>
         </main>
         <SiteFooter wordmark={wordmark} />
       </div>

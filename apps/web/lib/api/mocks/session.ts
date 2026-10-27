@@ -3,14 +3,22 @@ import { MOCK_PLAN_COOKIE } from "@/lib/auth/session-cookie";
 import { readCookie } from "../client";
 import type { Me } from "../types";
 import { meFor } from "./data";
-import { mockUsage } from "./state";
+import { mockDemoUsage, mockUsage } from "./state";
 
 export { MOCK_PLAN_COOKIE };
 export const MOCK_CSRF_TOKEN = "mock-csrf-token";
+export const MOCK_DEMO_EXPIRES_COOKIE = "bp_mock_demo_expires";
+/** Set to `ip_limit` or `budget` to make `POST /demo/start` answer 429 with that code. */
+export const MOCK_DEMO_START_COOKIE = "bp_mock_demo_start";
 
 export type MockPlan = "free" | "pro" | "cancelling" | "pastdue" | "demo" | "nameless" | "admin";
 
 const MOCK_PLANS: readonly MockPlan[] = ["free", "pro", "cancelling", "pastdue", "demo", "nameless", "admin"];
+
+/** A mock cookie from the request, or from `document.cookie` for Node-side fetches under jsdom. */
+export function mockCookie(cookies: Record<string, string>, name: string): string | null {
+  return cookies[name] ?? (typeof document === "undefined" ? null : readCookie(document.cookie, name));
+}
 
 /**
  * Which mock account a request belongs to; no cookie means signed out. The request's own cookies
@@ -28,7 +36,14 @@ export function setMockSession(plan: MockPlan): void {
 }
 
 export function clearMockSession(): void {
-  if (typeof document !== "undefined") document.cookie = `${MOCK_PLAN_COOKIE}=; path=/; max-age=0`;
+  if (typeof document === "undefined") return;
+  document.cookie = `${MOCK_PLAN_COOKIE}=; path=/; max-age=0`;
+  document.cookie = `${MOCK_DEMO_EXPIRES_COOKIE}=; path=/; max-age=0`;
+}
+
+/** Remembers when the started demo expires, so a reload (which restarts the mock worker) keeps the same countdown. */
+export function setMockDemoExpiry(iso: string): void {
+  if (typeof document !== "undefined") document.cookie = `${MOCK_DEMO_EXPIRES_COOKIE}=${iso}; path=/; SameSite=Lax`;
 }
 
 export function setMockCsrfCookie(): void {
@@ -37,7 +52,7 @@ export function setMockCsrfCookie(): void {
 
 const PRO_RENEWS_AT = "2026-11-02T14:05:00Z";
 
-export function meForMockPlan(plan: MockPlan): Me {
+export function meForMockPlan(plan: MockPlan, cookies: Record<string, string> = {}): Me {
   const pro = meFor("pro");
   switch (plan) {
     case "free":
@@ -48,8 +63,11 @@ export function meForMockPlan(plan: MockPlan): Me {
       return { ...pro, subscription: { status: "active", current_period_end: PRO_RENEWS_AT, cancel_at_period_end: true } };
     case "pastdue":
       return { ...pro, subscription: { status: "past_due", current_period_end: PRO_RENEWS_AT, cancel_at_period_end: false } };
-    case "demo":
-      return meFor("demo");
+    case "demo": {
+      const fromCookie = mockCookie(cookies, MOCK_DEMO_EXPIRES_COOKIE);
+      const expiry = fromCookie && !Number.isNaN(Date.parse(fromCookie)) ? { demo_expires_at: fromCookie } : {};
+      return { ...meFor("demo"), ...expiry, usage: mockDemoUsage.current() };
+    }
     case "admin":
       return { ...pro, name: "Ege", role: "admin" };
     case "nameless":

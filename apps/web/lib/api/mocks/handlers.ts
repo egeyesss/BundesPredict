@@ -18,14 +18,30 @@ import {
   teams,
   trackRecord,
 } from "./data";
-import { clearMockSession, meChanges, meForMockPlan, mockPlanFrom, setMockCsrfCookie, setMockSession } from "./session";
+import {
+  MOCK_DEMO_START_COOKIE,
+  clearMockSession,
+  meChanges,
+  meForMockPlan,
+  mockCookie,
+  mockPlanFrom,
+  setMockCsrfCookie,
+  setMockDemoExpiry,
+  setMockSession,
+} from "./session";
 import { adminMetricsFor, ADMIN_RANGES } from "./admin";
-import { mockUsage } from "./state";
+import { mockDemoUsage, mockUsage } from "./state";
 import { recordedStreams, sseResponse } from "./streams";
 
 const API = "*/api/v1";
 
 const cutOffStream = recordedStreams.happy.slice(0, 5);
+
+const DEMO_LIFETIME_MS = 24 * 3600e3;
+const DEMO_START_LIMITS: Record<string, { code: string; message: string } | undefined> = {
+  ip_limit: { code: "demo_ip_limit", message: "This network has started its 3 demos for today. Try again tomorrow, or sign up free." },
+  budget: { code: "demo_budget", message: "Today's demo spots are used up. They reset at midnight UTC, or you can sign up free." },
+};
 
 export type PredictScenario =
   | "happy"
@@ -142,7 +158,7 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
 
     http.get(`${API}/me`, ({ cookies }) => {
       const plan = mockPlanFrom(cookies);
-      return plan ? HttpResponse.json({ ...meForMockPlan(plan), ...meChanges }) : HttpResponse.json(notAuthenticated, { status: 401 });
+      return plan ? HttpResponse.json({ ...meForMockPlan(plan, cookies), ...meChanges }) : HttpResponse.json(notAuthenticated, { status: 401 });
     }),
 
     http.patch(`${API}/me`, async ({ request, cookies }) => {
@@ -151,7 +167,7 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
       const body = (await request.json()) as { email_opt_in?: boolean; timezone?: string | null };
       if (body.email_opt_in !== undefined) meChanges.email_opt_in = body.email_opt_in;
       if (body.timezone !== undefined) meChanges.timezone = body.timezone;
-      return HttpResponse.json({ ...meForMockPlan(plan), ...meChanges });
+      return HttpResponse.json({ ...meForMockPlan(plan, cookies), ...meChanges });
     }),
 
     http.get(`${API}/conversations`, () => HttpResponse.json(conversationPage)),
@@ -181,7 +197,16 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
       return HttpResponse.json(adminMetricsFor(days, plan === "demo"));
     }),
 
-    http.post(`${API}/demo/start`, () => HttpResponse.json(meFor("demo"), { status: 201 })),
+    http.post(`${API}/demo/start`, ({ cookies }) => {
+      const limit = DEMO_START_LIMITS[mockCookie(cookies, MOCK_DEMO_START_COOKIE) ?? ""];
+      if (limit) return HttpResponse.json(limit, { status: 429 });
+      const expiresAt = new Date(Date.now() + DEMO_LIFETIME_MS).toISOString();
+      setMockSession("demo");
+      setMockCsrfCookie();
+      setMockDemoExpiry(expiresAt);
+      mockDemoUsage.reset();
+      return HttpResponse.json({ ...meFor("demo"), usage: mockDemoUsage.current(), demo_expires_at: expiresAt }, { status: 201 });
+    }),
 
     http.post(`${API}/email/unsubscribe`, async ({ request }) => {
       const { token } = (await request.json()) as { token?: string };
@@ -190,7 +215,7 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
         : new HttpResponse(null, { status: 204 });
     }),
 
-    http.post(`${API}/predict/stream`, async ({ request }) => {
+    http.post(`${API}/predict/stream`, async ({ request, cookies }) => {
       const { query } = (await request.json()) as Partial<PredictRequest>;
       if (typeof query !== "string" || query.trim() === "" || query.length > 500) {
         return validationError("query: must be 1 to 500 characters.");
@@ -203,12 +228,17 @@ export function createHandlers({ streamFrameDelayMs = 0 }: HandlerOptions = {}) 
       if (scenario === "rate_limited") {
         return HttpResponse.json(rateLimited, { status: 429, headers: { "Retry-After": "3" } });
       }
-      if (scenario === "quota_exceeded" || mockUsage.isExhausted()) {
-        return HttpResponse.json(quotaExceeded, { status: 402 });
+      const plan = mockPlanFrom(cookies);
+      const counter = plan === "demo" ? mockDemoUsage : mockUsage;
+      if (scenario === "quota_exceeded") return HttpResponse.json(quotaExceeded, { status: 402 });
+      if (counter.isExhausted()) {
+        const usage = counter.current();
+        const demoSpent = { ...quotaExceeded, usage, message: `You have used all ${usage.limit} demo chats.` };
+        return HttpResponse.json(plan === "demo" ? demoSpent : quotaExceeded, { status: 402 });
       }
 
-      if (scenario === "last_chat") mockUsage.leaveOneChat();
-      const usage = mockUsage.spend();
+      if (scenario === "last_chat") counter.leaveOneChat();
+      const usage = counter.spend();
       const recording = scenario === "cut_off" ? cutOffStream : recordedStreams[scenario];
       const events = recording.map((frame) => (frame.event === "quota" ? { ...frame, data: usage } : frame));
 

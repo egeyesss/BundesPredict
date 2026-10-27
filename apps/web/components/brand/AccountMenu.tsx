@@ -19,7 +19,7 @@ import { displayName, quotaSummary, type NavUser } from "./nav";
 
 export function AccountMenu({ user }: { user: NavUser }) {
   const name = displayName(user);
-  const isFree = user.plan === "free";
+  const isFree = user.plan === "free" || user.plan === "demo";
   const billingLabel = isFree ? "Upgrade to Pro" : "Manage billing";
   const billing = useBillingRedirect({ onError: (message) => toast.error(message) });
   const { signOut } = useSignOut({ onError: (message) => toast.error(message) });
@@ -27,7 +27,7 @@ export function AccountMenu({ user }: { user: NavUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" aria-label="Account menu" data-focus-key="account" className="rounded-full">
+        <button type="button" aria-label="Account menu" data-focus-key="account" data-tour="upgrade" className="rounded-full">
           <Avatar className="size-9">
             <AvatarFallback className="bg-bp-surface-2 text-[13px] font-semibold text-bp-text">
               {name.charAt(0).toUpperCase()}

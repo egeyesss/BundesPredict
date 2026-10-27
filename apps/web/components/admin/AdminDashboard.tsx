@@ -16,7 +16,8 @@ export function AdminDashboard({ metrics, range }: { metrics: AdminMetrics; rang
     <div className="mx-auto grid w-full max-w-[1200px] gap-[18px] px-4 pt-8 pb-16">
       {metrics.masked && (
         <Banner tone="warn" icon="!">
-          <b>Read-only demo view.</b> You&apos;re seeing the real dashboard. Emails are masked and nothing here can be changed.
+          <b>Read-only demo view.</b>{" "}
+          You&apos;re seeing the real dashboard. Emails are masked and nothing here can be changed.
         </Banner>
       )}
       <div className="flex flex-wrap items-end justify-between gap-x-5 gap-y-3">

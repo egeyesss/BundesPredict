@@ -10,14 +10,16 @@ type ChartFrameProps = {
   legend?: ReactNode;
   table: ReactNode;
   children: ReactNode;
+  /** Value for the `data-tour` anchor attribute. */
+  tour?: string;
 };
 
 /** A titled card whose chart can be swapped for the same numbers as a table. */
-export function ChartFrame({ title, description, legend, table, children }: ChartFrameProps) {
+export function ChartFrame({ title, description, legend, table, children, tour }: ChartFrameProps) {
   const [showTable, setShowTable] = useState(false);
   const tableId = useId();
   return (
-    <Card>
+    <Card data-tour={tour}>
       <div className="flex flex-wrap items-start justify-between gap-x-3.5 gap-y-2">
         <div className="grid min-w-0 flex-[1_1_240px] gap-1">
           <h3 className="font-display text-[19px] leading-[1.15] font-semibold tracking-[0.02em]">{title}</h3>

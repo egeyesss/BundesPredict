@@ -237,3 +237,47 @@ describe("mock failure scenarios", () => {
     expect(names).not.toContain("error");
   });
 });
+
+describe("demo start", () => {
+  const demoStart = () => client.POST("/api/v1/demo/start");
+
+  it("signs the mock browser in as a fresh demo user who expires in 24 hours", async () => {
+    clearMockSession();
+    const before = Date.now();
+    const started = await demoStart();
+    expect(started.response.status).toBe(201);
+    expect(started.data).toMatchObject({ plan: "demo", is_demo: true, usage: { used: 0, limit: 10 } });
+    const expiresAt = Date.parse(started.data?.demo_expires_at ?? "");
+    expect(expiresAt - before).toBeGreaterThan(24 * 3600e3 - 5000);
+    expect(expiresAt - before).toBeLessThan(24 * 3600e3 + 5000);
+
+    const me = await client.GET("/api/v1/me");
+    expect(me.data).toMatchObject({ plan: "demo", is_demo: true, demo_expires_at: started.data?.demo_expires_at });
+  });
+
+  it.each([
+    ["ip_limit", "demo_ip_limit"],
+    ["budget", "demo_budget"],
+  ])("answers 429 %s on request with its own code and a message", async (variant, code) => {
+    clearMockSession();
+    document.cookie = `bp_mock_demo_start=${variant}; path=/`;
+    const { response, error } = await demoStart();
+    document.cookie = "bp_mock_demo_start=; path=/; max-age=0";
+    expect(response.status).toBe(429);
+    expect(error?.code).toBe(code);
+    expect(error?.message.length).toBeGreaterThan(10);
+    expect((await client.GET("/api/v1/me")).response.status).toBe(401);
+  });
+
+  it("counts the demo user's chats against 10 in total, then answers 402", async () => {
+    clearMockSession();
+    await demoStart();
+    for (let chat = 1; chat <= 10; chat++) {
+      const start = await startPredictStream({ query: "Kane is out", conversation_id: null, fixture_id: null }, { baseUrl: BASE_URL });
+      expect(start.ok).toBe(true);
+      if (start.ok) for await (const event of start.events) if (event.event === "quota") expect(event.data).toMatchObject({ used: chat, limit: 10 });
+    }
+    const eleventh = await startPredictStream({ query: "again", conversation_id: null, fixture_id: null }, { baseUrl: BASE_URL });
+    expect(eleventh).toMatchObject({ ok: false, status: 402 });
+  });
+});

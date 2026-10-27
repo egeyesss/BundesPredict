@@ -15,7 +15,7 @@
 
   html {
     @apply bg-background font-sans text-foreground antialiased;
-    scroll-padding-top: calc(84px + env(safe-area-inset-top, 0px));
+    scroll-padding-top: calc(84px + var(--demo-bar-h, 0px) + env(safe-area-inset-top, 0px));
   }
 
   body {

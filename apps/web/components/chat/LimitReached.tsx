@@ -15,7 +15,7 @@ type LimitReachedProps = {
 export function LimitReached({ plan, usage, timeZone, locale }: LimitReachedProps) {
   const demo = plan === "demo";
   return (
-    <div role="status" className="grid gap-2.5 rounded-[var(--bp-radius)] border border-bp-border bg-bp-surface-1 px-4 py-3.5">
+    <div role="status" data-tour="quota" className="grid gap-2.5 rounded-[var(--bp-radius)] border border-bp-border bg-bp-surface-1 px-4 py-3.5">
       <p className="m-0 text-sm text-bp-text-muted">
         <strong className="font-semibold text-bp-text">
           {demo ? `You've used all ${usage.limit} demo chats.` : `You've used today's ${usage.limit} free chats.`}
