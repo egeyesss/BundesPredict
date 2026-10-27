@@ -6,6 +6,7 @@ export type NavUser = {
   plan: NavPlan;
   chatsUsed: number;
   chatsLimit: number;
+  isDemo: boolean;
 };
 
 export type NavLink = { href: string; label: string; hint?: string };
@@ -25,9 +26,9 @@ export function displayName(user: Pick<NavUser, "name" | "email" | "plan">): str
 }
 
 export function quotaSummary(user: NavUser): string {
-  if (user.plan === "pro") return "Pro · fair use";
+  if (user.plan === "pro" && !user.isDemo) return "Pro · fair use";
   const left = Math.max(0, user.chatsLimit - user.chatsUsed);
-  return user.plan === "demo"
+  return user.isDemo || user.plan === "demo"
     ? `${left} of ${user.chatsLimit} demo chats left`
     : `${left} of ${user.chatsLimit} free chats left today`;
 }

@@ -232,9 +232,10 @@ describe("the chat stops", () => {
     expect(await screen.findByRole("dialog")).toHaveTextContent("used all 10 demo chats");
   });
 
-  it("labels a replay as a recording", async () => {
+  it("labels a replay as a recording of another match", async () => {
     render(<Harness initial={{ ...atMessage, index: 6 }} chat={{ ...idleChat, status: "done", recorded: true }} />);
-    expect(await screen.findByRole("dialog")).toHaveTextContent("Recorded example.");
+    // The pinned fixture changes every week, so the replay has to say which match it really is.
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Recorded example from Dortmund v Hoffenheim.");
   });
 
   it("waits for a live answer, with a way to a recording", async () => {

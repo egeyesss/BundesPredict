@@ -13,6 +13,11 @@ export function planState(me: Me): PlanState {
   return chatsLeft(me.usage) === 0 ? "free_exhausted" : "free";
 }
 
+/** The allowance a user's chats count against: a demo stays on its 10 chats even after a test checkout makes it Pro. */
+export function quotaPlan(me: Pick<Me, "plan" | "is_demo">): Me["plan"] {
+  return me.is_demo ? "demo" : me.plan;
+}
+
 export function chatsLeft(usage: Usage): number {
   return Math.max(0, usage.limit - usage.used);
 }
@@ -24,6 +29,7 @@ export function navUserFromMe(me: Me): NavUser {
     plan: me.plan,
     chatsUsed: me.usage.used,
     chatsLimit: me.usage.limit,
+    isDemo: me.is_demo,
   };
 }
 

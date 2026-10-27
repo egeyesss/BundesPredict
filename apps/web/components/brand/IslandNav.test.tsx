@@ -14,6 +14,7 @@ const freeUser: NavUser = {
   plan: "free",
   chatsUsed: 1,
   chatsLimit: 3,
+  isDemo: false,
 };
 
 function setViewport(width: number, scrollY = 0) {

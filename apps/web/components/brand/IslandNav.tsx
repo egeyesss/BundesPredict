@@ -388,7 +388,7 @@ export function IslandNav({ wordmark, user, authPending = false, links = NAV_LIN
 
 function MenuAccountCard({ user }: { user: NavUser }) {
   const name = displayName(user);
-  const pips = user.plan === "pro" ? 0 : user.chatsLimit;
+  const pips = user.plan === "pro" && !user.isDemo ? 0 : user.chatsLimit;
 
   return (
     <div className="menu-who">
