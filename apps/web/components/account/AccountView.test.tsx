@@ -21,3 +21,15 @@ describe("AccountView heading", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Sam Rivera");
   });
 });
+
+describe("AccountView usage", () => {
+  it("shows a demo user who finished the test checkout their demo chats, not Pro fair use", () => {
+    const demoProMe = { ...meFor("demo"), plan: "pro" as const, subscription: meFor("pro").subscription };
+    render(<AccountView initialMe={demoProMe} />);
+
+    const usage = screen.getByLabelText("Usage");
+    expect(usage).toHaveTextContent("8 of 10 demo chats left");
+    expect(usage).toHaveTextContent("for this demo");
+    expect(usage).not.toHaveTextContent(/fair use|resets/i);
+  });
+});

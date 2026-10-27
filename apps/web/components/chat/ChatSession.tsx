@@ -6,7 +6,8 @@ import { useIslandActivity } from "@/components/brand/IslandActivity";
 import { replaySchedule } from "@/components/marketing/demo-replay";
 import { useReducedMotion } from "@/components/signature/reduced-motion";
 import { suggestedMessage, useTourChatLink, type ChatStatus } from "@/components/tour/chat-link";
-import { RECORDED_ANSWER, RECORDED_QUESTION } from "@/components/tour/recorded-answer";
+import { RECORDED_ANSWER, RECORDED_MATCH, RECORDED_QUESTION } from "@/components/tour/recorded-answer";
+import { quotaPlan } from "@/lib/account/plan";
 import { captionFor, type AgentEvent } from "@/lib/agent-state";
 import { browserOrigin, fetchFixture, fetchMe } from "@/lib/api/browser";
 import { startPredictStream, type PredictStreamStart } from "@/lib/api/predict-stream";
@@ -206,7 +207,7 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
       : null;
 
   const usage = usageOverride ?? (me.resource.status === "ready" ? me.resource.data.usage : null);
-  const plan = me.resource.status === "ready" ? me.resource.data.plan : "free";
+  const plan = me.resource.status === "ready" ? quotaPlan(me.resource.data) : "free";
   const signInRequired = needsSignIn || (me.resource.status === "error" && me.resource.failure.status === 401);
   const narrow = useNarrowScreen();
   const matchName = fixture.resource.status === "ready" ? `${fixture.resource.data.home.short_name} v ${fixture.resource.data.away.short_name}` : null;
@@ -252,7 +253,7 @@ export function ChatSession({ conversationId, fixtureId, initialMessages }: Chat
             <Fragment key={turn.id}>
               {index === recordedAt && (
                 <p className="mx-auto w-full max-w-[760px] font-mono text-xs text-bp-text-muted">
-                  Recorded example, not a live answer. It did not use any of your chats.
+                  Recorded example from {RECORDED_MATCH}, not a live answer. It did not use any of your chats.
                 </p>
               )}
               {turn.kind === "user" ? (

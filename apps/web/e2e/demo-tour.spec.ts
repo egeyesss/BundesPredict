@@ -90,7 +90,7 @@ test.describe("the guided demo", () => {
         await expect(page.getByRole("textbox", { name: "Message" })).toHaveValue(/^Suppose .+'s main striker is out\./);
         await expect(bubble(page)).toContainText("Uses 1 of your 10 demo chats");
       }
-      if (index === 5) await expect(page.getByText("Recorded example, not a live answer")).toBeVisible();
+      if (index === 5) await expect(page.getByText(/Recorded example from .+, not a live answer/)).toBeVisible();
       await expectSpotlightOn(page, ANCHORS[index]);
       const name = screenshotAt.get(index);
       // Only the bubble: the page behind it can settle a few pixels apart between runs, and the spotlight's position is asserted above.
@@ -113,7 +113,7 @@ test.describe("the guided demo", () => {
     await next(page).click();
     await waitForStop(page, 5);
     await expectSpotlightOn(page, "steps");
-    await expect(page.getByText("Recorded example, not a live answer")).toHaveCount(0);
+    await expect(page.getByText(/Recorded example from .+, not a live answer/)).toHaveCount(0);
 
     await next(page).click();
     await waitForStop(page, 6);

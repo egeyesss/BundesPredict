@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import type { TourChatHandle } from "./chat-link";
+import { RECORDED_MATCH } from "./recorded-answer";
 import { SCREEN_LABEL, STEPS } from "./steps";
 import type { TourAction, TourPhase } from "./tour-state";
 import { useSpotlight } from "./useSpotlight";
@@ -257,7 +258,7 @@ function StepExtras({ stepId, chat, chatLimit, waiting, anchorMissing, onOpenChe
   if (chat?.recorded && (stepId === "steps" || stepId === "result" || stepId === "chips")) {
     notes.push(
       <p key="recorded" className="tour-note">
-        <b>Recorded example.</b> This is a replay of a real answer, not a live one, and it did not use any of your chats.
+        <b>Recorded example from {RECORDED_MATCH}.</b> This is a replay of a real answer about another match, not a live one, and it did not use any of your chats.
       </p>,
     );
   }

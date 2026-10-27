@@ -6,8 +6,8 @@ import type { IslandMode } from "@/lib/island";
 
 const MODES: readonly IslandMode[] = ["full", "compact", "mobile", "open"];
 
-const FREE_USER: NavUser = { name: "Ege", email: "ege@example.com", plan: "free", chatsUsed: 1, chatsLimit: 3 };
-const PRO_USER: NavUser = { name: "Ege", email: "ege@example.com", plan: "pro", chatsUsed: 12, chatsLimit: 100 };
+const FREE_USER: NavUser = { name: "Ege", email: "ege@example.com", plan: "free", chatsUsed: 1, chatsLimit: 3, isDemo: false };
+const PRO_USER: NavUser = { name: "Ege", email: "ege@example.com", plan: "pro", chatsUsed: 12, chatsLimit: 100, isDemo: false };
 
 function Preview({ mode, user, audience }: { mode: IslandMode; user: NavUser | null; audience: string }) {
   return (
