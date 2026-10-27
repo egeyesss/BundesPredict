@@ -52,9 +52,14 @@ function scrollParents(element: HTMLElement): (HTMLElement | null)[] {
   const parents: (HTMLElement | null)[] = [];
   for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
     const { overflowY } = getComputedStyle(parent);
-    if ((overflowY === "auto" || overflowY === "scroll") && parent.scrollHeight > parent.clientHeight) parents.push(parent);
+    if (overflowY === "auto" || overflowY === "scroll") parents.push(parent);
   }
   return [...parents, null];
+}
+
+/** Anchors inside an inner scroller (the chat log) can always be scrolled clear of a bottom sheet; others dock away from where they are. */
+function dockFor(element: HTMLElement, rect: Box, viewportHeight: number): Dock {
+  return scrollParents(element).length > 1 ? "bottom" : sheetDockFor(rect, viewportHeight);
 }
 
 /**
@@ -77,7 +82,8 @@ function align(element: HTMLElement, { sheet, dock, bubbleHeight, reduced }: Ali
     const visibleBottom = Math.min(box.bottom, freeBottom);
     const room = visibleBottom - visibleTop;
     if (room < MIN_FREE_HEIGHT) continue;
-    if (top >= visibleTop - SLACK && top + rect.height <= visibleBottom + SLACK) continue;
+    // The page itself is only moved when the anchor is out of sight; an inner scroller is always centred, so the stop looks the same however long the content took to load.
+    if (scroller === null && top >= visibleTop - SLACK && top + rect.height <= visibleBottom + SLACK) continue;
 
     const wanted = rect.height >= room ? visibleTop : visibleTop + (room - rect.height) / 2;
     const current = scroller ? scroller.scrollTop : window.scrollY;
@@ -132,11 +138,11 @@ export function useSpotlight(step: TourStep, active: boolean, refs: SpotlightRef
       const viewport = { width: window.innerWidth, height: window.innerHeight };
       const size = { width: bubbleEl.offsetWidth, height: bubbleEl.offsetHeight };
       const sheet = viewport.width < SHEET_BREAKPOINT;
-      dock ??= sheet ? sheetDockFor(rect, viewport.height) : "bottom";
+      dock ??= sheet ? dockFor(element, rect, viewport.height) : "bottom";
 
       if (!settled && performance.now() - alignedAt > SETTLE_MS) {
         settled = true;
-        if (sheet && overlapsSheet(rect, dock, size.height, viewport.height, headerHeight())) {
+        if (sheet && scrollParents(element).length === 1 && overlapsSheet(rect, dock, size.height, viewport.height, headerHeight())) {
           dock = dock === "bottom" ? "top" : "bottom";
           alignedAt = performance.now();
           settled = false;
@@ -190,7 +196,7 @@ export function useSpotlight(step: TourStep, active: boolean, refs: SpotlightRef
           if (found) {
             const sheet = window.innerWidth < SHEET_BREAKPOINT;
             const size = bubble.current?.offsetHeight ?? 0;
-            dock = sheet ? sheetDockFor(boxOf(found.getBoundingClientRect()), window.innerHeight) : "bottom";
+            dock = sheet ? dockFor(found, boxOf(found.getBoundingClientRect()), window.innerHeight) : "bottom";
             alignedAt = now;
             align(found, { sheet, dock, bubbleHeight: size, reduced });
             if (spot.current) spot.current.dataset.fresh = "";

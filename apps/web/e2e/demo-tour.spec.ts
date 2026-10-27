@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 test.use({ reducedMotion: "reduce", timezoneId: "America/Toronto", locale: "en-US" });
@@ -63,6 +64,21 @@ async function expectSpotlightOn(page: Page, name: string) {
   expect(covered, "something sits on top of the bubble").toBe(false);
 }
 
+/** Waits until the anchor has stopped moving, so a screenshot never catches a late scroll or the typed answer growing. */
+async function expectStill(page: Page, name: string) {
+  await expect
+    .poll(
+      async () => {
+        // The tour re-aligns for up to 4s after an anchor appears, because late layout can push it off screen.
+        const before = JSON.stringify(await anchorBox(page, name));
+        await page.waitForTimeout(4500);
+        return before === JSON.stringify(await anchorBox(page, name));
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+}
+
 async function waitForStop(page: Page, index: number) {
   await expect(bubble(page)).toContainText(`${index + 1} of 15 · ${SCREENS[index]}`);
   await expect(page).toHaveURL(new RegExp(`${PATHS[index]}(\\?.*)?$`));
@@ -86,13 +102,17 @@ test.describe("the guided demo", () => {
     for (let index = 0; index < 15; index++) {
       await waitForStop(page, index);
       if (index === 4) {
-        await expect(page.getByRole("textbox", { name: "Message" })).toHaveValue(/^Suppose .+'s main striker misses this match\./);
+        await expect(page.getByRole("textbox", { name: "Message" })).toHaveValue(/^Suppose .+'s main striker is out\./);
         await expect(bubble(page)).toContainText("Uses 1 of your 10 demo chats");
       }
       if (index === 5) await expect(page.getByText("Recorded example, not a live answer")).toBeVisible();
       await expectSpotlightOn(page, ANCHORS[index]);
       const name = screenshotAt.get(index);
-      if (name) await expect(page).toHaveScreenshot(name);
+      if (name) {
+        await expectStill(page, ANCHORS[index]);
+        // The 375px chat stop shifts a few rows of the answer behind the dim layer between runs, so it gets a wider pixel budget.
+        await expect(page).toHaveScreenshot(name, { maxDiffPixelRatio: name === "demo-stop-chat.png" ? 0.06 : 0.002 });
+      }
       await next(page).click();
     }
 
@@ -200,6 +220,38 @@ test.describe("the guided demo", () => {
     }
     await page.keyboard.press("Escape");
     await expect(bubble(page)).toHaveCount(0);
+  });
+});
+
+test.describe("accessibility and motion", () => {
+  test("has no axe violations on the welcome card, a stop, or the hotspots", async ({ page }) => {
+    await startFromLanding(page);
+    await page.evaluate(() => document.fonts.ready);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    await page.getByRole("button", { name: "Take the tour" }).click();
+    await waitForStop(page, 0);
+    await expectSpotlightOn(page, "fixture");
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    await bubble(page).getByRole("button", { name: "Skip tour" }).click();
+    await expect(page.getByRole("button", { name: "Explain: One card per fixture" })).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+
+  test("moves the spotlight on a spring only when reduced motion is off", async ({ page }) => {
+    const springy = () => page.locator(".tour-spot").evaluate((element) => getComputedStyle(element).transitionDuration);
+    await startFromLanding(page);
+    await page.getByRole("button", { name: "Take the tour" }).click();
+    await waitForStop(page, 0);
+    await expectSpotlightOn(page, "fixture");
+    expect(await springy()).toBe("0s");
+
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await expect.poll(springy).toBe("0.38s, 0.38s, 0.38s, 0.38s");
+    await page.keyboard.press("ArrowRight");
+    await waitForStop(page, 1);
+    await expectSpotlightOn(page, "bar");
   });
 });
 

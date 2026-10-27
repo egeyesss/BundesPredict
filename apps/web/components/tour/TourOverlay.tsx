@@ -170,7 +170,7 @@ function OverlayBody({ phase, index, chat, chatLimit, dispatch, onOpenCheckout, 
                 </button>
               )}
             </div>
-            <h4 id={titleId}>{step.title}</h4>
+            <h2 id={titleId}>{step.title}</h2>
             <p id={whatId} className="tour-what">
               {step.what}
             </p>

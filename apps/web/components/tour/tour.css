@@ -154,7 +154,7 @@
   color: var(--bp-text);
 }
 
-.tour-bubble h4 {
+.tour-bubble h2 {
   margin: 0;
   font: 700 22px/1.05 var(--font-display);
   letter-spacing: 0.01em;

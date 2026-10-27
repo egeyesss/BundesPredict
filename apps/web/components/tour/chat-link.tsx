@@ -33,5 +33,5 @@ export function useTourChatLink(): TourChatLink | null {
 
 /** A hypothetical built from the pinned fixture's real club name; it never claims anyone is injured. */
 export function suggestedMessage(fixture: Pick<FixtureDetail, "home">): string {
-  return `Suppose ${fixture.home.name}'s main striker misses this match. Treat him as a key player and show how it moves the odds.`;
+  return `Suppose ${fixture.home.name}'s main striker is out. Treat him as a key player.`;
 }
