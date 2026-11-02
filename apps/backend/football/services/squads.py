@@ -15,6 +15,7 @@ from django.db import transaction
 
 from bundespredict.data.tm_scrape import TransfermarktSnapshot
 from bundespredict.data.transfermarkt import LeagueClub, SquadPlayer, canonical_club_name
+from football.identities import new_team
 from football.models import Player, SquadValue, Team, TeamAlias
 
 SOURCE = "transfermarkt"
@@ -39,7 +40,7 @@ def _link_teams(clubs: list[LeagueClub]) -> tuple[dict[int, int], int]:
     teams = {t.name: t for t in Team.objects.filter(name__in=canonical_names)}
     missing = [name for name in canonical_names if name not in teams]
     if missing:
-        Team.objects.bulk_create([Team(name=name) for name in missing], ignore_conflicts=True)
+        Team.objects.bulk_create([new_team(name) for name in missing], ignore_conflicts=True)
         written += len(missing)
         teams = {t.name: t for t in Team.objects.filter(name__in=canonical_names)}
 
