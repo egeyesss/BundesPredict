@@ -1,226 +1,96 @@
 # BundesPredict
 
-**Live at [bundespredict.vercel.app](https://bundespredict.vercel.app)**
+Win, draw and loss probabilities for every Bundesliga match, from a model I wrote, plus a chat agent you can tell the latest news to.
 
-![Ask about a fixture, watch the agent work, get baseline-vs-adjusted odds with an explanation](docs/demo.gif)
+**Live at [bundespredict.egeyesilyurt.ca](https://bundespredict.egeyesilyurt.ca)**.
+"Try the demo" on the landing page gets you in without signing up.
 
-A Bundesliga match predictor with two layers that stay deliberately separate:
+![Matchday page with probabilities and expected goals for all nine fixtures](docs/matchday.png)
 
-- **A Dixon–Coles / Poisson model** (hand-written weighted MLE, time decay,
-  promoted-team shrinkage, temperature-scaled calibration) produces the
-  probabilities.
-- **An LLM agent** reads plain-English match context — "their striker is out and
-  it's going to storm" — and turns it into small, bounded, typed adjustments to
-  the model's expected-goals inputs, re-runs the model, and explains what moved
-  and why.
+## What it is
 
-**Why that combination matters.** Bookmakers price breaking news into a single
-number within minutes — but they won't tell you *why* the line moved, how much
-of it was the injury, or let you ask "and what if his backup also sits?" Static
-prediction sites don't react at all. Here the reaction is **interactive and
-auditable**: you state the context, the agent grounds it against real squad
-data (who the player is, which team he actually plays for, how much he matters
-by market value — scraped from Transfermarkt, snapshot date included), applies
-a bounded, sourced expected-goals adjustment, and shows baseline vs adjusted
-side by side. The point isn't that it knows about injuries — it's that you can
-run the counterfactual yourself and see the work.
+BundesPredict is a website that predicts Bundesliga matches.
+The numbers come from a Dixon-Coles model (a Poisson goals model with a small correction for low scores) fit on every Bundesliga result since 2020/21, and it refits every day.
 
-The model does the maths, the LLM does the words. There is deliberately no tool
-through which the LLM can set a probability: it can only request expected-goals
-adjustments, every one of which is clamped server-side (±0.6 xG) and logged, so
-each answer is auditable back to the exact fitted parameters and the exact
-adjustments applied.
+The model only knows past results, so it has no idea that a striker got injured yesterday or that a storm is coming on Saturday.
+That's what the chat is for.
+You tell the agent what changed in plain words, it checks your claim against squad data and the weather forecast, and then it reruns the model with a small change to expected goals.
+You get the model's odds and the new odds side by side, with every adjustment listed.
 
-!["Kane is out injured and it's stormy" — the odds shift, and every applied adjustment shown as an audited chip](docs/screenshot-prediction.png)
+I kept a hard line between the two parts: the model does all the maths and the LLM only writes the explanation.
+There is no tool the agent can use to set a probability.
+It can only ask for an expected-goals change, and the server caps each one at ±0.6 xG no matter what it asked for.
 
-## How it fits together
+![Chat answer where Guirassy being out drops Dortmund's win chance from 61% to 53%](docs/agent.png)
 
-```
-┌──────────────┐  SSE   ┌─────────────────────────────────┐
-│ Next.js chat │◄──────►│ Django (DRF)                    │
-│  prob bars   │        │  ┌───────────────────────────┐  │
-│  heatmap     │        │  │ Agent (tool-calling loop) │  │
-│  adjustments │        │  └────────────┬──────────────┘  │
-└──────────────┘        │      tools:   │ predict_match   │
-                        │               │ predict_with_…  │
-                        │               │ get_team_form   │
-                        │               │ lookup_player   │
-                        │               │ get_weather     │
-                        │  ┌────────────▼──────────────┐  │
-                        │  │ Model engine (pure)       │  │
-                        │  │  Dixon–Coles → score      │  │
-                        │  │  matrix → every market    │  │
-                        │  └────────────┬──────────────┘  │
-                        └───────────────┼─────────────────┘
-                                        │ reads fitted params
-                        ┌───────────────▼─────────────────┐
-                        │ Postgres: matches, model_runs,   │
-                        │ team_params, predictions (audit) │
-                        └───────────────▲─────────────────┘
-                                        │
-                          manage.py refit (offline job:
-                          ingest → fit → persist params)
-```
+## What's on the site
 
-The boundaries are the point. `packages/model/src/bundespredict/model/` is pure: no I/O, no
-DB, no LLM; given parameters and adjustments it returns a distribution, which is
-what makes it unit-testable (parameter recovery, invariants, monotonicity,
-clamping). Serving never fits: the API loads the latest persisted run, and
-training happens offline in the `refit` management command.
+- **Matchday**: odds and expected goals for every fixture of the next matchday (or the next 7 days), public, no account needed.
+- **Chat**: ask about one fixture and watch each agent step as it runs (player lookup, team form, weather, recent results, the prediction itself, etc.).
+- **Track record**: every prediction is saved before kickoff and scored after the final whistle, next to the closing bookmaker odds and a base rate. Only the base model gets scored, since there's no honest way to grade the agent's adjustments against history.
+- **Free and Pro**: sign in with Google or an emailed code. Free gets 3 chats a day, Pro is $5 CAD a month for 100 chats a day and a matchday email every Thursday (Stripe is still in test mode, so it's not actually taking any payments).
+- **Demo**: a throwaway account that lasts 24 hours, with a few chats already in it and a guided tour of the site.
 
-One score matrix `P(home=i, away=j)` drives everything — 1X2, over/under 2.5,
-both-teams-to-score, correct scores are all slices of the same distribution, so
-the markets can never disagree with each other.
+## How good is it?
 
-## How good is it, honestly?
+A little worse than the bookmakers, which is what I expected.
+I backtested it walk-forward over five seasons (refit before every gameweek, using only results from before that round), 1,827 matches in total:
 
-Backtested walk-forward (refit every gameweek, each fit sees only results
-strictly before that round's kickoff) over five seasons, 1,827 out-of-sample
-predictions — full details in [`reports/backtest_report.md`](reports/backtest_report.md):
+| Forecaster | RPS (lower is better) |
+| --- | --- |
+| Closing market | 0.1967 |
+| Opening market | 0.1976 |
+| **My model** | **0.2045** |
 
-- **RPS 0.2045** vs **0.1967** for the de-vigged closing market consensus. The
-  model is *behind* the market, which is the expected result: the closing line
-  aggregates more information than any goals-only model. Landing within a
-  hundredth of it means the core is sound, not that it prints money.
-- **Well calibrated**: ECE ≈ 0.01; temperature scaling landed at T = 1.139,
-  i.e. the raw probabilities were already close to honest.
-- **CLV +0.24%** on a value-betting sim (ROI is variance-dominated noise at this
-  sample size; closing-line value is the signal worth reading).
-- **Market blend: an honest null.** A log-opinion-pool blend of the calibrated
-  model with the de-vigged opening odds, weight chosen walk-forward, gave the
-  market full weight (w = 1.0) — out-of-sample log-likelihood rises monotonically
-  toward the pure open. A goals-only Dixon-Coles carries no signal the opening
-  line hasn't already priced in; the blend machinery stays so that claim gets
-  re-tested automatically whenever the base model improves.
-- **Pre-match xG: also an honest null.** Rolling pre-match expected goals (from
-  Understat, xG-minus-goals gap, decayed, strictly pre-kickoff) added to log-λ as
-  a fitted global coefficient *improves in-sample fit* (coefficient ≈ +0.7) but
-  **worsens out-of-sample RPS** (0.2069 vs 0.2046 goals-only). The
-  finishing-reversion signal is real inside the training window and doesn't
-  generalise, so it is **not adopted into serving** — the full pipeline (scrape →
-  ingest → engine offset → backtest `use_xg`) stays so the null is reproducible
-  and a better xG formulation can be re-measured the same way.
+The closing line has a lot more information in it than a model that only looks at goals, so being this close to it tells me the model is sound.
+It does not mean you can beat the bookies with it.
+I also tried adding pre-match xG from Understat.
+It fit the training data better but made the out-of-sample RPS worse (0.2069), so I left it out of the live model.
 
-The adjustment layer makes no accuracy claims at all. Contextual magnitudes
-("first-choice striker out ≈ −0.35 xG") can't be backtested — there's no labeled
-history of them — so they live in a knowledge base where every range carries
-either a citation or an explicit `heuristic` label, and the feature is framed as
-what it is: an auditable, bounded what-if with an explanation, not an edge.
+The full write-up is in [`reports/backtest_report.md`](reports/backtest_report.md).
+Live results since 22 Oct 2026 are on the [track record page](https://bundespredict.egeyesilyurt.ca/track-record), but there are only a few matchdays so far, so those numbers still move a lot.
 
-## Repository layout
+![Track record page comparing the model's live RPS with the closing market and a base rate](docs/track-record.png)
+
+## How it's built
+
+- **Frontend**: Next.js (App Router) and TypeScript, hosted on Vercel.
+- **Backend**: Django REST Framework on Railway. Chat answers stream to the browser over SSE, and the agent runs on Claude through the Anthropic API.
+- **Database**: Postgres on Neon. Every prediction is stored with the exact model run behind it.
+- **Model**: a separate Python package (`packages/model`) with no database, network or LLM code inside, so it's easy to test on its own. The backend imports it.
+- **Data**: results from football-data.co.uk, fixtures from OpenLigaDB, squads and market values from Transfermarkt, weather from Open-Meteo.
+- **Other services**: Stripe for Pro, Resend for emails, Google for sign-in.
+- **GitHub Actions**: CI on every PR, plus daily jobs that refit the model, save the day's predictions, score finished matches and delete expired demo accounts, and a weekly one that sends the matchday email.
 
 ```
-packages/model/   the pure model/agent/eval/data library (import name: bundespredict)
-apps/backend/     Django + DRF project (config/, one folder per app, tests/)
-apps/web/         Next.js frontend
-infra/            Dockerfiles and docker-compose.yml
-scripts/          check_backend_gate.sh and the recorder for the web's mock streams
-tests/            tests for the library (model, agent, eval, data parsers)
+packages/model/   the model, agent and backtest code (plain Python, no Django)
+apps/backend/     Django REST API
+apps/web/         Next.js site
+infra/            Dockerfiles and docker-compose
 ```
 
-The Python code is a uv workspace (`packages/model`, `apps/backend`)
-with a single `uv.lock` at the root; ruff, mypy and pytest are configured there too.
-The library never imports Django; the backend imports it.
+## Run it locally
 
-## Running it
-
-Copy the env template into a local `.env` (gitignored):
+You need Docker, [uv](https://docs.astral.sh/uv/) and Node.
 
 ```bash
-POSTGRES_USER=bundespredict
-POSTGRES_PASSWORD=bundespredict
-POSTGRES_DB=bundespredict
-DATABASE_URL=postgresql://bundespredict:bundespredict@localhost:5433/bundespredict
-ANTHROPIC_API_KEY=sk-ant-...        # the agent; endpoints 503 without it
-# AGENT_MODEL=claude-sonnet-4-6     # optional; defaults to Haiku for cheap dev
+docker compose -f infra/docker-compose.yml up -d db   # Postgres on port 5433
+uv sync
+uv run apps/backend/manage.py migrate
+uv run apps/backend/manage.py download_seasons --start 2020 --end 2026
+uv run apps/backend/manage.py ingest_results
+uv run apps/backend/manage.py refit --skip-download
+uv run apps/backend/manage.py download_fixtures
+uv run apps/backend/manage.py runserver 8001
 ```
 
-Then the whole stack:
+Then the site, in a second terminal:
 
 ```bash
-docker compose -f infra/docker-compose.yml up --build
+cd apps/web
+printf "API_BASE_URL=http://localhost:8001\nPROXY_SECRET=dev-only-proxy-secret\n" > .env.local
+npm install && npm run dev                             # http://localhost:3000
 ```
 
-- Web: http://localhost:3000 · Django: http://localhost:8001/api/v1/health
-- Postgres publishes host port **5433** (`POSTGRES_HOST_PORT` to change)
-
-Or without Docker (Postgres still via compose):
-
-```bash
-docker compose -f infra/docker-compose.yml up -d db
-uv sync                                            # installs the whole workspace into .venv
-uv run apps/backend/manage.py migrate              # create the schema
-uv run apps/backend/manage.py runserver 8001       # Django on :8001
-cd apps/web && npm install && npm run dev          # web on :3000
-```
-
-The web dev server needs `API_BASE_URL=http://localhost:8001` and `PROXY_SECRET=dev-only-proxy-secret` in `apps/web/.env.local`.
-
-### Data + a fitted model
-
-```bash
-uv run apps/backend/manage.py download_seasons --start 2019 --end 2025   # CSVs -> data/raw/
-uv run apps/backend/manage.py ingest_results                             # upsert CSVs into Postgres (idempotent)
-uv run apps/backend/manage.py scrape_transfermarkt                       # squads + market values (polite, cached)
-uv run apps/backend/manage.py refit --skip-download                      # fit + persist serving parameters
-uv run apps/backend/manage.py download_fixtures                          # upcoming schedule (OpenLigaDB)
-```
-
-Each command prints a one-line summary, and a second run over the same data changes no rows.
-`refit` is also the recurring job.
-Run it after a matchday and it re-pulls the current season, re-ingests, refits on the full history and persists a new versioned run, which serving picks up on the next request.
-`refit --as-of 2025-06-01` trains only on matches played before that date.
-`download_fixtures` keeps the upcoming schedule mirrored (it's how "predict Dortmund's next game" resolves the opponent), so run it alongside.
-`.github/workflows/refit.yml` runs both on the schedule.
-
-`scrape_transfermarkt` fills two things from Transfermarkt (identifying
-User-Agent, ~1 request per 3s, raw pages cached in `data/tm_cache/` so a
-blocked scrape just keeps serving the last snapshot): the `players` table that
-backs the agent's `lookup_player` tool — any contracted player, with a
-market-value-derived importance and the snapshot date — and per-season squad
-values, which the refit uses as shrinkage targets so a promoted club with an
-expensive squad isn't priced like an average newcomer. Run it locally now and then
-(market values move slowly, mostly around transfer windows); the daily refit uses
-whatever values are stored. Transfermarkt's WAF answers datacenter IPs (GitHub's
-runners included) with a bot challenge, which the scraper reports as `ScrapeBlocked`
-instead of caching an empty page; `--skip-fetch` ingests from the cache alone. Historical league pages are fetched once and never again.
-
-Per-match expected goals (for the pre-match xG experiment) come from Understat via
-`uv run apps/backend/manage.py scrape_understat`. Understat sits behind Cloudflare and only serves its
-data to a real browser, so the scraper drives a local Chromium through Playwright
-(`uv pip install playwright && uv run playwright install chromium`) and caches each season's
-JSON to `data/understat_cache/`; a second pass backfills `matches.home_xg/away_xg`.
-It's an **offline analysis step, not part of serving or the CI refit** — the xG
-feature was measured and left out (see the honest-results section), so nothing on
-the request path depends on it.
-
-The backtest + calibration report is regenerated with
-`uv run --with matplotlib apps/backend/manage.py run_backtest --report-dir reports`; it also
-runs the pre-match xG variant so the report carries the goals-only vs xG
-comparison.
-`eval_promoted_prior` scores the squad-value shrinkage prior against league-mean shrinkage on promoted teams' first matches back up.
-
-## Checks
-
-```bash
-uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
-cd apps/web && npx tsc --noEmit && npm run lint
-```
-
-Tests worth calling out: parameter recovery (simulate from known parameters,
-refit, assert recovery — if that passes, the MLE is almost certainly right), the
-ρ=0 reduction to independent Poisson, score-matrix/market invariants, clamping
-and the λ-floor, and agent-loop tests that run against recorded transcripts so
-CI never touches the live API.
-
-## Deployment
-
-- **Web** → Vercel (project root `apps/web`; `API_BASE_URL` points at the backend).
-- **Backend** → Railway service `backend`, built from `infra/Dockerfile.backend` and configured in `.railway/railway.ts`.
-  It runs `manage.py migrate` before each deploy and health-checks `/api/v1/health`.
-  It needs `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `PROXY_SECRET` and `DATABASE_URL` to boot; the agent also needs `ANTHROPIC_API_KEY`, and `AGENT_MODEL` picks the production model.
-- **Postgres** → Neon. Django migrations own the schema; seed a fresh database with `migrate` → `download_seasons` → `ingest_results` → `refit` → `download_fixtures`.
-- **Retraining** → a GitHub Actions workflow (`.github/workflows/refit.yml`)
-  refits on the latest results and refreshes the fixture schedule every Monday,
-  writing a new versioned parameter run that serving picks up on the next
-  request — the model never fits inside a request, in production either.
+The chat needs an `ANTHROPIC_API_KEY` in `apps/backend/.env`; without one the chat endpoints answer 503 and everything else still works.
+Tests run with `uv run pytest` (Docker has to be running, since they use a real Postgres) and `npm test` in `apps/web`.
