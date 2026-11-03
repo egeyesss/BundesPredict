@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from bundespredict.data.team_aliases import canonical_team_name
+from football.identities import new_team
 from football.models import Team, TeamAlias
 
 
@@ -34,7 +35,7 @@ def ensure_teams(
     known = dict(Team.objects.filter(name__in=canonical_names).values_list("name", "id"))
     missing = [name for name in canonical_names if name not in known]
     if missing:
-        Team.objects.bulk_create([Team(name=name) for name in missing], ignore_conflicts=True)
+        Team.objects.bulk_create([new_team(name) for name in missing], ignore_conflicts=True)
         known = dict(Team.objects.filter(name__in=canonical_names).values_list("name", "id"))
 
     known_aliases = set(
