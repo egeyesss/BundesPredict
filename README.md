@@ -28,7 +28,7 @@ It can only ask for an expected-goals change, and the server caps each one at ±
 - **Matchday**: odds and expected goals for every fixture of the next matchday (or the next 7 days), public, no account needed.
 - **Chat**: ask about one fixture and watch each agent step as it runs (player lookup, team form, weather, recent results, the prediction itself, etc.).
 - **Track record**: every prediction is saved before kickoff and scored after the final whistle, next to the closing bookmaker odds and a base rate. Only the base model gets scored, since there's no honest way to grade the agent's adjustments against history.
-- **Free and Pro**: sign in with Google or an emailed code. Free gets 3 chats a day, Pro is $5 CAD a month for 100 chats a day and a matchday email every Thursday (Stripe is still in test mode, so it's not actually taking any payments).
+- **Free and Pro**: sign in with Google or an emailed code. Free gets 3 chats a day, Pro is $5 CAD a month through Stripe for 100 chats a day and a matchday email every Thursday, and it has a few paying subscribers now.
 - **Demo**: a throwaway account that lasts 24 hours, with a few chats already in it and a guided tour of the site.
 
 ## How good is it?
